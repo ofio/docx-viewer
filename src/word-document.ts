@@ -24,6 +24,7 @@ const topLevelRels = [
 	{ type: RelationshipTypes.CustomProperties, target: "docProps/custom.xml" },
 ];
 
+// word文件解析器：blob对象 => Object对象
 export class WordDocument {
 	private _package: OpenXmlPackage;
 	private _parser: DocumentParser;
@@ -49,6 +50,7 @@ export class WordDocument {
 
 		d._options = options;
 		d._parser = parser;
+		// 解压缩word文件转换为Office Open XML
 		d._package = await OpenXmlPackage.load(blob, options);
 		d.rels = await d._package.loadRelationships();
 
@@ -121,7 +123,7 @@ export class WordDocument {
 			case RelationshipTypes.CustomProperties:
 				part = new CustomPropsPart(this._package, path);
 				break;
-	
+
 			case RelationshipTypes.Settings:
 				this.settingsPart = part = new SettingsPart(this._package, path);
 				break;

@@ -36,66 +36,7 @@ var ___CSS_LOADER_URL_IMPORT_0___ = new URL(/* asset import */ __webpack_require
 var ___CSS_LOADER_EXPORT___ = _node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_1___default()((_node_modules_css_loader_dist_runtime_sourceMaps_js__WEBPACK_IMPORTED_MODULE_0___default()));
 var ___CSS_LOADER_URL_REPLACEMENT_0___ = _node_modules_css_loader_dist_runtime_getUrl_js__WEBPACK_IMPORTED_MODULE_2___default()(___CSS_LOADER_URL_IMPORT_0___);
 // Module
-___CSS_LOADER_EXPORT___.push([module.id, `@namespace "http://www.w3.org/1998/Math/MathML";
-math {
-  display: inline-block;
-  line-height: initial;
-}
-
-mfrac {
-  display: inline-block;
-  vertical-align: -50%;
-  text-align: center;
-}
-mfrac > :first-child {
-  border-bottom: solid thin currentColor;
-}
-mfrac > * {
-  display: block;
-}
-
-msub > :nth-child(2) {
-  font-size: smaller;
-  vertical-align: sub;
-}
-
-msup > :nth-child(2) {
-  font-size: smaller;
-  vertical-align: super;
-}
-
-munder, mover, munderover {
-  display: inline-flex;
-  flex-flow: column nowrap;
-  vertical-align: middle;
-  text-align: center;
-}
-munder > :not(:first-child), mover > :not(:first-child), munderover > :not(:first-child) {
-  font-size: smaller;
-}
-
-munderover > :last-child {
-  order: -1;
-}
-
-mroot, msqrt {
-  position: relative;
-  display: inline-block;
-  border-top: solid thin currentColor;
-  margin-top: 0.5px;
-  vertical-align: middle;
-  margin-left: 1ch;
-}
-mroot:before, msqrt:before {
-  content: "";
-  display: inline-block;
-  position: absolute;
-  width: 1ch;
-  left: -1ch;
-  top: -1px;
-  bottom: 0;
-  background-image: url(${___CSS_LOADER_URL_REPLACEMENT_0___});
-}`, "",{"version":3,"sources":["webpack://./src/mathml.scss"],"names":[],"mappings":"AAAA,+CAAA;AAEA;EACI,qBAAA;EACA,oBAAA;AAAJ;;AAGA;EACI,qBAAA;EACA,oBAAA;EACA,kBAAA;AAAJ;AAEI;EACI,sCAAA;AAAR;AAGI;EACI,cAAA;AADR;;AAMI;EACI,kBAAA;EACA,mBAAA;AAHR;;AAQI;EACI,kBAAA;EACA,qBAAA;AALR;;AASA;EACI,oBAAA;EACA,wBAAA;EACA,sBAAA;EACA,kBAAA;AANJ;AAQI;EACI,kBAAA;AANR;;AAWI;EAAgB,SAAA;AAPpB;;AAUA;EACI,kBAAA;EACA,qBAAA;EACA,mCAAA;EACA,iBAAA;EACA,sBAAA;EACA,gBAAA;AAPJ;AASI;EACI,WAAA;EACA,qBAAA;EACA,kBAAA;EACA,UAAA;EACA,UAAA;EACA,SAAA;EACA,SAAA;EACA,yDAAA;AAPR","sourcesContent":["@namespace \"http://www.w3.org/1998/Math/MathML\";\r\n\r\nmath {\r\n    display: inline-block;\r\n    line-height: initial;\r\n}\r\n\r\nmfrac {\r\n    display: inline-block;\r\n    vertical-align: -50%;\r\n    text-align: center;\r\n\r\n    &>:first-child {\r\n        border-bottom: solid thin currentColor;\r\n    }\r\n\r\n    &>* {\r\n        display: block;\r\n    }\r\n}\r\n\r\nmsub {\r\n    &>:nth-child(2) {\r\n        font-size: smaller;\r\n        vertical-align: sub;\r\n    }\r\n}\r\n\r\nmsup {\r\n    &>:nth-child(2) {\r\n        font-size: smaller;\r\n        vertical-align: super;\r\n    }\r\n}\r\n\r\nmunder, mover, munderover {\r\n    display: inline-flex;\r\n    flex-flow: column nowrap;\r\n    vertical-align: middle;\r\n    text-align: center;\r\n\r\n    &>:not(:first-child) {\r\n        font-size: smaller;\r\n    }\r\n}\r\n\r\nmunderover {\r\n    &>:last-child { order: -1; }\r\n}\r\n\r\nmroot, msqrt {\r\n    position: relative;\r\n    display: inline-block;\r\n    border-top: solid thin currentColor;  \r\n    margin-top: 0.5px;\r\n    vertical-align: middle;  \r\n    margin-left: 1ch; \r\n\r\n    &:before {\r\n        content: \"\";\r\n        display: inline-block;\r\n        position: absolute;\r\n        width: 1ch;\r\n        left: -1ch;\r\n        top: -1px;\r\n        bottom: 0;\r\n        background-image: url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 100' preserveAspectRatio='none'%3E%3Cpath d='m0,75 l5,0 l5,25 l10,-100' stroke='black' fill='none' vector-effect='non-scaling-stroke'/%3E%3C/svg%3E\");\r\n    }\r\n}"],"sourceRoot":""}]);
+___CSS_LOADER_EXPORT___.push([module.id, "@namespace \"http://www.w3.org/1998/Math/MathML\";\nmath {\n  display: inline-block;\n  line-height: initial;\n}\n\nmfrac {\n  display: inline-block;\n  vertical-align: -50%;\n  text-align: center;\n}\nmfrac > :first-child {\n  border-bottom: solid thin currentColor;\n}\nmfrac > * {\n  display: block;\n}\n\nmsub > :nth-child(2) {\n  font-size: smaller;\n  vertical-align: sub;\n}\n\nmsup > :nth-child(2) {\n  font-size: smaller;\n  vertical-align: super;\n}\n\nmunder, mover, munderover {\n  display: inline-flex;\n  flex-flow: column nowrap;\n  vertical-align: middle;\n  text-align: center;\n}\nmunder > :not(:first-child), mover > :not(:first-child), munderover > :not(:first-child) {\n  font-size: smaller;\n}\n\nmunderover > :last-child {\n  order: -1;\n}\n\nmroot, msqrt {\n  position: relative;\n  display: inline-block;\n  border-top: solid thin currentColor;\n  margin-top: 0.5px;\n  vertical-align: middle;\n  margin-left: 1ch;\n}\nmroot:before, msqrt:before {\n  content: \"\";\n  display: inline-block;\n  position: absolute;\n  width: 1ch;\n  left: -1ch;\n  top: -1px;\n  bottom: 0;\n  background-image: url(" + ___CSS_LOADER_URL_REPLACEMENT_0___ + ");\n}", "",{"version":3,"sources":["webpack://./src/mathml.scss"],"names":[],"mappings":"AAAA,+CAAA;AAEA;EACI,qBAAA;EACA,oBAAA;AAAJ;;AAGA;EACI,qBAAA;EACA,oBAAA;EACA,kBAAA;AAAJ;AAEI;EACI,sCAAA;AAAR;AAGI;EACI,cAAA;AADR;;AAMI;EACI,kBAAA;EACA,mBAAA;AAHR;;AAQI;EACI,kBAAA;EACA,qBAAA;AALR;;AASA;EACI,oBAAA;EACA,wBAAA;EACA,sBAAA;EACA,kBAAA;AANJ;AAQI;EACI,kBAAA;AANR;;AAWI;EAAgB,SAAA;AAPpB;;AAUA;EACI,kBAAA;EACA,qBAAA;EACA,mCAAA;EACA,iBAAA;EACA,sBAAA;EACA,gBAAA;AAPJ;AASI;EACI,WAAA;EACA,qBAAA;EACA,kBAAA;EACA,UAAA;EACA,UAAA;EACA,SAAA;EACA,SAAA;EACA,yDAAA;AAPR","sourcesContent":["@namespace \"http://www.w3.org/1998/Math/MathML\";\r\n\r\nmath {\r\n    display: inline-block;\r\n    line-height: initial;\r\n}\r\n\r\nmfrac {\r\n    display: inline-block;\r\n    vertical-align: -50%;\r\n    text-align: center;\r\n\r\n    &>:first-child {\r\n        border-bottom: solid thin currentColor;\r\n    }\r\n\r\n    &>* {\r\n        display: block;\r\n    }\r\n}\r\n\r\nmsub {\r\n    &>:nth-child(2) {\r\n        font-size: smaller;\r\n        vertical-align: sub;\r\n    }\r\n}\r\n\r\nmsup {\r\n    &>:nth-child(2) {\r\n        font-size: smaller;\r\n        vertical-align: super;\r\n    }\r\n}\r\n\r\nmunder, mover, munderover {\r\n    display: inline-flex;\r\n    flex-flow: column nowrap;\r\n    vertical-align: middle;\r\n    text-align: center;\r\n\r\n    &>:not(:first-child) {\r\n        font-size: smaller;\r\n    }\r\n}\r\n\r\nmunderover {\r\n    &>:last-child { order: -1; }\r\n}\r\n\r\nmroot, msqrt {\r\n    position: relative;\r\n    display: inline-block;\r\n    border-top: solid thin currentColor;  \r\n    margin-top: 0.5px;\r\n    vertical-align: middle;  \r\n    margin-left: 1ch; \r\n\r\n    &:before {\r\n        content: \"\";\r\n        display: inline-block;\r\n        position: absolute;\r\n        width: 1ch;\r\n        left: -1ch;\r\n        top: -1px;\r\n        bottom: 0;\r\n        background-image: url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 100' preserveAspectRatio='none'%3E%3Cpath d='m0,75 l5,0 l5,25 l10,-100' stroke='black' fill='none' vector-effect='non-scaling-stroke'/%3E%3C/svg%3E\");\r\n    }\r\n}"],"sourceRoot":""}]);
 // Exports
 /* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = (___CSS_LOADER_EXPORT___.toString());
 
@@ -376,7 +317,7 @@ var RelationshipTypes;
     RelationshipTypes["ExtendedProperties"] = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/extended-properties";
     RelationshipTypes["CoreProperties"] = "http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties";
     RelationshipTypes["CustomProperties"] = "http://schemas.openxmlformats.org/package/2006/relationships/metadata/custom-properties";
-})(RelationshipTypes || (exports.RelationshipTypes = RelationshipTypes = {}));
+})(RelationshipTypes = exports.RelationshipTypes || (exports.RelationshipTypes = {}));
 function parseRelationships(root, xml) {
     return xml.elements(root).map(e => ({
         id: xml.attr(e, "Id"),
@@ -2091,7 +2032,7 @@ var DomType;
     DomType["Inserted"] = "inserted";
     DomType["Deleted"] = "deleted";
     DomType["DeletedText"] = "deletedText";
-})(DomType || (exports.DomType = DomType = {}));
+})(DomType = exports.DomType || (exports.DomType = {}));
 class OpenXmlElementBase {
     constructor() {
         this.children = [];
@@ -2267,7 +2208,7 @@ var SectionType;
     SectionType["NextColumn"] = "nextColumn";
     SectionType["EvenPage"] = "evenPage";
     SectionType["OddPage"] = "oddPage";
-})(SectionType || (exports.SectionType = SectionType = {}));
+})(SectionType = exports.SectionType || (exports.SectionType = {}));
 function parseSectionProperties(elem, xml = xml_parser_1.default) {
     var _a, _b;
     var section = {};
@@ -2356,7 +2297,7 @@ function parseFooterHeaderReference(elem, xml) {
 
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.renderAsync = exports.praseAsync = exports.defaultOptions = void 0;
+exports.docx2html = exports.renderAsync = exports.praseAsync = exports.defaultOptions = void 0;
 const word_document_1 = __webpack_require__(/*! ./word-document */ "./src/word-document.ts");
 const document_parser_1 = __webpack_require__(/*! ./document-parser */ "./src/document-parser.ts");
 const html_renderer_1 = __webpack_require__(/*! ./html-renderer */ "./src/html-renderer.ts");
@@ -2392,6 +2333,13 @@ async function renderAsync(data, bodyContainer, styleContainer = null, userOptio
     return doc;
 }
 exports.renderAsync = renderAsync;
+async function docx2html(data, styleContainer = null, userOptions = null) {
+    const ops = Object.assign(Object.assign({}, exports.defaultOptions), userOptions);
+    const renderer = new html_renderer_1.HtmlRenderer(window.document);
+    const doc = await word_document_1.WordDocument.load(data, new document_parser_1.DocumentParser(ops), ops);
+    return renderer.renderFragment(doc, styleContainer, ops);
+}
+exports.docx2html = docx2html;
 
 
 /***/ }),
@@ -2573,7 +2521,7 @@ class HtmlRenderer {
         this.tabsTimeout = 0;
         this.createElement = createElement;
     }
-    render(document, bodyContainer, styleContainer = null, options) {
+    async render(document, bodyContainer, styleContainer = null, options) {
         var _a;
         this.document = document;
         this.options = options;
@@ -2599,9 +2547,12 @@ class HtmlRenderer {
             styleContainer.appendChild(this.renderStyles(document.stylesPart.styles));
         }
         if (document.numberingPart) {
-            this.prodessNumberings(document.numberingPart.domNumberings);
+            this.processNumberings(document.numberingPart.domNumberings);
             appendComment(styleContainer, "docxjs document numbering styles");
             styleContainer.appendChild(this.renderNumbering(document.numberingPart.domNumberings, styleContainer));
+        }
+        if (!options.ignoreFonts && document.fontTablePart) {
+            this.renderFontTable(document.fontTablePart, styleContainer);
         }
         if (document.footnotesPart) {
             this.footnoteMap = (0, utils_1.keyBy)(document.footnotesPart.notes, x => x.id);
@@ -2612,9 +2563,7 @@ class HtmlRenderer {
         if (document.settingsPart) {
             this.defaultTabSize = (_a = document.settingsPart.settings) === null || _a === void 0 ? void 0 : _a.defaultTabStop;
         }
-        if (!options.ignoreFonts && document.fontTablePart)
-            this.renderFontTable(document.fontTablePart, styleContainer);
-        var sectionElements = this.renderSections(document.documentPart.body);
+        let sectionElements = await this.renderSections(document.documentPart.body);
         if (this.options.inWrapper) {
             bodyContainer.appendChild(this.renderWrapper(sectionElements));
         }
@@ -2622,6 +2571,57 @@ class HtmlRenderer {
             appendChildren(bodyContainer, sectionElements);
         }
         this.refreshTabStops();
+    }
+    async renderFragment(document, styleContainer = null, options) {
+        var _a;
+        this.document = document;
+        this.options = options;
+        this.className = options.className;
+        this.rootSelector = options.inWrapper ? `.${this.className}-wrapper` : ':root';
+        this.styleMap = null;
+        const fragment = window.document.createElement('div');
+        removeAllElements(styleContainer);
+        appendComment(styleContainer, "docxjs library predefined styles");
+        styleContainer.appendChild(this.renderDefaultStyle());
+        if (!window.MathMLElement && options.useMathMLPolyfill) {
+            appendComment(styleContainer, "docxjs mathml polyfill styles");
+            styleContainer.appendChild(createStyleElement(mathml_scss_1.default));
+        }
+        if (document.themePart) {
+            appendComment(styleContainer, "docxjs document theme values");
+            this.renderTheme(document.themePart, styleContainer);
+        }
+        if (document.stylesPart != null) {
+            this.styleMap = this.processStyles(document.stylesPart.styles);
+            appendComment(styleContainer, "docxjs document styles");
+            styleContainer.appendChild(this.renderStyles(document.stylesPart.styles));
+        }
+        if (document.numberingPart) {
+            this.processNumberings(document.numberingPart.domNumberings);
+            appendComment(styleContainer, "docxjs document numbering styles");
+            styleContainer.appendChild(this.renderNumbering(document.numberingPart.domNumberings, styleContainer));
+        }
+        if (!options.ignoreFonts && document.fontTablePart) {
+            this.renderFontTable(document.fontTablePart, styleContainer);
+        }
+        if (document.footnotesPart) {
+            this.footnoteMap = (0, utils_1.keyBy)(document.footnotesPart.notes, x => x.id);
+        }
+        if (document.endnotesPart) {
+            this.endnoteMap = (0, utils_1.keyBy)(document.endnotesPart.notes, x => x.id);
+        }
+        if (document.settingsPart) {
+            this.defaultTabSize = (_a = document.settingsPart.settings) === null || _a === void 0 ? void 0 : _a.defaultTabStop;
+        }
+        let sectionElements = await this.renderSections(document.documentPart.body);
+        if (this.options.inWrapper) {
+            fragment.appendChild(this.renderWrapper(sectionElements));
+        }
+        else {
+            appendChildren(fragment, sectionElements);
+        }
+        this.refreshTabStops();
+        return fragment.innerHTML;
     }
     renderTheme(themePart, styleContainer) {
         var _a, _b;
@@ -2672,7 +2672,7 @@ class HtmlRenderer {
     processStyles(styles) {
         const stylesMap = (0, utils_1.keyBy)(styles.filter(x => x.id != null), x => x.id);
         for (const style of styles.filter(x => x.basedOn)) {
-            var baseStyle = stylesMap[style.basedOn];
+            let baseStyle = stylesMap[style.basedOn];
             if (baseStyle) {
                 style.paragraphProps = (0, utils_1.mergeDeep)(style.paragraphProps, baseStyle.paragraphProps);
                 style.runProps = (0, utils_1.mergeDeep)(style.runProps, baseStyle.runProps);
@@ -2686,15 +2686,16 @@ class HtmlRenderer {
                     }
                 }
             }
-            else if (this.options.debug)
+            else if (this.options.debug) {
                 console.warn(`Can't find base style ${style.basedOn}`);
+            }
         }
         for (let style of styles) {
             style.cssName = this.processStyleName(style.id);
         }
         return stylesMap;
     }
-    prodessNumberings(numberings) {
+    processNumberings(numberings) {
         var _a;
         for (let num of numberings.filter(n => n.pStyleName)) {
             const style = this.findStyle(num.pStyleName);
@@ -2705,7 +2706,7 @@ class HtmlRenderer {
     }
     processElement(element) {
         if (element.children) {
-            for (var e of element.children) {
+            for (let e of element.children) {
                 e.parent = element;
                 if (e.type == dom_1.DomType.Table) {
                     this.processTable(e);
@@ -2717,8 +2718,8 @@ class HtmlRenderer {
         }
     }
     processTable(table) {
-        for (var r of table.children) {
-            for (var c of r.children) {
+        for (let r of table.children) {
+            for (let c of r.children) {
                 c.cssStyle = this.copyStyleProperties(table.cellStyle, c.cssStyle, [
                     "border-left", "border-right", "border-top", "border-bottom",
                     "padding-left", "padding-right", "padding-top", "padding-bottom"
@@ -2728,20 +2729,23 @@ class HtmlRenderer {
         }
     }
     copyStyleProperties(input, output, attrs = null) {
-        if (!input)
+        if (!input) {
             return output;
-        if (output == null)
+        }
+        if (output == null) {
             output = {};
-        if (attrs == null)
+        }
+        if (attrs == null) {
             attrs = Object.getOwnPropertyNames(input);
-        for (var key of attrs) {
+        }
+        for (let key of attrs) {
             if (input.hasOwnProperty(key) && !output.hasOwnProperty(key))
                 output[key] = input[key];
         }
         return output;
     }
     createSection(className, props) {
-        var elem = this.createElement("section", { className });
+        let elem = this.createElement("section", { className });
         if (props) {
             if (props.pageMargins) {
                 elem.style.paddingLeft = props.pageMargins.left;
@@ -2765,7 +2769,7 @@ class HtmlRenderer {
         }
         return elem;
     }
-    renderSections(document) {
+    async renderSections(document) {
         const result = [];
         this.processElement(document);
         const sections = this.splitBySection(document.children);
@@ -2776,54 +2780,59 @@ class HtmlRenderer {
             const props = section.sectProps || document.props;
             const sectionElement = this.createSection(this.className, props);
             this.renderStyleValues(document.cssStyle, sectionElement);
-            this.options.renderHeaders && this.renderHeaderFooter(props.headerRefs, props, result.length, prevProps != props, sectionElement);
-            var contentElement = this.createElement("article");
-            this.renderElements(section.elements, contentElement);
+            if (this.options.renderHeaders) {
+                await this.renderHeaderFooter(props.headerRefs, props, result.length, prevProps != props, sectionElement);
+            }
+            let contentElement = this.createElement("article");
+            await this.renderElements(section.elements, contentElement);
             sectionElement.appendChild(contentElement);
             if (this.options.renderFootnotes) {
-                this.renderNotes(this.currentFootnoteIds, this.footnoteMap, sectionElement);
+                await this.renderNotes(this.currentFootnoteIds, this.footnoteMap, sectionElement);
             }
             if (this.options.renderEndnotes && i == l - 1) {
-                this.renderNotes(this.currentEndnoteIds, this.endnoteMap, sectionElement);
+                await this.renderNotes(this.currentEndnoteIds, this.endnoteMap, sectionElement);
             }
-            this.options.renderFooters && this.renderHeaderFooter(props.footerRefs, props, result.length, prevProps != props, sectionElement);
+            if (this.options.renderFooters) {
+                await this.renderHeaderFooter(props.footerRefs, props, result.length, prevProps != props, sectionElement);
+            }
             result.push(sectionElement);
             prevProps = props;
         }
         return result;
     }
-    renderHeaderFooter(refs, props, page, firstOfSection, into) {
+    async renderHeaderFooter(refs, props, page, firstOfSection, into) {
         var _a, _b;
         if (!refs)
             return;
-        var ref = (_b = (_a = (props.titlePage && firstOfSection ? refs.find(x => x.type == "first") : null)) !== null && _a !== void 0 ? _a : (page % 2 == 1 ? refs.find(x => x.type == "even") : null)) !== null && _b !== void 0 ? _b : refs.find(x => x.type == "default");
-        var part = ref && this.document.findPartByRelId(ref.id, this.document.documentPart);
+        let ref = (_b = (_a = (props.titlePage && firstOfSection ? refs.find(x => x.type == "first") : null)) !== null && _a !== void 0 ? _a : (page % 2 == 1 ? refs.find(x => x.type == "even") : null)) !== null && _b !== void 0 ? _b : refs.find(x => x.type == "default");
+        let part = ref && this.document.findPartByRelId(ref.id, this.document.documentPart);
         if (part) {
             this.currentPart = part;
             if (!this.usedHederFooterParts.includes(part.path)) {
                 this.processElement(part.rootElement);
                 this.usedHederFooterParts.push(part.path);
             }
-            this.renderElements([part.rootElement], into);
+            await this.renderElements([part.rootElement], into);
             this.currentPart = null;
         }
     }
     isPageBreakElement(elem) {
-        if (elem.type != dom_1.DomType.Break)
+        if (elem.type != dom_1.DomType.Break) {
             return false;
-        if (elem.break == "lastRenderedPageBreak")
+        }
+        if (elem.break == "lastRenderedPageBreak") {
             return !this.options.ignoreLastRenderedPageBreak;
+        }
         return elem.break == "page";
     }
     splitBySection(elements) {
         var _a;
-        var current = { sectProps: null, elements: [] };
-        var result = [current];
+        let current = { sectProps: null, elements: [] };
+        let result = [current];
         for (let elem of elements) {
             if (elem.type == dom_1.DomType.Paragraph) {
                 const s = this.findStyle(elem.styleName);
                 if ((_a = s === null || s === void 0 ? void 0 : s.paragraphProps) === null || _a === void 0 ? void 0 : _a.pageBreakBefore) {
-                    current.sectProps = sectProps;
                     current = { sectProps: null, elements: [] };
                     result.push(current);
                 }
@@ -2831,9 +2840,9 @@ class HtmlRenderer {
             current.elements.push(elem);
             if (elem.type == dom_1.DomType.Paragraph) {
                 const p = elem;
-                var sectProps = p.sectionProps;
-                var pBreakIndex = -1;
-                var rBreakIndex = -1;
+                let sectProps = p.sectionProps;
+                let pBreakIndex = -1;
+                let rBreakIndex = -1;
                 if (this.options.breakPages && p.children) {
                     pBreakIndex = p.children.findIndex(r => {
                         var _a, _b;
@@ -2842,7 +2851,6 @@ class HtmlRenderer {
                     });
                 }
                 if (sectProps || pBreakIndex != -1) {
-                    current.sectProps = sectProps;
                     current = { sectProps: null, elements: [] };
                     result.push(current);
                 }
@@ -2850,8 +2858,8 @@ class HtmlRenderer {
                     let breakRun = p.children[pBreakIndex];
                     let splitRun = rBreakIndex < breakRun.children.length - 1;
                     if (pBreakIndex < p.children.length - 1 || splitRun) {
-                        var children = elem.children;
-                        var newParagraph = Object.assign(Object.assign({}, elem), { children: children.slice(pBreakIndex) });
+                        let children = elem.children;
+                        let newParagraph = Object.assign(Object.assign({}, elem), { children: children.slice(pBreakIndex) });
                         elem.children = children.slice(0, pBreakIndex);
                         current.elements.push(newParagraph);
                         if (splitRun) {
@@ -2879,28 +2887,28 @@ class HtmlRenderer {
         return this.createElement("div", { className: `${this.className}-wrapper` }, children);
     }
     renderDefaultStyle() {
-        var c = this.className;
-        var styleText = `
-.${c}-wrapper { background: gray; padding: 30px; padding-bottom: 0px; display: flex; flex-flow: column; align-items: center; } 
-.${c}-wrapper>section.${c} { background: white; box-shadow: 0 0 10px rgba(0, 0, 0, 0.5); margin-bottom: 30px; }
-.${c} { color: black; hyphens: auto; }
-section.${c} { box-sizing: border-box; display: flex; flex-flow: column nowrap; position: relative; overflow: hidden; }
-section.${c}>article { margin-bottom: auto; z-index: 1; }
-section.${c}>footer { z-index: 1; }
-.${c} table { border-collapse: collapse; }
-.${c} table td, .${c} table th { vertical-align: top; }
-.${c} p { margin: 0pt; min-height: 1em; }
-.${c} span { white-space: pre-wrap; overflow-wrap: break-word; }
-.${c} a { color: inherit; text-decoration: inherit; }
-`;
+        let c = this.className;
+        let styleText = `
+			.${c}-wrapper { background: gray; padding: 30px; padding-bottom: 0px; display: flex; flex-flow: column; align-items: center; } 
+			.${c}-wrapper>section.${c} { background: white; box-shadow: 0 0 10px rgba(0, 0, 0, 0.5); margin-bottom: 30px; }
+			.${c} { color: black; hyphens: auto; }
+			section.${c} { box-sizing: border-box; display: flex; flex-flow: column nowrap; position: relative; overflow: hidden; }
+			section.${c}>article { margin-bottom: auto; z-index: 1; }
+			section.${c}>footer { z-index: 1; }
+			.${c} table { border-collapse: collapse; }
+			.${c} table td, .${c} table th { vertical-align: top; }
+			.${c} p { margin: 0pt; min-height: 1em; }
+			.${c} span { white-space: pre-wrap; overflow-wrap: break-word; }
+			.${c} a { color: inherit; text-decoration: inherit; }
+		`;
         return createStyleElement(styleText);
     }
     renderNumbering(numberings, styleContainer) {
-        var styleText = "";
-        var resetCounters = [];
-        for (var num of numberings) {
-            var selector = `p.${this.numberingClass(num.id, num.level)}`;
-            var listStyleType = "none";
+        let styleText = "";
+        let resetCounters = [];
+        for (let num of numberings) {
+            let selector = `p.${this.numberingClass(num.id, num.level)}`;
+            let listStyleType = "none";
             if (num.bullet) {
                 let valiable = `--${this.className}-${num.bullet.src}`.toLowerCase();
                 styleText += this.styleToString(`${selector}:before`, {
@@ -2909,7 +2917,7 @@ section.${c}>footer { z-index: 1; }
                     "background": `var(${valiable})`
                 }, num.bullet.style);
                 this.document.loadNumberingImage(num.bullet.src).then(data => {
-                    var text = `${this.rootSelector} { ${valiable}: url(${data}) }`;
+                    let text = `${this.rootSelector} { ${valiable}: url(${data}) }`;
                     styleContainer.appendChild(createStyleElement(text));
                 });
             }
@@ -2938,20 +2946,20 @@ section.${c}>footer { z-index: 1; }
     }
     renderStyles(styles) {
         var _a;
-        var styleText = "";
+        let styleText = "";
         const stylesMap = this.styleMap;
         const defautStyles = (0, utils_1.keyBy)(styles.filter(s => s.isDefault), s => s.target);
         for (const style of styles) {
-            var subStyles = style.styles;
+            let subStyles = style.styles;
             if (style.linked) {
-                var linkedStyle = style.linked && stylesMap[style.linked];
+                let linkedStyle = style.linked && stylesMap[style.linked];
                 if (linkedStyle)
                     subStyles = subStyles.concat(linkedStyle.styles);
                 else if (this.options.debug)
                     console.warn(`Can't find linked style ${style.linked}`);
             }
             for (const subStyle of subStyles) {
-                var selector = `${(_a = style.target) !== null && _a !== void 0 ? _a : ''}.${style.cssName}`;
+                let selector = `${(_a = style.target) !== null && _a !== void 0 ? _a : ''}.${style.cssName}`;
                 if (style.target != subStyle.target)
                     selector += ` ${subStyle.target}`;
                 if (defautStyles[style.target] == style)
@@ -2961,14 +2969,15 @@ section.${c}>footer { z-index: 1; }
         }
         return createStyleElement(styleText);
     }
-    renderNotes(noteIds, notesMap, into) {
-        var notes = noteIds.map(id => notesMap[id]).filter(x => x);
+    async renderNotes(noteIds, notesMap, parent) {
+        let notes = noteIds.map(id => notesMap[id]).filter(x => x);
         if (notes.length > 0) {
-            var result = this.createElement("ol", null, this.renderElements(notes));
-            into.appendChild(result);
+            let children = await this.renderElements(notes);
+            let result = this.createElement("ol", null, children);
+            parent.appendChild(result);
         }
     }
-    renderElement(elem) {
+    async renderElement(elem) {
         switch (elem.type) {
             case dom_1.DomType.Paragraph:
                 return this.renderParagraph(elem);
@@ -2989,9 +2998,7 @@ section.${c}>footer { z-index: 1; }
             case dom_1.DomType.Drawing:
                 return this.renderDrawing(elem);
             case dom_1.DomType.Image:
-                return this.renderImage(elem);
-            case dom_1.DomType.Text:
-                return this.renderText(elem);
+                return await this.renderImage(elem);
             case dom_1.DomType.Text:
                 return this.renderText(elem);
             case dom_1.DomType.DeletedText:
@@ -3054,33 +3061,42 @@ section.${c}>footer { z-index: 1; }
                 return this.renderInserted(elem);
             case dom_1.DomType.Deleted:
                 return this.renderDeleted(elem);
+            default:
+                return null;
         }
-        return null;
     }
-    renderChildren(elem, into) {
-        return this.renderElements(elem.children, into);
+    async renderChildren(elem, into) {
+        return await this.renderElements(elem.children, into);
     }
-    renderElements(elems, into) {
-        if (elems == null)
+    async renderElements(elems, into) {
+        if (elems == null) {
             return null;
-        var result = elems.flatMap(e => this.renderElement(e)).filter(e => e != null);
-        if (into)
+        }
+        let result = [];
+        for (let i = 0; i < elems.length; i++) {
+            let element = await this.renderElement(elems[i]);
+            if (element) {
+                result.push(element);
+            }
+        }
+        if (into) {
             appendChildren(into, result);
+        }
         return result;
     }
-    renderContainer(elem, tagName, props) {
-        return this.createElement(tagName, props, this.renderChildren(elem));
+    async renderContainer(elem, tagName, props) {
+        return this.createElement(tagName, props, await this.renderChildren(elem));
     }
-    renderContainerNS(elem, ns, tagName, props) {
-        return createElementNS(ns, tagName, props, this.renderChildren(elem));
+    async renderContainerNS(elem, ns, tagName, props) {
+        return createElementNS(ns, tagName, props, await this.renderChildren(elem));
     }
-    renderParagraph(elem) {
+    async renderParagraph(elem) {
         var _a, _b, _c, _d;
-        var result = this.createElement("p");
+        let result = this.createElement("p");
         const style = this.findStyle(elem.styleName);
         (_a = elem.tabs) !== null && _a !== void 0 ? _a : (elem.tabs = (_b = style === null || style === void 0 ? void 0 : style.paragraphProps) === null || _b === void 0 ? void 0 : _b.tabs);
         this.renderClass(elem, result);
-        this.renderChildren(elem, result);
+        await this.renderChildren(elem, result);
         this.renderStyleValues(elem.cssStyle, result);
         this.renderCommonProperties(result.style, elem);
         const numbering = (_c = elem.numbering) !== null && _c !== void 0 ? _c : (_d = style === null || style === void 0 ? void 0 : style.paragraphProps) === null || _d === void 0 ? void 0 : _d.numbering;
@@ -3102,9 +3118,9 @@ section.${c}>footer { z-index: 1; }
             style["font-size"] = props.fontSize;
         }
     }
-    renderHyperlink(elem) {
-        var result = this.createElement("a");
-        this.renderChildren(elem, result);
+    async renderHyperlink(elem) {
+        let result = this.createElement("a");
+        await this.renderChildren(elem, result);
         this.renderStyleValues(elem.cssStyle, result);
         if (elem.href) {
             result.href = elem.href;
@@ -3116,22 +3132,20 @@ section.${c}>footer { z-index: 1; }
         }
         return result;
     }
-    renderDrawing(elem) {
-        var result = this.createElement("div");
+    async renderDrawing(elem) {
+        let result = this.createElement("div");
         result.style.display = "inline-block";
         result.style.position = "relative";
         result.style.textIndent = "0px";
-        this.renderChildren(elem, result);
+        await this.renderChildren(elem, result);
         this.renderStyleValues(elem.cssStyle, result);
         return result;
     }
-    renderImage(elem) {
+    async renderImage(elem) {
         let result = this.createElement("img");
         this.renderStyleValues(elem.cssStyle, result);
         if (this.document) {
-            this.document.loadDocumentImage(elem.src, this.currentPart).then(x => {
-                result.src = x;
-            });
+            result.src = await this.document.loadDocumentImage(elem.src, this.currentPart);
         }
         return result;
     }
@@ -3147,51 +3161,53 @@ section.${c}>footer { z-index: 1; }
         }
         return null;
     }
-    renderInserted(elem) {
-        if (this.options.renderChanges)
+    async renderInserted(elem) {
+        if (this.options.renderChanges) {
             return this.renderContainer(elem, "ins");
-        return this.renderChildren(elem);
+        }
+        return await this.renderChildren(elem);
     }
-    renderDeleted(elem) {
-        if (this.options.renderChanges)
-            return this.renderContainer(elem, "del");
+    async renderDeleted(elem) {
+        if (this.options.renderChanges) {
+            return await this.renderContainer(elem, "del");
+        }
         return null;
     }
     renderSymbol(elem) {
-        var span = this.createElement("span");
+        let span = this.createElement("span");
         span.style.fontFamily = elem.font;
         span.innerHTML = `&#x${elem.char};`;
         return span;
     }
     renderFootnoteReference(elem) {
-        var result = this.createElement("sup");
+        let result = this.createElement("sup");
         this.currentFootnoteIds.push(elem.id);
         result.textContent = `${this.currentFootnoteIds.length}`;
         return result;
     }
     renderEndnoteReference(elem) {
-        var result = this.createElement("sup");
+        let result = this.createElement("sup");
         this.currentEndnoteIds.push(elem.id);
         result.textContent = `${this.currentEndnoteIds.length}`;
         return result;
     }
     renderTab(elem) {
         var _a;
-        var tabSpan = this.createElement("span");
+        let tabSpan = this.createElement("span");
         tabSpan.innerHTML = "&emsp;";
         if (this.options.experimental) {
             tabSpan.className = this.tabStopClass();
-            var stops = (_a = findParent(elem, dom_1.DomType.Paragraph)) === null || _a === void 0 ? void 0 : _a.tabs;
+            let stops = (_a = findParent(elem, dom_1.DomType.Paragraph)) === null || _a === void 0 ? void 0 : _a.tabs;
             this.currentTabs.push({ stops, span: tabSpan });
         }
         return tabSpan;
     }
     renderBookmarkStart(elem) {
-        var result = this.createElement("span");
+        let result = this.createElement("span");
         result.id = elem.name;
         return result;
     }
-    renderRun(elem) {
+    async renderRun(elem) {
         if (elem.fieldRun)
             return null;
         const result = this.createElement("span");
@@ -3201,24 +3217,25 @@ section.${c}>footer { z-index: 1; }
         this.renderStyleValues(elem.cssStyle, result);
         if (elem.verticalAlign) {
             const wrapper = this.createElement(elem.verticalAlign);
-            this.renderChildren(elem, wrapper);
+            await this.renderChildren(elem, wrapper);
             result.appendChild(wrapper);
         }
         else {
-            this.renderChildren(elem, result);
+            await this.renderChildren(elem, result);
         }
         return result;
     }
-    renderTable(elem) {
+    async renderTable(elem) {
         let result = this.createElement("table");
         this.tableCellPositions.push(this.currentCellPosition);
         this.tableVerticalMerges.push(this.currentVerticalMerge);
         this.currentVerticalMerge = {};
         this.currentCellPosition = { col: 0, row: 0 };
-        if (elem.columns)
+        if (elem.columns) {
             result.appendChild(this.renderTableColumns(elem.columns));
+        }
         this.renderClass(elem, result);
-        this.renderChildren(elem, result);
+        await this.renderChildren(elem, result);
         this.renderStyleValues(elem.cssStyle, result);
         this.currentVerticalMerge = this.tableVerticalMerges.pop();
         this.currentCellPosition = this.tableCellPositions.pop();
@@ -3234,16 +3251,16 @@ section.${c}>footer { z-index: 1; }
         }
         return result;
     }
-    renderTableRow(elem) {
+    async renderTableRow(elem) {
         let result = this.createElement("tr");
         this.currentCellPosition.col = 0;
         this.renderClass(elem, result);
-        this.renderChildren(elem, result);
+        await this.renderChildren(elem, result);
         this.renderStyleValues(elem.cssStyle, result);
         this.currentCellPosition.row++;
         return result;
     }
-    renderTableCell(elem) {
+    async renderTableCell(elem) {
         let result = this.createElement("td");
         const key = this.currentCellPosition.col;
         if (elem.verticalMerge) {
@@ -3260,23 +3277,23 @@ section.${c}>footer { z-index: 1; }
             this.currentVerticalMerge[key] = null;
         }
         this.renderClass(elem, result);
-        this.renderChildren(elem, result);
+        await this.renderChildren(elem, result);
         this.renderStyleValues(elem.cssStyle, result);
         if (elem.span)
             result.colSpan = elem.span;
         this.currentCellPosition.col += result.colSpan;
         return result;
     }
-    renderVmlPicture(elem) {
-        var result = createElement("div");
-        this.renderChildren(elem, result);
+    async renderVmlPicture(elem) {
+        let result = createElement("div");
+        await this.renderChildren(elem, result);
         return result;
     }
-    renderVmlElement(elem) {
+    async renderVmlElement(elem) {
         var _a, _b;
-        var container = createSvgElement("svg");
+        let container = createSvgElement("svg");
         container.setAttribute("style", elem.cssStyleText);
-        const result = this.renderVmlChildElement(elem);
+        const result = await this.renderVmlChildElement(elem);
         if ((_a = elem.imageHref) === null || _a === void 0 ? void 0 : _a.id) {
             (_b = this.document) === null || _b === void 0 ? void 0 : _b.loadDocumentImage(elem.imageHref.id, this.currentPart).then(x => result.setAttribute("href", x));
         }
@@ -3288,44 +3305,44 @@ section.${c}>footer { z-index: 1; }
         });
         return container;
     }
-    renderVmlChildElement(elem) {
+    async renderVmlChildElement(elem) {
         const result = createSvgElement(elem.tagName);
         Object.entries(elem.attrs).forEach(([k, v]) => result.setAttribute(k, v));
         for (let child of elem.children) {
             if (child.type == dom_1.DomType.VmlElement) {
-                result.appendChild(this.renderVmlChildElement(child));
+                result.appendChild(await this.renderVmlChildElement(child));
             }
             else {
-                result.appendChild(...(0, utils_1.asArray)(this.renderElement(child)));
+                result.appendChild(...(0, utils_1.asArray)(await this.renderElement(child)));
             }
         }
         return result;
     }
-    renderMmlRadical(elem) {
+    async renderMmlRadical(elem) {
         var _a;
         const base = elem.children.find(el => el.type == dom_1.DomType.MmlBase);
         if ((_a = elem.props) === null || _a === void 0 ? void 0 : _a.hideDegree) {
-            return createElementNS(ns.mathML, "msqrt", null, this.renderElements([base]));
+            return createElementNS(ns.mathML, "msqrt", null, await this.renderElements([base]));
         }
         const degree = elem.children.find(el => el.type == dom_1.DomType.MmlDegree);
-        return createElementNS(ns.mathML, "mroot", null, this.renderElements([base, degree]));
+        return createElementNS(ns.mathML, "mroot", null, await this.renderElements([base, degree]));
     }
-    renderMmlDelimiter(elem) {
+    async renderMmlDelimiter(elem) {
         var _a, _b;
         const children = [];
         children.push(createElementNS(ns.mathML, "mo", null, [(_a = elem.props.beginChar) !== null && _a !== void 0 ? _a : '(']));
-        children.push(...this.renderElements(elem.children));
+        children.push(...await this.renderElements(elem.children));
         children.push(createElementNS(ns.mathML, "mo", null, [(_b = elem.props.endChar) !== null && _b !== void 0 ? _b : ')']));
         return createElementNS(ns.mathML, "mrow", null, children);
     }
-    renderMmlNary(elem) {
+    async renderMmlNary(elem) {
         var _a;
         const children = [];
         const grouped = (0, utils_1.keyBy)(elem.children, x => x.type);
         const sup = grouped[dom_1.DomType.MmlSuperArgument];
         const sub = grouped[dom_1.DomType.MmlSubArgument];
-        const supElem = sup ? createElementNS(ns.mathML, "mo", null, (0, utils_1.asArray)(this.renderElement(sup))) : null;
-        const subElem = sub ? createElementNS(ns.mathML, "mo", null, (0, utils_1.asArray)(this.renderElement(sub))) : null;
+        const supElem = sup ? createElementNS(ns.mathML, "mo", null, (0, utils_1.asArray)(await this.renderElement(sup))) : null;
+        const subElem = sub ? createElementNS(ns.mathML, "mo", null, (0, utils_1.asArray)(await this.renderElement(sub))) : null;
         if ((_a = elem.props) === null || _a === void 0 ? void 0 : _a.char) {
             const charElem = createElementNS(ns.mathML, "mo", null, [elem.props.char]);
             if (supElem || subElem) {
@@ -3341,25 +3358,24 @@ section.${c}>footer { z-index: 1; }
                 children.push(charElem);
             }
         }
-        children.push(...this.renderElements(grouped[dom_1.DomType.MmlBase].children));
+        let base_children = await this.renderElements(grouped[dom_1.DomType.MmlBase].children);
+        children.push(...base_children);
         return createElementNS(ns.mathML, "mrow", null, children);
     }
-    renderMmlRun(elem) {
+    async renderMmlRun(elem) {
         const result = createElementNS(ns.mathML, "ms");
         this.renderClass(elem, result);
         this.renderStyleValues(elem.cssStyle, result);
-        this.renderChildren(elem, result);
+        await this.renderChildren(elem, result);
         return result;
     }
-    renderMllList(elem) {
+    async renderMllList(elem) {
         const result = createElementNS(ns.mathML, "mtable");
         this.renderClass(elem, result);
         this.renderStyleValues(elem.cssStyle, result);
-        const childern = this.renderChildren(elem);
-        for (let child of this.renderChildren(elem)) {
-            result.appendChild(createElementNS(ns.mathML, "mtr", null, [
-                createElementNS(ns.mathML, "mtd", null, [child])
-            ]));
+        const childern = await this.renderChildren(elem);
+        for (let child of childern) {
+            result.appendChild(createElementNS(ns.mathML, "mtr", null, [createElementNS(ns.mathML, "mtd", null, [child])]));
         }
         return result;
     }
@@ -3376,8 +3392,9 @@ section.${c}>footer { z-index: 1; }
     renderClass(input, ouput) {
         if (input.className)
             ouput.className = input.className;
-        if (input.styleName)
+        if (input.styleName) {
             ouput.classList.add(this.processStyleName(input.styleName));
+        }
     }
     findStyle(styleName) {
         var _a;
@@ -3409,7 +3426,7 @@ section.${c}>footer { z-index: 1; }
             "tab": "\\9",
             "space": "\\a0",
         };
-        var result = text.replace(/%\d*/g, s => {
+        let result = text.replace(/%\d*/g, s => {
             let lvl = parseInt(s.substring(1), 10) - 1;
             return `"counter(${this.numberingCounter(id, lvl)}, ${numformat})"`;
         });
@@ -3417,7 +3434,7 @@ section.${c}>footer { z-index: 1; }
     }
     numFormatToCssValue(format) {
         var _a;
-        var mapping = {
+        let mapping = {
             none: "none",
             bullet: "disc",
             decimal: "decimal",
@@ -3475,7 +3492,7 @@ function createSvgElement(tagName, props, children) {
     return createElementNS(ns.svg, tagName, props, children);
 }
 function createElementNS(ns, tagName, props, children) {
-    var result = ns ? document.createElementNS(ns, tagName) : document.createElement(tagName);
+    let result = ns ? document.createElementNS(ns, tagName) : document.createElement(tagName);
     Object.assign(result, props);
     children && appendChildren(result, children);
     return result;
@@ -3483,8 +3500,10 @@ function createElementNS(ns, tagName, props, children) {
 function removeAllElements(elem) {
     elem.innerHTML = '';
 }
-function appendChildren(elem, children) {
-    children.forEach(c => elem.appendChild((0, utils_1.isString)(c) ? document.createTextNode(c) : c));
+function appendChildren(parent, children) {
+    children.forEach(child => {
+        parent.appendChild((0, utils_1.isString)(child) ? document.createTextNode(child) : child);
+    });
 }
 function createStyleElement(cssText) {
     return createElement("style", { innerHTML: cssText });
@@ -3493,7 +3512,7 @@ function appendComment(elem, comment) {
     elem.appendChild(document.createComment(comment));
 }
 function findParent(elem, type) {
-    var parent = elem.parent;
+    let parent = elem.parent;
     while (parent != null && parent.type != type)
         parent = parent.parent;
     return parent;

@@ -11,13 +11,15 @@ export interface Options {
     renderHeaders: boolean;
     renderFooters: boolean;
     renderFootnotes: boolean;
-	renderEndnotes: boolean;
+    renderEndnotes: boolean;
     ignoreLastRenderedPageBreak: boolean;
-	useBase64URL: boolean;
-	useMathMLPolyfill: boolean;
-	renderChanges: boolean;
+    useBase64URL: boolean;
+    useMathMLPolyfill: boolean;
+    renderChanges: boolean;
 }
 
-export declare const defaultOptions: Options; 
+export declare const defaultOptions: Options;
 
 export declare function renderAsync(data: any, bodyContainer: HTMLElement, styleContainer?: HTMLElement, options?: Partial<Options>): Promise<any>;
+
+export declare function docx2html(data: any, styleContainer?: HTMLElement, options?: Partial<Options>): Promise<any>;

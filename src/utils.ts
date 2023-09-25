@@ -43,7 +43,7 @@ export function isObject(item) {
 export function isString(item: unknown): item is string {
     return typeof item === 'string' || item instanceof String;
 }
-
+// 对象深度合并
 export function mergeDeep(target, ...sources) {
     if (!sources.length) 
         return target;
@@ -78,7 +78,7 @@ export function parseCssRules(text: string): Record<string, string> {
 export function formatCssRules(style: Record<string, string>): string {
 	return Object.entries(style).map((k, v) => `${k}: ${v}`).join(';');
 }
-
+// 转化为数组
 export function asArray<T>(val: T | T[]): T[] {
 	return Array.isArray(val) ? val : [val];
 }

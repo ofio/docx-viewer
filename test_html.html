@@ -73,11 +73,9 @@
 
         if (!currentDocument) return;
 
-        docx.renderAsync(currentDocument, document_container, style_container, null, docxOptions)
-            .then((x) => {
-                renderThumbnails(document_container, document.querySelector("#thumbnails-container"));
-                console.log(x);
-            });
+        let html = await docx.docx2html(currentDocument, style_container, docxOptions);
+        document_container.innerHTML = html;
+        console.log(html);
     }
 
     fileInput.addEventListener("change", ev => {

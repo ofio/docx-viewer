@@ -7,7 +7,7 @@ export interface OpenXmlPackageOptions {
     trimXmlDeclaration: boolean,
     keepOrigin: boolean,
 }
-
+// 
 export class OpenXmlPackage {
     xmlParser: XmlParser = new XmlParser();
 
