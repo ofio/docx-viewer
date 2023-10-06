@@ -1,4 +1,4 @@
-import {WordDocument} from './word-document';
+import { WordDocument } from './word-document';
 import {
     DomType,
     WmlTable,
@@ -13,23 +13,23 @@ import {
     WmlBreak,
     WmlNoteReference
 } from './document/dom';
-import {CommonProperties} from './document/common';
-import {Options} from './docx-preview';
-import {DocumentElement} from './document/document';
-import {WmlParagraph} from './document/paragraph';
-import {asArray, escapeClassName, isString, keyBy, mergeDeep} from './utils';
-import {computePixelToPoint, updateTabStop} from './javascript';
-import {FontTablePart} from './font-table/font-table';
-import {FooterHeaderReference, SectionProperties} from './document/section';
-import {WmlRun, RunProperties} from './document/run';
-import {WmlBookmarkStart} from './document/bookmarks';
-import {IDomStyle} from './document/style';
-import {WmlBaseNote, WmlFootnote} from './notes/elements';
-import {ThemePart} from './theme/theme-part';
-import {BaseHeaderFooterPart} from './header-footer/parts';
-import {Part} from './common/part';
+import { CommonProperties } from './document/common';
+import { Options } from './docx-preview';
+import { DocumentElement } from './document/document';
+import { WmlParagraph } from './document/paragraph';
+import { asArray, escapeClassName, isString, keyBy, mergeDeep } from './utils';
+import { computePixelToPoint, updateTabStop } from './javascript';
+import { FontTablePart } from './font-table/font-table';
+import { FooterHeaderReference, SectionProperties, Section } from './document/section';
+import { WmlRun, RunProperties } from './document/run';
+import { WmlBookmarkStart } from './document/bookmarks';
+import { IDomStyle } from './document/style';
+import { WmlBaseNote, WmlFootnote } from './notes/elements';
+import { ThemePart } from './theme/theme-part';
+import { BaseHeaderFooterPart } from './header-footer/parts';
+import { Part } from './common/part';
 import mathMLCSS from "./mathml.scss";
-import {VmlElement} from './vml/vml';
+import { VmlElement } from './vml/vml';
 
 const ns = {
     svg: "http://www.w3.org/2000/svg",
@@ -85,6 +85,7 @@ export class HtmlRenderer {
     async render(document: WordDocument, bodyContainer: HTMLElement, styleContainer: HTMLElement = null, options: Options) {
         this.document = document;
         this.options = options;
+        // class类前缀
         this.className = options.className;
         // 根元素
         this.rootSelector = options.inWrapper ? `.${this.className}-wrapper` : ':root';
@@ -144,13 +145,14 @@ export class HtmlRenderer {
         if (document.settingsPart) {
             this.defaultTabSize = document.settingsPart.settings?.defaultTabStop;
         }
-        // 主文档--section内容
+        // 主文档--内容
         let sectionElements = await this.renderSections(document.documentPart.body);
         if (this.options.inWrapper) {
             bodyContainer.appendChild(this.renderWrapper(sectionElements));
         } else {
             appendChildren(bodyContainer, sectionElements);
         }
+
         // 刷新制表符
         this.refreshTabStops();
     }
@@ -165,6 +167,7 @@ export class HtmlRenderer {
     async renderFragment(document: WordDocument, styleContainer: HTMLElement = null, options: Options) {
         this.document = document;
         this.options = options;
+        // class类前缀
         this.className = options.className;
         // 根元素
         this.rootSelector = options.inWrapper ? `.${this.className}-wrapper` : ':root';
@@ -314,7 +317,7 @@ export class HtmlRenderer {
                     if (styleValues) {
                         this.copyStyleProperties(baseValues.values, styleValues.values);
                     } else {
-                        style.styles.push({...baseValues, values: {...baseValues.values}});
+                        style.styles.push({ ...baseValues, values: { ...baseValues.values } });
                     }
                 }
             } else if (this.options.debug) {
@@ -392,7 +395,7 @@ export class HtmlRenderer {
 
     // 创建Page Section
     createSection(className: string, props: SectionProperties) {
-        let elem = this.createElement("section", {className});
+        let elem = this.createElement("section", { className });
 
         if (props) {
             if (props.pageMargins) {
@@ -427,9 +430,16 @@ export class HtmlRenderer {
         const result = [];
         // 生成页面parent父级关系
         this.processElement(document);
+        // 根据options.breakPages，判断是否分页
+        let sections: Section[];
+        if (this.options.breakPages) {
+            // 根据section切分页面
+            sections = this.splitBySection(document.children);
+        } else {
+            // 不分页则，只有一个section
+            sections = [{ sectProps: document.props, elements: document.children }];
+        }
 
-        // 根据section切分页面
-        const sections = this.splitBySection(document.children);
         let prevProps = null;
         // 遍历生成每一个section
         for (let i = 0, l = sections.length; i < l; i++) {
@@ -490,100 +500,139 @@ export class HtmlRenderer {
         }
     }
 
-    // 判断是否存在分页符
+    // 判断是否存在分页元素
     isPageBreakElement(elem: OpenXmlElement): boolean {
+        // 分页符、换行符、分栏符
         if (elem.type != DomType.Break) {
             return false;
         }
-
+        // 默认以lastRenderedPageBreak作为分页依据
         if ((elem as WmlBreak).break == "lastRenderedPageBreak") {
             return !this.options.ignoreLastRenderedPageBreak;
         }
-
-        return (elem as WmlBreak).break == "page";
+        // 分页符
+        if ((elem as WmlBreak).break === "page") {
+            return true;
+        }
     }
 
     // 根据section切分页面
-    splitBySection(elements: OpenXmlElement[]): { sectProps: SectionProperties, elements: OpenXmlElement[] }[] {
-        let current = {sectProps: null, elements: []};
-        let result = [current];
+    splitBySection(elements: OpenXmlElement[]): Section[] {
+        // 当前操作section，elements数组包含子元素
+        let current_section = { sectProps: null, elements: [] };
+        // 切分出的所有sections
+        let sections = [current_section];
 
         for (let elem of elements) {
 
+            /* 段落基本结构：paragraph => run => text... */
             if (elem.type == DomType.Paragraph) {
+                const p = elem as WmlParagraph;
+                // 节属性，分节符
+                let sectProps = p.sectionProps;
 
-                const s = this.findStyle((elem as WmlParagraph).styleName);
-                // 段落之前存在强制分页符
-                if (s?.paragraphProps?.pageBreakBefore) {
-                    // current.sectProps = sectProps;
-                    current = {sectProps: null, elements: []};
-                    result.push(current);
+                /*
+                    检测段落是否默认存在强制分页符
+                */
+                // 查找内置默认段落样式
+                const default_paragraph_style = this.findStyle(p.styleName);
+
+                // 段落内置样式之前存在强制分页符
+                if (default_paragraph_style?.paragraphProps?.pageBreakBefore) {
+                    // 保存当前section的sectionProps
+                    current_section.sectProps = sectProps;
+                    // 重置新的section
+                    current_section = { sectProps: null, elements: [] };
+                    // 添加新section
+                    sections.push(current_section);
                 }
             }
 
-            current.elements.push(elem);
+            // 添加elem进入当前操作section
+            current_section.elements.push(elem);
 
+            // TODO elem元素是表格，拆分section
+
+            /* 段落基本结构：paragraph => run => text... */
             if (elem.type == DomType.Paragraph) {
                 const p = elem as WmlParagraph;
-
+                // 节属性
                 let sectProps = p.sectionProps;
-                // 段落PageBreak索引
+                // 段落部分Break索引
                 let pBreakIndex = -1;
-                // run部分PageBreak索引
+                // Run部分Break索引
                 let rBreakIndex = -1;
 
-                // 查询段落中分页符PageBreak索引
-                if (this.options.breakPages && p.children) {
+                // 查询段落中Break索引
+                if (p.children) {
+                    // 计算段落Break索引
                     pBreakIndex = p.children.findIndex(r => {
+                        // 计算Run Break索引
                         rBreakIndex = r.children?.findIndex(this.isPageBreakElement.bind(this)) ?? -1;
                         return rBreakIndex != -1;
                     });
                 }
-                // 段落中存在sectProps/分页符PageBreak索引
+
+                // 段落中存在节属性sectProps/段落Break索引
                 if (sectProps || pBreakIndex != -1) {
-                    // current.sectProps = sectProps;
-                    current = {sectProps: null, elements: []};
-                    result.push(current);
+                    // 保存当前section的sectionProps
+                    current_section.sectProps = sectProps;
+                    // 重置新的section
+                    current_section = { sectProps: null, elements: [] };
+                    // 添加新section
+                    sections.push(current_section);
                 }
-                // TODO 自然文字超过一页无法识别
-                // 段落中存在 分页符PageBreak索引
+
+                // 根据段落Break索引，拆分Run部分
                 if (pBreakIndex != -1) {
+                    // 即将拆分的Run部分
                     let breakRun = p.children[pBreakIndex];
-                    let splitRun = rBreakIndex < breakRun.children.length - 1;
+                    // 是否需要拆分Run
+                    let is_split = rBreakIndex < breakRun.children.length - 1;
 
-                    if (pBreakIndex < p.children.length - 1 || splitRun) {
-                        let children = elem.children;
-                        let newParagraph = {...elem, children: children.slice(pBreakIndex)};
-                        elem.children = children.slice(0, pBreakIndex);
-                        current.elements.push(newParagraph);
+                    if (pBreakIndex < p.children.length - 1 || is_split) {
+                        // 原始的Run
+                        let origin_run = p.children;
+                        // 切出Break索引后面的Run，创建新段落
+                        let new_paragraph = { ...p, children: origin_run.slice(pBreakIndex) };
+                        // 保存Break索引前面的Run
+                        p.children = origin_run.slice(0, pBreakIndex);
+                        // 添加新段落
+                        current_section.elements.push(new_paragraph);
 
-                        if (splitRun) {
-                            let runChildren = breakRun.children;
-                            let newRun = {...breakRun, children: runChildren.slice(0, rBreakIndex)};
-                            elem.children.push(newRun);
-                            breakRun.children = runChildren.slice(rBreakIndex);
+                        if (is_split) {
+                            // Run下面原始的元素
+                            let origin_elements = breakRun.children;
+                            // 切出Run Break索引前面的元素，创建新Run
+                            let newRun = { ...breakRun, children: origin_elements.slice(0, rBreakIndex) };
+                            // 将新Run放入上一个section的段落
+                            p.children.push(newRun);
+                            // 切出Run Break索引后面的元素
+                            breakRun.children = origin_elements.slice(rBreakIndex);
                         }
                     }
                 }
             }
         }
 
+        // 处理所有section的section_props
         let currentSectProps = null;
+        // 倒序
+        for (let i = sections.length - 1; i >= 0; i--) {
 
-        for (let i = result.length - 1; i >= 0; i--) {
-            if (result[i].sectProps == null) {
-                result[i].sectProps = currentSectProps;
+            if (sections[i].sectProps == null) {
+                sections[i].sectProps = currentSectProps;
             } else {
-                currentSectProps = result[i].sectProps
+                currentSectProps = sections[i].sectProps
             }
         }
 
-        return result;
+        return sections;
     }
 
     // 生成父级容器
     renderWrapper(children: HTMLElement[]) {
-        return this.createElement("div", {className: `${this.className}-wrapper`}, children);
+        return this.createElement("div", { className: `${this.className}-wrapper` }, children);
     }
 
     // 渲染默认样式
@@ -847,7 +896,7 @@ export class HtmlRenderer {
                 return this.renderVmlElement(elem as VmlElement);
 
             case DomType.MmlMath:
-                return this.renderContainerNS(elem, ns.mathML, "math", {xmlns: ns.mathML});
+                return this.renderContainerNS(elem, ns.mathML, "math", { xmlns: ns.mathML });
 
             case DomType.MmlMathParagraph:
                 return this.renderContainer(elem, "span");
@@ -1035,7 +1084,7 @@ export class HtmlRenderer {
 
     async renderInserted(elem: OpenXmlElement): Promise<Node | Node[]> {
         if (this.options.renderChanges) {
-            return this.renderContainer(elem, "ins");
+            return await this.renderContainer(elem, "ins");
         }
 
         return await this.renderChildren(elem);
@@ -1079,7 +1128,7 @@ export class HtmlRenderer {
         if (this.options.experimental) {
             tabSpan.className = this.tabStopClass();
             let stops = findParent<WmlParagraph>(elem, DomType.Paragraph)?.tabs;
-            this.currentTabs.push({stops, span: tabSpan});
+            this.currentTabs.push({ stops, span: tabSpan });
         }
 
         return tabSpan;
@@ -1120,7 +1169,7 @@ export class HtmlRenderer {
         this.tableCellPositions.push(this.currentCellPosition);
         this.tableVerticalMerges.push(this.currentVerticalMerge);
         this.currentVerticalMerge = {};
-        this.currentCellPosition = {col: 0, row: 0};
+        this.currentCellPosition = { col: 0, row: 0 };
 
         if (elem.columns) {
             result.appendChild(this.renderTableColumns(elem.columns));
@@ -1335,7 +1384,7 @@ export class HtmlRenderer {
         }
     }
 
-    // 查找style样式
+    // 查找内置默认style样式
     findStyle(styleName: string) {
         return styleName && this.styleMap?.[styleName];
     }
@@ -1485,7 +1534,7 @@ function appendChildren(parent: Element | DocumentFragment, children: (Node | st
 
 // 创建style标签
 function createStyleElement(cssText: string) {
-    return createElement("style", {innerHTML: cssText});
+    return createElement("style", { innerHTML: cssText });
 }
 
 // 插入注释

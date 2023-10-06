@@ -56,7 +56,7 @@ export async function renderAsync(data: Blob | any, bodyContainer: HTMLElement, 
     // 加载blob对象，根据DocumentParser转换规则，blob对象 => Object对象
     const doc = await WordDocument.load(data, new DocumentParser(ops), ops)
     // Object对象 => HTML标签
-    renderer.render(doc, bodyContainer, styleContainer, ops);
+    await renderer.render(doc, bodyContainer, styleContainer, ops);
 
     return doc;
 }

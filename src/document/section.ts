@@ -1,6 +1,7 @@
 import globalXmlParser, { XmlParser } from "../parser/xml-parser";
 import { Borders, parseBorders } from "./border";
 import { Length } from "./common";
+import { OpenXmlElement } from "./dom";
 
 export interface Column {
     space: Length;
@@ -16,18 +17,18 @@ export interface Columns {
 }
 
 export interface PageSize {
-    width: Length, 
-    height: Length, 
-    orientation: "landscape" | string 
+    width: Length,
+    height: Length,
+    orientation: "landscape" | string
 }
 
 export interface PageNumber {
     start: number;
     chapSep: "colon" | "emDash" | "endash" | "hyphen" | "period" | string;
     chapStyle: string;
-    format: "none" | "cardinalText" | "decimal" | "decimalEnclosedCircle" | "decimalEnclosedFullstop" 
-        | "decimalEnclosedParen" | "decimalZero" | "lowerLetter" | "lowerRoman"
-        | "ordinalText" | "upperLetter" | "upperRoman" | string;
+    format: "none" | "cardinalText" | "decimal" | "decimalEnclosedCircle" | "decimalEnclosedFullstop"
+    | "decimalEnclosedParen" | "decimalZero" | "lowerLetter" | "lowerRoman"
+    | "ordinalText" | "upperLetter" | "upperRoman" | string;
 }
 
 export interface PageMargins {
@@ -42,7 +43,7 @@ export interface PageMargins {
 
 export enum SectionType {
     Continuous = "continuous",
-    NextPage = "nextPage", 
+    NextPage = "nextPage",
     NextColumn = "nextColumn",
     EvenPage = "evenPage",
     OddPage = "oddPage",
@@ -63,6 +64,11 @@ export interface SectionProperties {
     footerRefs: FooterHeaderReference[];
     headerRefs: FooterHeaderReference[];
     titlePage: boolean;
+}
+
+export interface Section {
+    sectProps: SectionProperties,
+    elements: OpenXmlElement[],
 }
 
 export function parseSectionProperties(elem: Element, xml: XmlParser = globalXmlParser): SectionProperties {
@@ -99,11 +105,11 @@ export function parseSectionProperties(elem: Element, xml: XmlParser = globalXml
                 break;
 
             case "headerReference":
-                (section.headerRefs ?? (section.headerRefs = [])).push(parseFooterHeaderReference(e, xml)); 
+                (section.headerRefs ?? (section.headerRefs = [])).push(parseFooterHeaderReference(e, xml));
                 break;
-            
+
             case "footerReference":
-                (section.footerRefs ?? (section.footerRefs = [])).push(parseFooterHeaderReference(e, xml)); 
+                (section.footerRefs ?? (section.footerRefs = [])).push(parseFooterHeaderReference(e, xml));
                 break;
 
             case "titlePg":

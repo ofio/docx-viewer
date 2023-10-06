@@ -446,15 +446,15 @@ export class DocumentParser {
 	}
 
 	parseInserted(node: Element, parentParser: Function): OpenXmlElement {
-		return <OpenXmlElement>{ 
-			type: DomType.Inserted, 
+		return <OpenXmlElement>{
+			type: DomType.Inserted,
 			children: parentParser(node)?.children ?? []
 		};
 	}
 
 	parseDeleted(node: Element, parentParser: Function): OpenXmlElement {
-		return <OpenXmlElement>{ 
-			type: DomType.Deleted, 
+		return <OpenXmlElement>{
+			type: DomType.Deleted,
 			children: parentParser(node)?.children ?? []
 		};
 	}
