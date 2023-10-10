@@ -3,12 +3,11 @@
 
 <head>
     <meta charset="UTF-8">
-    <link href="https://cdn.bootcdn.net/ajax/libs/twitter-bootstrap/5.3.1/css/bootstrap.min.css" rel="stylesheet">
-    <script src="https://cdn.bootcdn.net/ajax/libs/twitter-bootstrap/5.3.1/js/bootstrap.bundle.min.js"></script>
+
     <!--polyfills-->
-    <script src="https://cdn.bootcdn.net/ajax/libs/core-js/3.32.2/minified.js"></script>
+
     <!--dependencies-->
-    <script src="https://cdn.bootcdn.net/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+
     <!--library-->
     <script src="dist/docx-preview.js"></script>
     <!--thumbnail example-->
@@ -38,7 +37,7 @@
             <ul id="optionsMenu" class="dropdown-menu" aria-labelledby="optionsMenuButton">
             </ul>
         </div>
-        <button id="saveTestButton" class="btn btn-primary px-4">Save Test</button>
+
     </div>
 
     <div class="flex-grow-1 d-flex flex-row" style="height: 0;">
@@ -59,6 +58,7 @@
             experimental: true
         });
 
+
         const document_container = document.querySelector("#document-container");
         const style_container = document.querySelector("#style-container");
         const template_container = document.querySelector("#template-container");
@@ -66,10 +66,13 @@
         const loadButton = document.querySelector("#loadButton");
         const testDocuments = document.querySelector("#testDocuments");
 
+
         async function renderDocx(file) {
             currentDocument = file;
 
+
             if (!currentDocument) return;
+
 
             docx.renderAsync(currentDocument, document_container, style_container, null, docxOptions)
                 .then((x) => {
@@ -84,6 +87,7 @@
         loadButton.addEventListener("click", ev => renderDocx(fileInput.files[0]));
 
         const menu = document.querySelector("#optionsMenu");
+
 
         Object.keys(docxOptions).filter(key => !/className/i.test(key)).forEach(function (key) {
             const listItem = document.createElement("li");
@@ -104,13 +108,16 @@
             menu.appendChild(listItem);
         });
 
+
         document_container.addEventListener("dragover", ev => ev.preventDefault());
         document_container.addEventListener("drop", ev => {
             ev.preventDefault();
             renderDocx(ev.dataTransfer.files[0]);
         });
 
-        for (let testName of ['text', 'text-break', 'line-spacing', 'numbering', 'page-layout', 'table', 'table-spans', 'footnote', 'header-footer', 'revision']) {
+
+        for (let testName of ['text','text-break','line-spacing','numbering','page-layout','table','table-spans','footnote','header-footer','revision','equation'])
+        {
             var op = document.createElement("option");
             op.label = testName;
             testDocuments.add(op);
@@ -127,8 +134,10 @@
         });
 
         document.querySelector("#saveTestButton").addEventListener("click", async () => {
+
             const file = await showSaveFilePicker({ types: [{ description: "HTML File", accept: { "text/html": [".html"] } }] });
             const stream = await file.createWritable();
+
             await stream.write(document_container.innerHTML);
             await stream.close();
         });

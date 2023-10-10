@@ -359,6 +359,8 @@ const mmlTagMap = {
     "oMath": dom_1.DomType.MmlMath,
     "oMathPara": dom_1.DomType.MmlMathParagraph,
     "f": dom_1.DomType.MmlFraction,
+    "func": dom_1.DomType.MmlFunction,
+    "fName": dom_1.DomType.MmlFunctionName,
     "num": dom_1.DomType.MmlNumerator,
     "den": dom_1.DomType.MmlDenominator,
     "rad": dom_1.DomType.MmlRadical,
@@ -366,11 +368,19 @@ const mmlTagMap = {
     "e": dom_1.DomType.MmlBase,
     "sSup": dom_1.DomType.MmlSuperscript,
     "sSub": dom_1.DomType.MmlSubscript,
+    "sPre": dom_1.DomType.MmlPreSubSuper,
     "sup": dom_1.DomType.MmlSuperArgument,
     "sub": dom_1.DomType.MmlSubArgument,
     "d": dom_1.DomType.MmlDelimiter,
     "nary": dom_1.DomType.MmlNary,
     "eqArr": dom_1.DomType.MmlEquationArray,
+    "lim": dom_1.DomType.MmlLimit,
+    "limLow": dom_1.DomType.MmlLimitLower,
+    "m": dom_1.DomType.MmlMatrix,
+    "mr": dom_1.DomType.MmlMatrixRow,
+    "box": dom_1.DomType.MmlBox,
+    "bar": dom_1.DomType.MmlBar,
+    "groupChr": dom_1.DomType.MmlGroupChar
 };
 class DocumentParser {
     constructor(options) {
@@ -919,6 +929,12 @@ class DocumentParser {
             switch (el.localName) {
                 case "chr":
                     result.char = xml_parser_1.default.attr(el, "val");
+                    break;
+                case "vertJc":
+                    result.verticalJustification = xml_parser_1.default.attr(el, "val");
+                    break;
+                case "pos":
+                    result.position = xml_parser_1.default.attr(el, "val");
                     break;
                 case "degHide":
                     result.hideDegree = xml_parser_1.default.boolAttr(el, "val");
@@ -2034,6 +2050,8 @@ var DomType;
     DomType["MmlMath"] = "mmlMath";
     DomType["MmlMathParagraph"] = "mmlMathParagraph";
     DomType["MmlFraction"] = "mmlFraction";
+    DomType["MmlFunction"] = "mmlFunction";
+    DomType["MmlFunctionName"] = "mmlFunctionName";
     DomType["MmlNumerator"] = "mmlNumerator";
     DomType["MmlDenominator"] = "mmlDenominator";
     DomType["MmlRadical"] = "mmlRadical";
@@ -2041,12 +2059,20 @@ var DomType;
     DomType["MmlDegree"] = "mmlDegree";
     DomType["MmlSuperscript"] = "mmlSuperscript";
     DomType["MmlSubscript"] = "mmlSubscript";
+    DomType["MmlPreSubSuper"] = "mmlPreSubSuper";
     DomType["MmlSubArgument"] = "mmlSubArgument";
     DomType["MmlSuperArgument"] = "mmlSuperArgument";
     DomType["MmlNary"] = "mmlNary";
     DomType["MmlDelimiter"] = "mmlDelimiter";
     DomType["MmlRun"] = "mmlRun";
     DomType["MmlEquationArray"] = "mmlEquationArray";
+    DomType["MmlLimit"] = "mmlLimit";
+    DomType["MmlLimitLower"] = "mmlLimitLower";
+    DomType["MmlMatrix"] = "mmlMatrix";
+    DomType["MmlMatrixRow"] = "mmlMatrixRow";
+    DomType["MmlBox"] = "mmlBox";
+    DomType["MmlBar"] = "mmlBar";
+    DomType["MmlGroupChar"] = "mmlGroupChar";
     DomType["VmlElement"] = "vmlElement";
     DomType["Inserted"] = "inserted";
     DomType["Deleted"] = "deleted";
@@ -3078,29 +3104,44 @@ class HtmlRenderer {
                 return this.renderContainer(elem, "span");
             case dom_1.DomType.MmlFraction:
                 return this.renderContainerNS(elem, ns.mathML, "mfrac");
+            case dom_1.DomType.MmlBase:
+                return this.renderContainerNS(elem, ns.mathML, elem.parent.type == dom_1.DomType.MmlMatrixRow ? "mtd" : "mrow");
             case dom_1.DomType.MmlNumerator:
             case dom_1.DomType.MmlDenominator:
+            case dom_1.DomType.MmlFunction:
+            case dom_1.DomType.MmlLimit:
+            case dom_1.DomType.MmlBox:
                 return this.renderContainerNS(elem, ns.mathML, "mrow");
+            case dom_1.DomType.MmlGroupChar:
+                return this.renderMmlGroupChar(elem);
+            case dom_1.DomType.MmlLimitLower:
+                return this.renderContainerNS(elem, ns.mathML, "munder");
+            case dom_1.DomType.MmlMatrix:
+                return this.renderContainerNS(elem, ns.mathML, "mtable");
+            case dom_1.DomType.MmlMatrixRow:
+                return this.renderContainerNS(elem, ns.mathML, "mtr");
             case dom_1.DomType.MmlRadical:
                 return this.renderMmlRadical(elem);
-            case dom_1.DomType.MmlDegree:
-                return this.renderContainerNS(elem, ns.mathML, "mn");
             case dom_1.DomType.MmlSuperscript:
                 return this.renderContainerNS(elem, ns.mathML, "msup");
             case dom_1.DomType.MmlSubscript:
                 return this.renderContainerNS(elem, ns.mathML, "msub");
-            case dom_1.DomType.MmlBase:
-                return this.renderContainerNS(elem, ns.mathML, "mrow");
+            case dom_1.DomType.MmlDegree:
             case dom_1.DomType.MmlSuperArgument:
-                return this.renderContainerNS(elem, ns.mathML, "mn");
             case dom_1.DomType.MmlSubArgument:
                 return this.renderContainerNS(elem, ns.mathML, "mn");
+            case dom_1.DomType.MmlFunctionName:
+                return this.renderContainerNS(elem, ns.mathML, "ms");
             case dom_1.DomType.MmlDelimiter:
                 return this.renderMmlDelimiter(elem);
             case dom_1.DomType.MmlRun:
                 return this.renderMmlRun(elem);
             case dom_1.DomType.MmlNary:
                 return this.renderMmlNary(elem);
+            case dom_1.DomType.MmlPreSubSuper:
+                return this.renderMmlPreSubSuper(elem);
+            case dom_1.DomType.MmlBar:
+                return this.renderMmlBar(elem);
             case dom_1.DomType.MmlEquationArray:
                 return this.renderMllList(elem);
             case dom_1.DomType.Inserted:
@@ -3381,12 +3422,18 @@ class HtmlRenderer {
         children.push(createElementNS(ns.mathML, "mo", null, [(_b = elem.props.endChar) !== null && _b !== void 0 ? _b : ')']));
         return createElementNS(ns.mathML, "mrow", null, children);
     }
+<<<<<<< HEAD
     async renderMmlNary(elem) {
         var _a;
+=======
+    renderMmlNary(elem) {
+        var _a, _b;
+>>>>>>> remotes/origin/master
         const children = [];
         const grouped = (0, utils_1.keyBy)(elem.children, x => x.type);
         const sup = grouped[dom_1.DomType.MmlSuperArgument];
         const sub = grouped[dom_1.DomType.MmlSubArgument];
+<<<<<<< HEAD
         const supElem = sup ? createElementNS(ns.mathML, "mo", null, (0, utils_1.asArray)(await this.renderElement(sup))) : null;
         const subElem = sub ? createElementNS(ns.mathML, "mo", null, (0, utils_1.asArray)(await this.renderElement(sub))) : null;
         if ((_a = elem.props) === null || _a === void 0 ? void 0 : _a.char) {
@@ -3403,12 +3450,64 @@ class HtmlRenderer {
             else {
                 children.push(charElem);
             }
+=======
+        const supElem = sup ? createElementNS(ns.mathML, "mo", null, (0, utils_1.asArray)(this.renderElement(sup))) : null;
+        const subElem = sub ? createElementNS(ns.mathML, "mo", null, (0, utils_1.asArray)(this.renderElement(sub))) : null;
+        const charElem = createElementNS(ns.mathML, "mo", null, [(_b = (_a = elem.props) === null || _a === void 0 ? void 0 : _a.char) !== null && _b !== void 0 ? _b : '\u222B']);
+        if (supElem || subElem) {
+            children.push(createElementNS(ns.mathML, "munderover", null, [charElem, subElem, supElem]));
+        }
+        else if (supElem) {
+            children.push(createElementNS(ns.mathML, "mover", null, [charElem, supElem]));
+        }
+        else if (subElem) {
+            children.push(createElementNS(ns.mathML, "munder", null, [charElem, subElem]));
+        }
+        else {
+            children.push(charElem);
+>>>>>>> remotes/origin/master
         }
         let base_children = await this.renderElements(grouped[dom_1.DomType.MmlBase].children);
         children.push(...base_children);
         return createElementNS(ns.mathML, "mrow", null, children);
     }
+<<<<<<< HEAD
     async renderMmlRun(elem) {
+=======
+    renderMmlPreSubSuper(elem) {
+        const children = [];
+        const grouped = (0, utils_1.keyBy)(elem.children, x => x.type);
+        const sup = grouped[dom_1.DomType.MmlSuperArgument];
+        const sub = grouped[dom_1.DomType.MmlSubArgument];
+        const supElem = sup ? createElementNS(ns.mathML, "mo", null, (0, utils_1.asArray)(this.renderElement(sup))) : null;
+        const subElem = sub ? createElementNS(ns.mathML, "mo", null, (0, utils_1.asArray)(this.renderElement(sub))) : null;
+        const stubElem = createElementNS(ns.mathML, "mo", null);
+        children.push(createElementNS(ns.mathML, "msubsup", null, [stubElem, subElem, supElem]));
+        children.push(...this.renderElements(grouped[dom_1.DomType.MmlBase].children));
+        return createElementNS(ns.mathML, "mrow", null, children);
+    }
+    renderMmlGroupChar(elem) {
+        const tagName = elem.props.verticalJustification === "bot" ? "mover" : "munder";
+        const result = this.renderContainerNS(elem, ns.mathML, tagName);
+        if (elem.props.char) {
+            result.appendChild(createElementNS(ns.mathML, "mo", null, [elem.props.char]));
+        }
+        return result;
+    }
+    renderMmlBar(elem) {
+        const result = this.renderContainerNS(elem, ns.mathML, "mrow");
+        switch (elem.props.position) {
+            case "top":
+                result.style.textDecoration = "overline";
+                break;
+            case "bottom":
+                result.style.textDecoration = "underline";
+                break;
+        }
+        return result;
+    }
+    renderMmlRun(elem) {
+>>>>>>> remotes/origin/master
         const result = createElementNS(ns.mathML, "ms");
         this.renderClass(elem, result);
         this.renderStyleValues(elem.cssStyle, result);
