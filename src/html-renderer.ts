@@ -174,7 +174,7 @@ export class HtmlRenderer {
         // 文档CSS样式
         this.styleMap = null;
         // 生成代码片段实例
-        const fragment = window.document.createElement('div');
+        const template = window.document.createElement('template');
         // CSS样式生成容器，清空所有CSS样式
         removeAllElements(styleContainer);
 
@@ -229,14 +229,14 @@ export class HtmlRenderer {
         // 主文档--section内容
         let sectionElements = await this.renderSections(document.documentPart.body);
         if (this.options.inWrapper) {
-            fragment.appendChild(this.renderWrapper(sectionElements));
+            template.appendChild(this.renderWrapper(sectionElements));
         } else {
-            appendChildren(fragment, sectionElements);
+            appendChildren(template, sectionElements);
         }
         // 刷新制表符
         this.refreshTabStops();
 
-        return fragment.innerHTML;
+        return template.innerHTML;
     }
 
     // 文档CSS主题样式
@@ -342,7 +342,7 @@ export class HtmlRenderer {
         }
     }
 
-    // 明确元素parent父级关系
+    // 递归明确元素parent父级关系
     processElement(element: OpenXmlElement) {
         if (element.children) {
             for (let e of element.children) {
@@ -482,11 +482,12 @@ export class HtmlRenderer {
     // 渲染页眉/页脚
     async renderHeaderFooter(refs: FooterHeaderReference[], props: SectionProperties, page: number, firstOfSection: boolean, into: HTMLElement) {
         if (!refs) return;
-
+        // 查找奇数偶数的ref指向
         let ref = (props.titlePage && firstOfSection ? refs.find(x => x.type == "first") : null)
             ?? (page % 2 == 1 ? refs.find(x => x.type == "even") : null)
             ?? refs.find(x => x.type == "default");
 
+        // 查找ref对应的part部分
         let part = ref && this.document.findPartByRelId(ref.id, this.document.documentPart) as BaseHeaderFooterPart;
 
         if (part) {
@@ -495,6 +496,7 @@ export class HtmlRenderer {
                 this.processElement(part.rootElement);
                 this.usedHederFooterParts.push(part.path);
             }
+
             await this.renderElements([part.rootElement], into);
             this.currentPart = null;
         }
@@ -524,16 +526,16 @@ export class HtmlRenderer {
         let sections = [current_section];
 
         for (let elem of elements) {
-
             /* 段落基本结构：paragraph => run => text... */
             if (elem.type == DomType.Paragraph) {
                 const p = elem as WmlParagraph;
-                // 节属性，分节符
+                // 节属性，代表分节符
                 let sectProps = p.sectionProps;
 
                 /*
                     检测段落是否默认存在强制分页符
                 */
+
                 // 查找内置默认段落样式
                 const default_paragraph_style = this.findStyle(p.styleName);
 
@@ -551,8 +553,6 @@ export class HtmlRenderer {
             // 添加elem进入当前操作section
             current_section.elements.push(elem);
 
-            // TODO elem元素是表格，拆分section
-
             /* 段落基本结构：paragraph => run => text... */
             if (elem.type == DomType.Paragraph) {
                 const p = elem as WmlParagraph;
@@ -568,7 +568,24 @@ export class HtmlRenderer {
                     // 计算段落Break索引
                     pBreakIndex = p.children.findIndex(r => {
                         // 计算Run Break索引
-                        rBreakIndex = r.children?.findIndex(this.isPageBreakElement.bind(this)) ?? -1;
+                        rBreakIndex = r.children?.findIndex((t: OpenXmlElement) => {
+                            // 分页符、换行符、分栏符
+                            if (t.type != DomType.Break) {
+                                return false;
+                            }
+                            // 默认忽略lastRenderedPageBreak，
+                            if ((t as WmlBreak).break == "lastRenderedPageBreak") {
+                                // 判断前一个p段落，
+                                // 如果含有分页符、分节符，那它们一定位于上一个section，
+                                // 如果前一个段落是普通段落，则代表文字过多超过一页，需要自动分页
+                                return current_section.elements.length > 2 || !this.options.ignoreLastRenderedPageBreak;
+                            }
+                            // 分页符
+                            if ((t as WmlBreak).break === "page") {
+                                return true;
+                            }
+                        });
+                        rBreakIndex = rBreakIndex ?? -1
                         return rBreakIndex != -1;
                     });
                 }
@@ -613,6 +630,11 @@ export class HtmlRenderer {
                     }
                 }
             }
+
+            // TODO elem元素是表格，拆分section
+            if (elem.type === DomType.Table) {
+                // console.log(elem)
+            }
         }
 
         // 处理所有section的section_props
@@ -626,7 +648,7 @@ export class HtmlRenderer {
                 currentSectProps = sections[i].sectProps
             }
         }
-
+        console.log(sections)
         return sections;
     }
 
@@ -874,6 +896,8 @@ export class HtmlRenderer {
                 return this.renderContainer(elem, "footer");
 
             case DomType.Header:
+                // 修复绝对定位bug
+                elem.children[0].cssStyle = { ...elem.children[0].cssStyle, position: "relative" };
                 return this.renderContainer(elem, "header");
 
             case DomType.Footnote:
@@ -1479,8 +1503,9 @@ export class HtmlRenderer {
 
     // 刷新tab制表符
     refreshTabStops() {
-        if (!this.options.experimental)
+        if (!this.options.experimental) {
             return;
+        }
 
         clearTimeout(this.tabsTimeout);
 

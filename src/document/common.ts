@@ -1,11 +1,12 @@
 import { XmlParser } from "../parser/xml-parser";
+import { computePixelToPoint } from "../javascript";
 
 export const ns = {
     wordml: "http://schemas.openxmlformats.org/wordprocessingml/2006/main",
     drawingml: "http://schemas.openxmlformats.org/drawingml/2006/main",
     picture: "http://schemas.openxmlformats.org/drawingml/2006/picture",
-	compatibility: "http://schemas.openxmlformats.org/markup-compatibility/2006",
-	math: "http://schemas.openxmlformats.org/officeDocument/2006/math"
+    compatibility: "http://schemas.openxmlformats.org/markup-compatibility/2006",
+    math: "http://schemas.openxmlformats.org/officeDocument/2006/math"
 }
 
 export type LengthType = "px" | "pt" | "%" | "";
@@ -24,7 +25,11 @@ export interface CommonProperties {
 export type LengthUsageType = { mul: number, unit: LengthType };
 
 export const LengthUsage: Record<string, LengthUsageType> = {
-    Dxa: { mul: 0.05, unit: "pt" }, //twips
+
+    // Windows系统默认是96dpi，Apple系统默认是72dpi。pt = 1/72(英寸), px = 1/dpi(英寸)
+    // 目前只考虑Windows系统，px = pt * 96 / 72 ;
+    Px: { mul: 1 / 15, unit: "px" },
+    Dxa: { mul: 0.05, unit: "pt" }, // twentieth = 1/20
     Emu: { mul: 1 / 12700, unit: "pt" },
     FontSize: { mul: 0.5, unit: "pt" },
     Border: { mul: 0.125, unit: "pt" },
@@ -40,7 +45,7 @@ export function convertLength(val: string, usage: LengthUsageType = LengthUsage.
         return val;
     }
 
-	return `${(parseInt(val) * usage.mul).toFixed(2)}${usage.unit}`;
+    return `${(parseInt(val) * usage.mul).toFixed(2)}${usage.unit}`;
 }
 
 export function convertBoolean(v: string, defaultValue = false): boolean {
@@ -60,11 +65,11 @@ export function convertPercentage(val: string): number {
 }
 
 export function parseCommonProperty(elem: Element, props: CommonProperties, xml: XmlParser): boolean {
-    if(elem.namespaceURI != ns.wordml)
+    if (elem.namespaceURI != ns.wordml)
         return false;
 
-    switch(elem.localName) {
-        case "color": 
+    switch (elem.localName) {
+        case "color":
             props.color = xml.attr(elem, "val");
             break;
 

@@ -802,9 +802,14 @@ class DocumentParser {
             c = this.checkAlternateContent(c);
             switch (c.localName) {
                 case "t":
+                    let textContent = c.textContent;
+                    let is_preserve_space = xml_parser_1.default.attr(c, "xml:space") === "preserve";
+                    if (is_preserve_space) {
+                        textContent = textContent.split(/\s/).join("\u00A0");
+                    }
                     result.children.push({
                         type: dom_1.DomType.Text,
-                        text: c.textContent
+                        text: textContent
                     });
                     break;
                 case "delText":
@@ -1394,11 +1399,23 @@ class DocumentParser {
             style["text-decoration-color"] = col;
     }
     parseFont(node, style) {
-        var ascii = xml_parser_1.default.attr(node, "ascii");
-        var asciiTheme = values.themeValue(node, "asciiTheme");
-        var fonts = [ascii, asciiTheme].filter(x => x).join(', ');
-        if (fonts.length > 0)
-            style["font-family"] = fonts;
+        let fonts = [];
+        let ascii = xml_parser_1.default.attr(node, "ascii");
+        let ascii_theme = values.themeValue(node, "asciiTheme");
+        fonts.push(ascii, ascii_theme);
+        let east_Asia = xml_parser_1.default.attr(node, "eastAsia");
+        let east_Asia_theme = values.themeValue(node, "eastAsiaTheme");
+        fonts.push(east_Asia, east_Asia_theme);
+        let complex_script = xml_parser_1.default.attr(node, "cs");
+        let complex_script_theme = values.themeValue(node, "cstheme");
+        fonts.push(complex_script, complex_script_theme);
+        let high_ansi = xml_parser_1.default.attr(node, "hAnsi");
+        let high_ansi_theme = values.themeValue(node, "hAnsiTheme");
+        fonts.push(high_ansi, high_ansi_theme);
+        let fonts_value = [...new Set(fonts)].filter(x => x).join(', ');
+        if (fonts.length > 0) {
+            style["font-family"] = fonts_value;
+        }
     }
     parseIndentation(node, style) {
         var firstLine = xml_parser_1.default.lengthAttr(node, "firstLine");
@@ -1495,8 +1512,9 @@ class xmlUtil {
     static foreach(node, cb) {
         for (var i = 0; i < node.childNodes.length; i++) {
             let n = node.childNodes[i];
-            if (n.nodeType == Node.ELEMENT_NODE)
+            if (n.nodeType == Node.ELEMENT_NODE) {
                 cb(n);
+            }
         }
     }
     static colorAttr(node, attrName, defValue = null, autoColor = 'black') {
@@ -1899,6 +1917,7 @@ exports.ns = {
     math: "http://schemas.openxmlformats.org/officeDocument/2006/math"
 };
 exports.LengthUsage = {
+    Px: { mul: 1 / 15, unit: "px" },
     Dxa: { mul: 0.05, unit: "pt" },
     Emu: { mul: 1 / 12700, unit: "pt" },
     FontSize: { mul: 0.5, unit: "pt" },
@@ -2329,7 +2348,7 @@ async function renderAsync(data, bodyContainer, styleContainer = null, userOptio
     const ops = Object.assign(Object.assign({}, exports.defaultOptions), userOptions);
     const renderer = new html_renderer_1.HtmlRenderer(window.document);
     const doc = await word_document_1.WordDocument.load(data, new document_parser_1.DocumentParser(ops), ops);
-    renderer.render(doc, bodyContainer, styleContainer, ops);
+    await renderer.render(doc, bodyContainer, styleContainer, ops);
     return doc;
 }
 exports.renderAsync = renderAsync;
@@ -2579,7 +2598,7 @@ class HtmlRenderer {
         this.className = options.className;
         this.rootSelector = options.inWrapper ? `.${this.className}-wrapper` : ':root';
         this.styleMap = null;
-        const fragment = window.document.createElement('div');
+        const template = window.document.createElement('template');
         removeAllElements(styleContainer);
         appendComment(styleContainer, "docxjs library predefined styles");
         styleContainer.appendChild(this.renderDefaultStyle());
@@ -2615,13 +2634,13 @@ class HtmlRenderer {
         }
         let sectionElements = await this.renderSections(document.documentPart.body);
         if (this.options.inWrapper) {
-            fragment.appendChild(this.renderWrapper(sectionElements));
+            template.appendChild(this.renderWrapper(sectionElements));
         }
         else {
-            appendChildren(fragment, sectionElements);
+            appendChildren(template, sectionElements);
         }
         this.refreshTabStops();
-        return fragment.innerHTML;
+        return template.innerHTML;
     }
     renderTheme(themePart, styleContainer) {
         var _a, _b;
@@ -2772,7 +2791,13 @@ class HtmlRenderer {
     async renderSections(document) {
         const result = [];
         this.processElement(document);
-        const sections = this.splitBySection(document.children);
+        let sections;
+        if (this.options.breakPages) {
+            sections = this.splitBySection(document.children);
+        }
+        else {
+            sections = [{ sectProps: document.props, elements: document.children }];
+        }
         let prevProps = null;
         for (let i = 0, l = sections.length; i < l; i++) {
             this.currentFootnoteIds = [];
@@ -2823,65 +2848,85 @@ class HtmlRenderer {
         if (elem.break == "lastRenderedPageBreak") {
             return !this.options.ignoreLastRenderedPageBreak;
         }
-        return elem.break == "page";
+        if (elem.break === "page") {
+            return true;
+        }
     }
     splitBySection(elements) {
         var _a;
-        let current = { sectProps: null, elements: [] };
-        let result = [current];
+        let current_section = { sectProps: null, elements: [] };
+        let sections = [current_section];
         for (let elem of elements) {
             if (elem.type == dom_1.DomType.Paragraph) {
-                const s = this.findStyle(elem.styleName);
-                if ((_a = s === null || s === void 0 ? void 0 : s.paragraphProps) === null || _a === void 0 ? void 0 : _a.pageBreakBefore) {
-                    current = { sectProps: null, elements: [] };
-                    result.push(current);
+                const p = elem;
+                let sectProps = p.sectionProps;
+                const default_paragraph_style = this.findStyle(p.styleName);
+                if ((_a = default_paragraph_style === null || default_paragraph_style === void 0 ? void 0 : default_paragraph_style.paragraphProps) === null || _a === void 0 ? void 0 : _a.pageBreakBefore) {
+                    current_section.sectProps = sectProps;
+                    current_section = { sectProps: null, elements: [] };
+                    sections.push(current_section);
                 }
             }
-            current.elements.push(elem);
+            current_section.elements.push(elem);
             if (elem.type == dom_1.DomType.Paragraph) {
                 const p = elem;
                 let sectProps = p.sectionProps;
                 let pBreakIndex = -1;
                 let rBreakIndex = -1;
-                if (this.options.breakPages && p.children) {
+                if (p.children) {
                     pBreakIndex = p.children.findIndex(r => {
-                        var _a, _b;
-                        rBreakIndex = (_b = (_a = r.children) === null || _a === void 0 ? void 0 : _a.findIndex(this.isPageBreakElement.bind(this))) !== null && _b !== void 0 ? _b : -1;
+                        var _a;
+                        rBreakIndex = (_a = r.children) === null || _a === void 0 ? void 0 : _a.findIndex((t) => {
+                            if (t.type != dom_1.DomType.Break) {
+                                return false;
+                            }
+                            if (t.break == "lastRenderedPageBreak") {
+                                return current_section.elements.length > 2 || !this.options.ignoreLastRenderedPageBreak;
+                            }
+                            if (t.break === "page") {
+                                return true;
+                            }
+                        });
+                        rBreakIndex = rBreakIndex !== null && rBreakIndex !== void 0 ? rBreakIndex : -1;
                         return rBreakIndex != -1;
                     });
                 }
                 if (sectProps || pBreakIndex != -1) {
-                    current = { sectProps: null, elements: [] };
-                    result.push(current);
+                    current_section.sectProps = sectProps;
+                    current_section = { sectProps: null, elements: [] };
+                    sections.push(current_section);
                 }
                 if (pBreakIndex != -1) {
                     let breakRun = p.children[pBreakIndex];
-                    let splitRun = rBreakIndex < breakRun.children.length - 1;
-                    if (pBreakIndex < p.children.length - 1 || splitRun) {
-                        let children = elem.children;
-                        let newParagraph = Object.assign(Object.assign({}, elem), { children: children.slice(pBreakIndex) });
-                        elem.children = children.slice(0, pBreakIndex);
-                        current.elements.push(newParagraph);
-                        if (splitRun) {
-                            let runChildren = breakRun.children;
-                            let newRun = Object.assign(Object.assign({}, breakRun), { children: runChildren.slice(0, rBreakIndex) });
-                            elem.children.push(newRun);
-                            breakRun.children = runChildren.slice(rBreakIndex);
+                    let is_split = rBreakIndex < breakRun.children.length - 1;
+                    if (pBreakIndex < p.children.length - 1 || is_split) {
+                        let origin_run = p.children;
+                        let new_paragraph = Object.assign(Object.assign({}, p), { children: origin_run.slice(pBreakIndex) });
+                        p.children = origin_run.slice(0, pBreakIndex);
+                        current_section.elements.push(new_paragraph);
+                        if (is_split) {
+                            let origin_elements = breakRun.children;
+                            let newRun = Object.assign(Object.assign({}, breakRun), { children: origin_elements.slice(0, rBreakIndex) });
+                            p.children.push(newRun);
+                            breakRun.children = origin_elements.slice(rBreakIndex);
                         }
                     }
                 }
             }
+            if (elem.type === dom_1.DomType.Table) {
+            }
         }
         let currentSectProps = null;
-        for (let i = result.length - 1; i >= 0; i--) {
-            if (result[i].sectProps == null) {
-                result[i].sectProps = currentSectProps;
+        for (let i = sections.length - 1; i >= 0; i--) {
+            if (sections[i].sectProps == null) {
+                sections[i].sectProps = currentSectProps;
             }
             else {
-                currentSectProps = result[i].sectProps;
+                currentSectProps = sections[i].sectProps;
             }
         }
-        return result;
+        console.log(sections);
+        return sections;
     }
     renderWrapper(children) {
         return this.createElement("div", { className: `${this.className}-wrapper` }, children);
@@ -3012,6 +3057,7 @@ class HtmlRenderer {
             case dom_1.DomType.Footer:
                 return this.renderContainer(elem, "footer");
             case dom_1.DomType.Header:
+                elem.children[0].cssStyle = Object.assign(Object.assign({}, elem.children[0].cssStyle), { position: "relative" });
                 return this.renderContainer(elem, "header");
             case dom_1.DomType.Footnote:
             case dom_1.DomType.Endnote:
@@ -3163,7 +3209,7 @@ class HtmlRenderer {
     }
     async renderInserted(elem) {
         if (this.options.renderChanges) {
-            return this.renderContainer(elem, "ins");
+            return await this.renderContainer(elem, "ins");
         }
         return await this.renderChildren(elem);
     }
@@ -3473,8 +3519,9 @@ class HtmlRenderer {
         return (_a = mapping[format]) !== null && _a !== void 0 ? _a : format;
     }
     refreshTabStops() {
-        if (!this.options.experimental)
+        if (!this.options.experimental) {
             return;
+        }
         clearTimeout(this.tabsTimeout);
         this.tabsTimeout = setTimeout(() => {
             const pixelToPoint = (0, javascript_1.computePixelToPoint)();

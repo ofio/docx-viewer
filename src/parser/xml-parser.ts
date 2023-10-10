@@ -1,12 +1,12 @@
-import { Length,  LengthUsage, LengthUsageType, convertLength, convertBoolean  } from "../document/common";
+import { Length, LengthUsage, LengthUsageType, convertLength, convertBoolean } from "../document/common";
 
 export function parseXmlString(xmlString: string, trimXmlDeclaration: boolean = false): Document {
     if (trimXmlDeclaration)
         xmlString = xmlString.replace(/<[?].*[?]>/, "");
-        
+
     xmlString = removeUTF8BOM(xmlString);
-    
-    const result = new DOMParser().parseFromString(xmlString, "application/xml");  
+
+    const result = new DOMParser().parseFromString(xmlString, "application/xml");
     const errorText = hasXmlParserError(result);
 
     if (errorText)
@@ -57,9 +57,9 @@ export class XmlParser {
         return el ? this.attr(el, attrLocalName) : undefined;
     }
 
-	attrs(elem: Element) {
-		return Array.from(elem.attributes);
-	}
+    attrs(elem: Element) {
+        return Array.from(elem.attributes);
+    }
 
     attr(elem: Element, localName: string): string {
         for (let i = 0, l = elem.attributes.length; i < l; i++) {
@@ -77,7 +77,7 @@ export class XmlParser {
         return val ? parseInt(val) : defaultValue;
     }
 
-	hexAttr(node: Element, attrName: string, defaultValue: number = null): number {
+    hexAttr(node: Element, attrName: string, defaultValue: number = null): number {
         var val = this.attr(node, attrName);
         return val ? parseInt(val, 16) : defaultValue;
     }

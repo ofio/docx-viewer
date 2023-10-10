@@ -573,10 +573,17 @@ export class DocumentParser {
 
 			switch (c.localName) {
 				case "t":
+					let textContent = c.textContent;
+					// 是否保留空格
+					let is_preserve_space = xml.attr(c, "xml:space") === "preserve";
+					if (is_preserve_space) {
+						// TODO \u00A0 = 不间断空格，英文应该一个空格，中文两个空格，暂时两个空格，后期修复
+						textContent = textContent.split(/\s/).join("\u00A0");
+					}
 					result.children.push(<WmlText>{
 						type: DomType.Text,
-						text: c.textContent
-					});//.replace(" ", "\u00A0"); // TODO
+						text: textContent
+					});
 					break;
 
 				case "delText":
@@ -774,11 +781,11 @@ export class DocumentParser {
 		var result = <OpenXmlElement>{ type: DomType.Drawing, children: [], cssStyle: {} };
 		var isAnchor = node.localName == "anchor";
 
-		//TODO
-		// result.style["margin-left"] = xml.sizeAttr(node, "distL", SizeType.Emu);
-		// result.style["margin-top"] = xml.sizeAttr(node, "distT", SizeType.Emu);
-		// result.style["margin-right"] = xml.sizeAttr(node, "distR", SizeType.Emu);
-		// result.style["margin-bottom"] = xml.sizeAttr(node, "distB", SizeType.Emu);
+		//TODO 计算
+		// result.cssStyle["margin-left"] = xml.lengthAttr(node, "distL", LengthUsage.Emu);
+		// result.cssStyle["margin-top"] = xml.lengthAttr(node, "distT", LengthUsage.Emu);
+		// result.cssStyle["margin-right"] = xml.lengthAttr(node, "distR", LengthUsage.Emu);
+		// result.cssStyle["margin-bottom"] = xml.lengthAttr(node, "distB", LengthUsage.Emu);
 
 		let wrapType: "wrapTopAndBottom" | "wrapNone" | null = null;
 		let simplePos = xml.boolAttr(node, "simplePos");
@@ -1315,15 +1322,33 @@ export class DocumentParser {
 		if (col)
 			style["text-decoration-color"] = col;
 	}
-
+	// 转换Run字体，包含四种，ascii，eastAsia，ComplexScript，高 ANSI Font
 	parseFont(node: Element, style: Record<string, string>) {
-		var ascii = xml.attr(node, "ascii");
-		var asciiTheme = values.themeValue(node, "asciiTheme");
+		// 字体
+		let fonts = [];
+		// ascii字体
+		let ascii = xml.attr(node, "ascii");
+		let ascii_theme = values.themeValue(node, "asciiTheme");
+		fonts.push(ascii, ascii_theme);
+		// eastAsia
+		let east_Asia = xml.attr(node, "eastAsia");
+		let east_Asia_theme = values.themeValue(node, "eastAsiaTheme");
+		fonts.push(east_Asia, east_Asia_theme);
+		// ComplexScript
+		let complex_script = xml.attr(node, "cs");
+		let complex_script_theme = values.themeValue(node, "cstheme");
+		fonts.push(complex_script, complex_script_theme);
+		// 高 ANSI Font
+		let high_ansi = xml.attr(node, "hAnsi");
+		let high_ansi_theme = values.themeValue(node, "hAnsiTheme");
+		fonts.push(high_ansi, high_ansi_theme);
 
-		var fonts = [ascii, asciiTheme].filter(x => x).join(', ');
+		// 去除重复字体，合并成一个字体配置
+		let fonts_value = [...new Set(fonts)].filter(x => x).join(', ');
 
-		if (fonts.length > 0)
-			style["font-family"] = fonts;
+		if (fonts.length > 0) {
+			style["font-family"] = fonts_value;
+		}
 	}
 
 	parseIndentation(node: Element, style: Record<string, string>) {
@@ -1435,8 +1460,9 @@ class xmlUtil {
 		for (var i = 0; i < node.childNodes.length; i++) {
 			let n = node.childNodes[i];
 
-			if (n.nodeType == Node.ELEMENT_NODE)
+			if (n.nodeType == Node.ELEMENT_NODE) {
 				cb(<Element>n);
+			}
 		}
 	}
 

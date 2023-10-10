@@ -60,7 +60,7 @@ export async function renderAsync(data: Blob | any, bodyContainer: HTMLElement, 
 
     return doc;
 }
-
+// TODO DOM元素在内存中，渲染错位
 export async function docx2html(data: Blob | any, styleContainer: HTMLElement = null, userOptions: Partial<Options> = null): Promise<any> {
     const ops = { ...defaultOptions, ...userOptions };
     const renderer = new HtmlRenderer(window.document);

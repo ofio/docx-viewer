@@ -3,15 +3,12 @@
 
 <head>
     <meta charset="UTF-8">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet"
-          integrity="sha384-1BmE4kWBq78iYhFldvKuhfTAU6auU8tT94WrHftjDbrCEXSU1oBoqyl2QvZ6jIW3" crossorigin="anonymous">
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"
-            integrity="sha384-ka7Sk0Gln4gmtz2MlQnikT1wXgYsOg+OMhuP+IlRH9sENBO0LRn5q+8nbTov4+1p"
-            crossorigin="anonymous"></script>
+    <link href="https://cdn.bootcdn.net/ajax/libs/twitter-bootstrap/5.3.1/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.bootcdn.net/ajax/libs/twitter-bootstrap/5.3.1/js/bootstrap.bundle.min.js"></script>
     <!--polyfills-->
-    <script crossorigin src="https://unpkg.com/core-js-bundle@3.3.2/minified.js"></script>
+    <script src="https://cdn.bootcdn.net/ajax/libs/core-js/3.32.2/minified.js"></script>
     <!--dependencies-->
-    <script crossorigin src="https://unpkg.com/jszip/dist/jszip.min.js"></script>
+    <script src="https://cdn.bootcdn.net/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <!--library-->
     <script src="dist/docx-preview.js"></script>
     <!--thumbnail example-->
@@ -20,122 +17,122 @@
 </head>
 
 <body class="vh-100 d-flex flex-column">
-<div class="hstack bg-black">
-    <a class="mx-auto p-2 text-white" href="https://war.ukraine.ua">Support Ukraine 🇺🇦</a>
-</div>
-
-<div class="hstack p-2 gap-2 bg-light">
-
-    <input id="files" type="file" class="form-control" style="width: 50ch;" accept=".docx"/>
-    <div class="col-2">
-        <select id="testDocuments" class="form-select">
-            <option disabled selected>-- Test Documents --</option>
-        </select>
+    <div class="hstack bg-black">
+        <a class="mx-auto p-2 text-white" href="https://war.ukraine.ua">Support Ukraine 🇺🇦</a>
     </div>
-    <button id="loadButton" class="btn btn-primary px-4">Reload</button>
-    <div class="dropdown">
-        <button class="btn btn-secondary dropdown-toggle" type="button" id="optionsMenuButton"
+
+    <div class="hstack p-2 gap-2 bg-light">
+
+        <input id="files" type="file" class="form-control" style="width: 50ch;" accept=".docx" />
+        <div class="col-2">
+            <select id="testDocuments" class="form-select">
+                <option disabled selected>-- Test Documents --</option>
+            </select>
+        </div>
+        <button id="loadButton" class="btn btn-primary px-4">Reload</button>
+        <div class="dropdown">
+            <button class="btn btn-secondary dropdown-toggle" type="button" id="optionsMenuButton"
                 data-bs-toggle="dropdown" aria-expanded="false">
-            Options
-        </button>
-        <ul id="optionsMenu" class="dropdown-menu" aria-labelledby="optionsMenuButton">
-        </ul>
+                Options
+            </button>
+            <ul id="optionsMenu" class="dropdown-menu" aria-labelledby="optionsMenuButton">
+            </ul>
+        </div>
+        <button id="saveTestButton" class="btn btn-primary px-4">Save Test</button>
     </div>
-    <button id="saveTestButton" class="btn btn-primary px-4">Save Test</button>
-</div>
 
-<div class="flex-grow-1 d-flex flex-row" style="height: 0;">
-    <details class="docx-thumbnails h-100">
-        <summary></summary>
-        <div id="thumbnails-container" class="docx-thumbnails-container"></div>
-    </details>
-    <div id="style-container"></div>
-    <div id="document-container" class="overflow-auto flex-grow-1 h-100"></div>
-    <!-- 测试HTML -->
-    <div id="html-container"></div>
-</div>
+    <div class="flex-grow-1 d-flex flex-row" style="height: 0;">
+        <details class="docx-thumbnails h-100">
+            <summary></summary>
+            <div id="thumbnails-container" class="docx-thumbnails-container"></div>
+        </details>
+        <div id="style-container"></div>
+        <div id="document-container" class="overflow-auto flex-grow-1 h-100"></div>
+    </div>
+    <!-- template标签：只解析渲染，不显示 -->
+    <template id="template-container"></template>
 
-<script>
-    let currentDocument = null;
-    const docxOptions = Object.assign(docx.defaultOptions, {
-        debug: true,
-        experimental: true
-    });
+    <script>
+        let currentDocument = null;
+        const docxOptions = Object.assign(docx.defaultOptions, {
+            debug: true,
+            experimental: true
+        });
 
-    const document_container = document.querySelector("#document-container");
-    const style_container = document.querySelector("#style-container");
-    const fileInput = document.querySelector("#files");
-    const loadButton = document.querySelector("#loadButton");
-    const testDocuments = document.querySelector("#testDocuments");
+        const document_container = document.querySelector("#document-container");
+        const style_container = document.querySelector("#style-container");
+        const template_container = document.querySelector("#template-container");
+        const fileInput = document.querySelector("#files");
+        const loadButton = document.querySelector("#loadButton");
+        const testDocuments = document.querySelector("#testDocuments");
 
-    async function renderDocx(file) {
-        currentDocument = file;
+        async function renderDocx(file) {
+            currentDocument = file;
 
-        if (!currentDocument) return;
+            if (!currentDocument) return;
 
-        docx.renderAsync(currentDocument, document_container, style_container, null, docxOptions)
-            .then((x) => {
-                renderThumbnails(document_container, document.querySelector("#thumbnails-container"));
-                console.log(x);
-            });
-    }
+            docx.renderAsync(currentDocument, document_container, style_container, null, docxOptions)
+                .then((x) => {
+                    console.log(x);
+                });
+        }
 
-    fileInput.addEventListener("change", ev => {
-        renderDocx(fileInput.files[0]);
-        testDocuments.selectedIndex = 0;
-    });
-    loadButton.addEventListener("click", ev => renderDocx(fileInput.files[0]));
+        fileInput.addEventListener("change", ev => {
+            renderDocx(fileInput.files[0]);
+            testDocuments.selectedIndex = 0;
+        });
+        loadButton.addEventListener("click", ev => renderDocx(fileInput.files[0]));
 
-    const menu = document.querySelector("#optionsMenu");
+        const menu = document.querySelector("#optionsMenu");
 
-    Object.keys(docxOptions).filter(key => !/className/i.test(key)).forEach(function (key) {
-        const listItem = document.createElement("li");
-        listItem.innerHTML = `
+        Object.keys(docxOptions).filter(key => !/className/i.test(key)).forEach(function (key) {
+            const listItem = document.createElement("li");
+            listItem.innerHTML = `
             <div class="dropdown-item">
                 <div class="form-check">
                     <label class="form-check-name"><input type="checkbox" class="form-check-input" ${docxOptions[key] ? 'checked' : ''}> ${key}</label>
                 </div>
             </div>`;
 
-        const checkInput = listItem.querySelector("input");
+            const checkInput = listItem.querySelector("input");
 
-        checkInput.addEventListener("click", (e) => {
-            docxOptions[key] = checkInput.checked;
-            renderDocx(currentDocument);
+            checkInput.addEventListener("click", (e) => {
+                docxOptions[key] = checkInput.checked;
+                renderDocx(currentDocument);
+            });
+
+            menu.appendChild(listItem);
         });
 
-        menu.appendChild(listItem);
-    });
+        document_container.addEventListener("dragover", ev => ev.preventDefault());
+        document_container.addEventListener("drop", ev => {
+            ev.preventDefault();
+            renderDocx(ev.dataTransfer.files[0]);
+        });
 
-    document_container.addEventListener("dragover", ev => ev.preventDefault());
-    document_container.addEventListener("drop", ev => {
-        ev.preventDefault();
-        renderDocx(ev.dataTransfer.files[0]);
-    });
-
-    for (let testName of ['text', 'text-break', 'line-spacing', 'numbering', 'page-layout', 'table', 'table-spans', 'footnote', 'header-footer', 'revision']) {
-        var op = document.createElement("option");
-        op.label = testName;
-        testDocuments.add(op);
-    }
-
-    testDocuments.addEventListener("change", async e => {
-        const selected = testDocuments.selectedOptions[0].label;
-
-        if (selected) {
-            let resp = await fetch(`tests/render-test/${selected}/document.docx`);
-            renderDocx(await resp.blob());
-            fileInput.value = "";
+        for (let testName of ['text', 'text-break', 'line-spacing', 'numbering', 'page-layout', 'table', 'table-spans', 'footnote', 'header-footer', 'revision']) {
+            var op = document.createElement("option");
+            op.label = testName;
+            testDocuments.add(op);
         }
-    });
 
-    document.querySelector("#saveTestButton").addEventListener("click", async () => {
-        const file = await showSaveFilePicker({types: [{description: "HTML File", accept: {"text/html": [".html"]}}]});
-        const stream = await file.createWritable();
-        await stream.write(document_container.innerHTML);
-        await stream.close();
-    });
-</script>
+        testDocuments.addEventListener("change", async e => {
+            const selected = testDocuments.selectedOptions[0].label;
+
+            if (selected) {
+                let resp = await fetch(`tests/render-test/${selected}/document.docx`);
+                renderDocx(await resp.blob());
+                fileInput.value = "";
+            }
+        });
+
+        document.querySelector("#saveTestButton").addEventListener("click", async () => {
+            const file = await showSaveFilePicker({ types: [{ description: "HTML File", accept: { "text/html": [".html"] } }] });
+            const stream = await file.createWritable();
+            await stream.write(document_container.innerHTML);
+            await stream.close();
+        });
+    </script>
 </body>
 
 </html>
