@@ -3,11 +3,12 @@
 
 <head>
     <meta charset="UTF-8">
-
+    <link href="https://cdn.bootcdn.net/ajax/libs/twitter-bootstrap/5.3.1/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.bootcdn.net/ajax/libs/twitter-bootstrap/5.3.1/js/bootstrap.bundle.min.js"></script>
     <!--polyfills-->
-
+    <script src="https://cdn.bootcdn.net/ajax/libs/core-js/3.32.2/minified.js"></script>
     <!--dependencies-->
-
+    <script src="https://cdn.bootcdn.net/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <!--library-->
     <script src="dist/docx-preview.js"></script>
     <!--thumbnail example-->
@@ -37,7 +38,7 @@
             <ul id="optionsMenu" class="dropdown-menu" aria-labelledby="optionsMenuButton">
             </ul>
         </div>
-
+        <button id="saveTestButton" class="btn btn-primary px-4">Save Test</button>
     </div>
 
     <div class="flex-grow-1 d-flex flex-row" style="height: 0;">
@@ -70,9 +71,7 @@
         async function renderDocx(file) {
             currentDocument = file;
 
-
             if (!currentDocument) return;
-
 
             docx.renderAsync(currentDocument, document_container, style_container, null, docxOptions)
                 .then((x) => {
@@ -116,8 +115,7 @@
         });
 
 
-        for (let testName of ['text','text-break','line-spacing','numbering','page-layout','table','table-spans','footnote','header-footer','revision','equation'])
-        {
+        for (let testName of ['text', 'text-break', 'line-spacing', 'numbering', 'page-layout', 'table', 'table-spans', 'footnote', 'header-footer', 'revision', 'equation']) {
             var op = document.createElement("option");
             op.label = testName;
             testDocuments.add(op);

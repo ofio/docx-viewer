@@ -2624,7 +2624,7 @@ class HtmlRenderer {
         this.className = options.className;
         this.rootSelector = options.inWrapper ? `.${this.className}-wrapper` : ':root';
         this.styleMap = null;
-        const template = window.document.createElement('template');
+        const template = this.createElement('template');
         removeAllElements(styleContainer);
         appendComment(styleContainer, "docxjs library predefined styles");
         styleContainer.appendChild(this.renderDefaultStyle());
@@ -2799,10 +2799,12 @@ class HtmlRenderer {
                 elem.style.paddingBottom = props.pageMargins.bottom;
             }
             if (props.pageSize) {
-                if (!this.options.ignoreWidth)
+                if (!this.options.ignoreWidth) {
                     elem.style.width = props.pageSize.width;
-                if (!this.options.ignoreHeight)
+                }
+                if (!this.options.ignoreHeight) {
                     elem.style.minHeight = props.pageSize.height;
+                }
             }
             if (props.columns && props.columns.numberOfColumns) {
                 elem.style.columnCount = `${props.columns.numberOfColumns}`;
@@ -2832,7 +2834,7 @@ class HtmlRenderer {
             const sectionElement = this.createSection(this.className, props);
             this.renderStyleValues(document.cssStyle, sectionElement);
             if (this.options.renderHeaders) {
-                await this.renderHeaderFooter(props.headerRefs, props, result.length, prevProps != props, sectionElement);
+                await this.renderHeaderFooterRef(props.headerRefs, props, result.length, prevProps != props, sectionElement);
             }
             let contentElement = this.createElement("article");
             await this.renderElements(section.elements, contentElement);
@@ -2844,15 +2846,15 @@ class HtmlRenderer {
                 await this.renderNotes(this.currentEndnoteIds, this.endnoteMap, sectionElement);
             }
             if (this.options.renderFooters) {
-                await this.renderHeaderFooter(props.footerRefs, props, result.length, prevProps != props, sectionElement);
+                await this.renderHeaderFooterRef(props.footerRefs, props, result.length, prevProps != props, sectionElement);
             }
             result.push(sectionElement);
             prevProps = props;
         }
         return result;
     }
-    async renderHeaderFooter(refs, props, page, firstOfSection, into) {
-        var _a, _b;
+    async renderHeaderFooterRef(refs, props, page, firstOfSection, into) {
+        var _a, _b, _c, _d, _e, _f, _g, _h;
         if (!refs)
             return;
         let ref = (_b = (_a = (props.titlePage && firstOfSection ? refs.find(x => x.type == "first") : null)) !== null && _a !== void 0 ? _a : (page % 2 == 1 ? refs.find(x => x.type == "even") : null)) !== null && _b !== void 0 ? _b : refs.find(x => x.type == "default");
@@ -2862,6 +2864,25 @@ class HtmlRenderer {
             if (!this.usedHederFooterParts.includes(part.path)) {
                 this.processElement(part.rootElement);
                 this.usedHederFooterParts.push(part.path);
+            }
+            switch (part.rootElement.type) {
+                case dom_1.DomType.Header:
+                    part.rootElement.cssStyle = {
+                        top: (_c = props.pageMargins) === null || _c === void 0 ? void 0 : _c.header,
+                        left: (_d = props.pageMargins) === null || _d === void 0 ? void 0 : _d.left,
+                        right: (_e = props.pageMargins) === null || _e === void 0 ? void 0 : _e.right,
+                    };
+                    break;
+                case dom_1.DomType.Footer:
+                    part.rootElement.cssStyle = {
+                        bottom: (_f = props.pageMargins) === null || _f === void 0 ? void 0 : _f.footer,
+                        left: (_g = props.pageMargins) === null || _g === void 0 ? void 0 : _g.left,
+                        right: (_h = props.pageMargins) === null || _h === void 0 ? void 0 : _h.right,
+                    };
+                    break;
+                default:
+                    console.warn('set header/footer style error', part.rootElement.type);
+                    break;
             }
             await this.renderElements([part.rootElement], into);
             this.currentPart = null;
@@ -2907,7 +2928,7 @@ class HtmlRenderer {
                                 return false;
                             }
                             if (t.break == "lastRenderedPageBreak") {
-                                return current_section.elements.length > 2 || !this.options.ignoreLastRenderedPageBreak;
+                                return current_section.elements.length > 1 || !this.options.ignoreLastRenderedPageBreak;
                             }
                             if (t.break === "page") {
                                 return true;
@@ -2951,7 +2972,6 @@ class HtmlRenderer {
                 currentSectProps = sections[i].sectProps;
             }
         }
-        console.log(sections);
         return sections;
     }
     renderWrapper(children) {
@@ -2964,8 +2984,9 @@ class HtmlRenderer {
 			.${c}-wrapper>section.${c} { background: white; box-shadow: 0 0 10px rgba(0, 0, 0, 0.5); margin-bottom: 30px; }
 			.${c} { color: black; hyphens: auto; }
 			section.${c} { box-sizing: border-box; display: flex; flex-flow: column nowrap; position: relative; overflow: hidden; }
+            section.${c}>header { position: absolute; z-index: 1; }
 			section.${c}>article { margin-bottom: auto; z-index: 1; }
-			section.${c}>footer { z-index: 1; }
+			section.${c}>footer { position: absolute; z-index: 1; }
 			.${c} table { border-collapse: collapse; }
 			.${c} table td, .${c} table th { vertical-align: top; }
 			.${c} p { margin: 0pt; min-height: 1em; }
@@ -3081,10 +3102,9 @@ class HtmlRenderer {
             case dom_1.DomType.Break:
                 return this.renderBreak(elem);
             case dom_1.DomType.Footer:
-                return this.renderContainer(elem, "footer");
+                return this.renderHeaderFooter(elem, "footer");
             case dom_1.DomType.Header:
-                elem.children[0].cssStyle = Object.assign(Object.assign({}, elem.children[0].cssStyle), { position: "relative" });
-                return this.renderContainer(elem, "header");
+                return this.renderHeaderFooter(elem, "header");
             case dom_1.DomType.Footnote:
             case dom_1.DomType.Endnote:
                 return this.renderContainer(elem, "li");
@@ -3148,9 +3168,8 @@ class HtmlRenderer {
                 return this.renderInserted(elem);
             case dom_1.DomType.Deleted:
                 return this.renderDeleted(elem);
-            default:
-                return null;
         }
+        return null;
     }
     async renderChildren(elem, into) {
         return await this.renderElements(elem.children, into);
@@ -3265,6 +3284,12 @@ class HtmlRenderer {
         span.style.fontFamily = elem.font;
         span.innerHTML = `&#x${elem.char};`;
         return span;
+    }
+    async renderHeaderFooter(elem, tagName) {
+        let result = this.createElement(tagName);
+        await this.renderChildren(elem, result);
+        this.renderStyleValues(elem.cssStyle, result);
+        return result;
     }
     renderFootnoteReference(elem) {
         let result = this.createElement("sup");
@@ -3422,37 +3447,14 @@ class HtmlRenderer {
         children.push(createElementNS(ns.mathML, "mo", null, [(_b = elem.props.endChar) !== null && _b !== void 0 ? _b : ')']));
         return createElementNS(ns.mathML, "mrow", null, children);
     }
-<<<<<<< HEAD
     async renderMmlNary(elem) {
-        var _a;
-=======
-    renderMmlNary(elem) {
         var _a, _b;
->>>>>>> remotes/origin/master
         const children = [];
         const grouped = (0, utils_1.keyBy)(elem.children, x => x.type);
         const sup = grouped[dom_1.DomType.MmlSuperArgument];
         const sub = grouped[dom_1.DomType.MmlSubArgument];
-<<<<<<< HEAD
         const supElem = sup ? createElementNS(ns.mathML, "mo", null, (0, utils_1.asArray)(await this.renderElement(sup))) : null;
         const subElem = sub ? createElementNS(ns.mathML, "mo", null, (0, utils_1.asArray)(await this.renderElement(sub))) : null;
-        if ((_a = elem.props) === null || _a === void 0 ? void 0 : _a.char) {
-            const charElem = createElementNS(ns.mathML, "mo", null, [elem.props.char]);
-            if (supElem || subElem) {
-                children.push(createElementNS(ns.mathML, "munderover", null, [charElem, subElem, supElem]));
-            }
-            else if (supElem) {
-                children.push(createElementNS(ns.mathML, "mover", null, [charElem, supElem]));
-            }
-            else if (subElem) {
-                children.push(createElementNS(ns.mathML, "munder", null, [charElem, subElem]));
-            }
-            else {
-                children.push(charElem);
-            }
-=======
-        const supElem = sup ? createElementNS(ns.mathML, "mo", null, (0, utils_1.asArray)(this.renderElement(sup))) : null;
-        const subElem = sub ? createElementNS(ns.mathML, "mo", null, (0, utils_1.asArray)(this.renderElement(sub))) : null;
         const charElem = createElementNS(ns.mathML, "mo", null, [(_b = (_a = elem.props) === null || _a === void 0 ? void 0 : _a.char) !== null && _b !== void 0 ? _b : '\u222B']);
         if (supElem || subElem) {
             children.push(createElementNS(ns.mathML, "munderover", null, [charElem, subElem, supElem]));
@@ -3465,37 +3467,32 @@ class HtmlRenderer {
         }
         else {
             children.push(charElem);
->>>>>>> remotes/origin/master
         }
-        let base_children = await this.renderElements(grouped[dom_1.DomType.MmlBase].children);
-        children.push(...base_children);
+        children.push(...await this.renderElements(grouped[dom_1.DomType.MmlBase].children));
         return createElementNS(ns.mathML, "mrow", null, children);
     }
-<<<<<<< HEAD
-    async renderMmlRun(elem) {
-=======
-    renderMmlPreSubSuper(elem) {
+    async renderMmlPreSubSuper(elem) {
         const children = [];
         const grouped = (0, utils_1.keyBy)(elem.children, x => x.type);
         const sup = grouped[dom_1.DomType.MmlSuperArgument];
         const sub = grouped[dom_1.DomType.MmlSubArgument];
-        const supElem = sup ? createElementNS(ns.mathML, "mo", null, (0, utils_1.asArray)(this.renderElement(sup))) : null;
-        const subElem = sub ? createElementNS(ns.mathML, "mo", null, (0, utils_1.asArray)(this.renderElement(sub))) : null;
+        const supElem = sup ? createElementNS(ns.mathML, "mo", null, (0, utils_1.asArray)(await this.renderElement(sup))) : null;
+        const subElem = sub ? createElementNS(ns.mathML, "mo", null, (0, utils_1.asArray)(await this.renderElement(sub))) : null;
         const stubElem = createElementNS(ns.mathML, "mo", null);
         children.push(createElementNS(ns.mathML, "msubsup", null, [stubElem, subElem, supElem]));
-        children.push(...this.renderElements(grouped[dom_1.DomType.MmlBase].children));
+        children.push(...await this.renderElements(grouped[dom_1.DomType.MmlBase].children));
         return createElementNS(ns.mathML, "mrow", null, children);
     }
-    renderMmlGroupChar(elem) {
+    async renderMmlGroupChar(elem) {
         const tagName = elem.props.verticalJustification === "bot" ? "mover" : "munder";
-        const result = this.renderContainerNS(elem, ns.mathML, tagName);
+        const result = await this.renderContainerNS(elem, ns.mathML, tagName);
         if (elem.props.char) {
             result.appendChild(createElementNS(ns.mathML, "mo", null, [elem.props.char]));
         }
         return result;
     }
-    renderMmlBar(elem) {
-        const result = this.renderContainerNS(elem, ns.mathML, "mrow");
+    async renderMmlBar(elem) {
+        const result = await this.renderContainerNS(elem, ns.mathML, "mrow");
         switch (elem.props.position) {
             case "top":
                 result.style.textDecoration = "overline";
@@ -3506,8 +3503,7 @@ class HtmlRenderer {
         }
         return result;
     }
-    renderMmlRun(elem) {
->>>>>>> remotes/origin/master
+    async renderMmlRun(elem) {
         const result = createElementNS(ns.mathML, "ms");
         this.renderClass(elem, result);
         this.renderStyleValues(elem.cssStyle, result);
@@ -3519,8 +3515,10 @@ class HtmlRenderer {
         this.renderClass(elem, result);
         this.renderStyleValues(elem.cssStyle, result);
         const childern = await this.renderChildren(elem);
-        for (let child of childern) {
-            result.appendChild(createElementNS(ns.mathML, "mtr", null, [createElementNS(ns.mathML, "mtd", null, [child])]));
+        for (let child of await this.renderChildren(elem)) {
+            result.appendChild(createElementNS(ns.mathML, "mtr", null, [
+                createElementNS(ns.mathML, "mtd", null, [child])
+            ]));
         }
         return result;
     }
@@ -3535,8 +3533,9 @@ class HtmlRenderer {
         }
     }
     renderClass(input, ouput) {
-        if (input.className)
+        if (input.className) {
             ouput.className = input.className;
+        }
         if (input.styleName) {
             ouput.classList.add(this.processStyleName(input.styleName));
         }

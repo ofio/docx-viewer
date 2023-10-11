@@ -69,6 +69,8 @@ export class HtmlRenderer {
     // 当前制表位
     currentTabs: any[] = [];
     tabsTimeout: any = 0;
+    // 创建元素函数
+    createElement = createElement;
 
     constructor(public htmlDocument: Document) {
     }
@@ -174,7 +176,7 @@ export class HtmlRenderer {
         // 文档CSS样式
         this.styleMap = null;
         // 生成代码片段实例
-        const template = window.document.createElement('template');
+        const template = this.createElement('template');
         // CSS样式生成容器，清空所有CSS样式
         removeAllElements(styleContainer);
 
@@ -406,10 +408,13 @@ export class HtmlRenderer {
             }
 
             if (props.pageSize) {
-                if (!this.options.ignoreWidth)
+                if (!this.options.ignoreWidth) {
                     elem.style.width = props.pageSize.width;
-                if (!this.options.ignoreHeight)
+                }
+                if (!this.options.ignoreHeight) {
                     elem.style.minHeight = props.pageSize.height;
+                    // elem.style.height = props.pageSize.height;
+                }
             }
 
             if (props.columns && props.columns.numberOfColumns) {
@@ -453,7 +458,7 @@ export class HtmlRenderer {
             this.renderStyleValues(document.cssStyle, sectionElement);
             // 渲染页眉
             if (this.options.renderHeaders) {
-                await this.renderHeaderFooter(props.headerRefs, props, result.length, prevProps != props, sectionElement);
+                await this.renderHeaderFooterRef(props.headerRefs, props, result.length, prevProps != props, sectionElement);
             }
             // 渲染Page内容
             let contentElement = this.createElement("article");
@@ -469,7 +474,7 @@ export class HtmlRenderer {
             }
             // 渲染页脚
             if (this.options.renderFooters) {
-                await this.renderHeaderFooter(props.footerRefs, props, result.length, prevProps != props, sectionElement);
+                await this.renderHeaderFooterRef(props.footerRefs, props, result.length, prevProps != props, sectionElement);
             }
 
             result.push(sectionElement);
@@ -479,8 +484,8 @@ export class HtmlRenderer {
         return result;
     }
 
-    // 渲染页眉/页脚
-    async renderHeaderFooter(refs: FooterHeaderReference[], props: SectionProperties, page: number, firstOfSection: boolean, into: HTMLElement) {
+    // 渲染页眉/页脚的Ref
+    async renderHeaderFooterRef(refs: FooterHeaderReference[], props: SectionProperties, page: number, firstOfSection: boolean, into: HTMLElement) {
         if (!refs) return;
         // 查找奇数偶数的ref指向
         let ref = (props.titlePage && firstOfSection ? refs.find(x => x.type == "first") : null)
@@ -495,6 +500,26 @@ export class HtmlRenderer {
             if (!this.usedHederFooterParts.includes(part.path)) {
                 this.processElement(part.rootElement);
                 this.usedHederFooterParts.push(part.path);
+            }
+            // 根据页眉页脚，设置CSS
+            switch (part.rootElement.type) {
+                case DomType.Header:
+                    part.rootElement.cssStyle = {
+                        top: props.pageMargins?.header,
+                        left: props.pageMargins?.left,
+                        right: props.pageMargins?.right,
+                    }
+                    break;
+                case DomType.Footer:
+                    part.rootElement.cssStyle = {
+                        bottom: props.pageMargins?.footer,
+                        left: props.pageMargins?.left,
+                        right: props.pageMargins?.right,
+                    }
+                    break;
+                default:
+                    console.warn('set header/footer style error', part.rootElement.type);
+                    break;
             }
 
             await this.renderElements([part.rootElement], into);
@@ -578,7 +603,7 @@ export class HtmlRenderer {
                                 // 判断前一个p段落，
                                 // 如果含有分页符、分节符，那它们一定位于上一个section，
                                 // 如果前一个段落是普通段落，则代表文字过多超过一页，需要自动分页
-                                return current_section.elements.length > 2 || !this.options.ignoreLastRenderedPageBreak;
+                                return current_section.elements.length > 1 || !this.options.ignoreLastRenderedPageBreak;
                             }
                             // 分页符
                             if ((t as WmlBreak).break === "page") {
@@ -648,7 +673,6 @@ export class HtmlRenderer {
                 currentSectProps = sections[i].sectProps
             }
         }
-        console.log(sections)
         return sections;
     }
 
@@ -665,8 +689,9 @@ export class HtmlRenderer {
 			.${c}-wrapper>section.${c} { background: white; box-shadow: 0 0 10px rgba(0, 0, 0, 0.5); margin-bottom: 30px; }
 			.${c} { color: black; hyphens: auto; }
 			section.${c} { box-sizing: border-box; display: flex; flex-flow: column nowrap; position: relative; overflow: hidden; }
+            section.${c}>header { position: absolute; z-index: 1; }
 			section.${c}>article { margin-bottom: auto; z-index: 1; }
-			section.${c}>footer { z-index: 1; }
+			section.${c}>footer { position: absolute; z-index: 1; }
 			.${c} table { border-collapse: collapse; }
 			.${c} table td, .${c} table th { vertical-align: top; }
 			.${c} p { margin: 0pt; min-height: 1em; }
@@ -845,6 +870,7 @@ export class HtmlRenderer {
         }
     }
 
+    // 渲染单个元素
     async renderElement(elem: OpenXmlElement): Promise<Node | Node[]> {
         switch (elem.type) {
             case DomType.Paragraph:
@@ -893,12 +919,10 @@ export class HtmlRenderer {
                 return this.renderBreak(elem as WmlBreak);
 
             case DomType.Footer:
-                return this.renderContainer(elem, "footer");
+                return this.renderHeaderFooter(elem, "footer");
 
             case DomType.Header:
-                // 修复绝对定位bug
-                elem.children[0].cssStyle = { ...elem.children[0].cssStyle, position: "relative" };
-                return this.renderContainer(elem, "header");
+                return this.renderHeaderFooter(elem, "header");
 
             case DomType.Footnote:
             case DomType.Endnote:
@@ -1001,9 +1025,11 @@ export class HtmlRenderer {
         return await this.renderElements(elem.children, into);
     }
 
-    renderElements(elems: OpenXmlElement[], into?: Element): Node[] {
-        if (elems == null)
+    // 渲染多元素
+    async renderElements(elems: OpenXmlElement[], into?: Element): Promise<Node[]> {
+        if (elems == null) {
             return null;
+        }
 
         let result: Node[] = [];
 
@@ -1015,8 +1041,9 @@ export class HtmlRenderer {
             }
         }
 
-        if (into)
+        if (into) {
             appendChildren(into, result);
+        }
 
         return result;
     }
@@ -1145,6 +1172,18 @@ export class HtmlRenderer {
         span.style.fontFamily = elem.font;
         span.innerHTML = `&#x${elem.char};`
         return span;
+    }
+
+    // 渲染页眉页脚
+    async renderHeaderFooter(elem: OpenXmlElement, tagName: keyof HTMLElementTagNameMap,) {
+
+        let result: HTMLElement = this.createElement(tagName);
+        // 渲染子元素
+        await this.renderChildren(elem, result);
+        // 渲染style样式
+        this.renderStyleValues(elem.cssStyle, result);
+
+        return result;
     }
 
     renderFootnoteReference(elem: WmlNoteReference) {
@@ -1372,30 +1411,30 @@ export class HtmlRenderer {
             children.push(charElem);
         }
 
-        children.push(...this.renderElements(grouped[DomType.MmlBase].children));
+        children.push(...await this.renderElements(grouped[DomType.MmlBase].children));
 
         return createElementNS(ns.mathML, "mrow", null, children);
     }
 
-    renderMmlPreSubSuper(elem: OpenXmlElement) {
+    async renderMmlPreSubSuper(elem: OpenXmlElement) {
         const children = [];
         const grouped = keyBy(elem.children, x => x.type);
 
         const sup = grouped[DomType.MmlSuperArgument];
         const sub = grouped[DomType.MmlSubArgument];
-        const supElem = sup ? createElementNS(ns.mathML, "mo", null, asArray(this.renderElement(sup))) : null;
-        const subElem = sub ? createElementNS(ns.mathML, "mo", null, asArray(this.renderElement(sub))) : null;
+        const supElem = sup ? createElementNS(ns.mathML, "mo", null, asArray(await this.renderElement(sup))) : null;
+        const subElem = sub ? createElementNS(ns.mathML, "mo", null, asArray(await this.renderElement(sub))) : null;
         const stubElem = createElementNS(ns.mathML, "mo", null);
 
         children.push(createElementNS(ns.mathML, "msubsup", null, [stubElem, subElem, supElem]));
-        children.push(...this.renderElements(grouped[DomType.MmlBase].children));
+        children.push(...await this.renderElements(grouped[DomType.MmlBase].children));
 
         return createElementNS(ns.mathML, "mrow", null, children);
     }
 
-    renderMmlGroupChar(elem: OpenXmlElement) {
+    async renderMmlGroupChar(elem: OpenXmlElement) {
         const tagName = elem.props.verticalJustification === "bot" ? "mover" : "munder";
-        const result = this.renderContainerNS(elem, ns.mathML, tagName);
+        const result = await this.renderContainerNS(elem, ns.mathML, tagName);
 
         if (elem.props.char) {
             result.appendChild(createElementNS(ns.mathML, "mo", null, [elem.props.char]));
@@ -1404,12 +1443,16 @@ export class HtmlRenderer {
         return result;
     }
 
-    renderMmlBar(elem: OpenXmlElement) {
-        const result = this.renderContainerNS(elem, ns.mathML, "mrow");
+    async renderMmlBar(elem: OpenXmlElement) {
+        const result = await this.renderContainerNS(elem, ns.mathML, "mrow");
 
         switch (elem.props.position) {
-            case "top": result.style.textDecoration = "overline"; break
-            case "bottom": result.style.textDecoration = "underline"; break
+            case "top":
+                result.style.textDecoration = "overline";
+                break
+            case "bottom":
+                result.style.textDecoration = "underline";
+                break
         }
 
         return result;
@@ -1434,7 +1477,7 @@ export class HtmlRenderer {
 
         const childern = await this.renderChildren(elem);
 
-        for (let child of this.renderChildren(elem)) {
+        for (let child of await this.renderChildren(elem)) {
             result.appendChild(createElementNS(ns.mathML, "mtr", null, [
                 createElementNS(ns.mathML, "mtd", null, [child])
             ]));
@@ -1443,6 +1486,7 @@ export class HtmlRenderer {
         return result;
     }
 
+    // 设置元素style样式
     renderStyleValues(style: Record<string, string>, ouput: HTMLElement) {
         for (let k in style) {
             if (k.startsWith("$")) {
@@ -1453,6 +1497,7 @@ export class HtmlRenderer {
         }
     }
 
+    // 添加class类名
     renderClass(input: OpenXmlElement, ouput: HTMLElement) {
         if (input.className) {
             ouput.className = input.className;
@@ -1573,7 +1618,6 @@ export class HtmlRenderer {
         }, 500);
     }
 
-    createElement = createElement;
 }
 
 type ChildType = Node | string;
