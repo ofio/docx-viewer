@@ -28,7 +28,6 @@ import { WmlBaseNote, WmlFootnote } from './notes/elements';
 import { ThemePart } from './theme/theme-part';
 import { BaseHeaderFooterPart } from './header-footer/parts';
 import { Part } from './common/part';
-import mathMLCSS from "./mathml.scss";
 import { VmlElement } from './vml/vml';
 
 const ns = {
@@ -106,11 +105,6 @@ export class HtmlRenderer {
         // 添加默认CSS样式
         styleContainer.appendChild(this.renderDefaultStyle());
 
-        // 数学公式CSS样式
-        if (!window.MathMLElement && options.useMathMLPolyfill) {
-            appendComment(styleContainer, "docxjs mathml polyfill styles");
-            styleContainer.appendChild(createStyleElement(mathMLCSS));
-        }
         // 主题CSS样式
         if (document.themePart) {
             appendComment(styleContainer, "docxjs document theme values");
@@ -185,11 +179,6 @@ export class HtmlRenderer {
         // 添加默认CSS样式
         styleContainer.appendChild(this.renderDefaultStyle());
 
-        // 数学公式CSS样式
-        if (!window.MathMLElement && options.useMathMLPolyfill) {
-            appendComment(styleContainer, "docxjs mathml polyfill styles");
-            styleContainer.appendChild(createStyleElement(mathMLCSS));
-        }
         // 主题CSS样式
         if (document.themePart) {
             appendComment(styleContainer, "docxjs document theme values");

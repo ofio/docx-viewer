@@ -15,7 +15,6 @@ export interface Options {
     experimental: boolean;                  //enables experimental features (tab stops calculation)
     trimXmlDeclaration: boolean;            //if true, xml declaration will be removed from xml documents before parsing
     useBase64URL: boolean;                  //if true, images, fonts, etc. will be converted to base 64 URL, otherwise URL.createObjectURL is used
-    useMathMLPolyfill: boolean;             //@deprecated includes MathML polyfills for chrome, edge, etc.
     renderChanges: boolean;                 //enables experimental rendering of document changes (inserions/deletions)
     renderHeaders: boolean;                 //enables headers rendering
     renderFooters: boolean;                 //enables footers rendering
@@ -40,7 +39,6 @@ export const defaultOptions: Options = {
     renderFootnotes: true,
     renderEndnotes: true,
     useBase64URL: false,
-    useMathMLPolyfill: false,
     renderChanges: false
 }
 

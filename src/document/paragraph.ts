@@ -21,7 +21,7 @@ export interface ParagraphProperties extends CommonProperties {
     keepNext: boolean;
     pageBreakBefore: boolean;
     outlineLevel: number;
-	styleName?: string;
+    styleName?: string;
 
     runProps: RunProperties;
 }
@@ -40,7 +40,7 @@ export interface ParagraphNumbering {
 export function parseParagraphProperties(elem: Element, xml: XmlParser): ParagraphProperties {
     let result = <ParagraphProperties>{};
 
-    for(let el of xml.elements(elem)) {
+    for (let el of xml.elements(elem)) {
         parseParagraphProperty(el, result, xml);
     }
 
@@ -51,7 +51,7 @@ export function parseParagraphProperty(elem: Element, props: ParagraphProperties
     if (elem.namespaceURI != ns.wordml)
         return false;
 
-    if(parseCommonProperty(elem, props, xml))
+    if (parseCommonProperty(elem, props, xml))
         return true;
 
     switch (elem.localName) {
@@ -66,7 +66,7 @@ export function parseParagraphProperty(elem: Element, props: ParagraphProperties
         case "numPr":
             props.numbering = parseNumbering(elem, xml);
             break;
-        
+
         case "spacing":
             props.lineSpacing = parseLineSpacing(elem, xml);
             return false; // TODO
@@ -77,18 +77,18 @@ export function parseParagraphProperty(elem: Element, props: ParagraphProperties
             return false; //TODO
             break;
 
-        case "keepNext":
+        case "keepLines":
             props.keepLines = xml.boolAttr(elem, "val", true);
             break;
-    
+
         case "keepNext":
             props.keepNext = xml.boolAttr(elem, "val", true);
             break;
-        
+
         case "pageBreakBefore":
             props.pageBreakBefore = xml.boolAttr(elem, "val", true);
             break;
-        
+
         case "outlineLvl":
             props.outlineLevel = xml.intAttr(elem, "val");
             break;
@@ -100,7 +100,7 @@ export function parseParagraphProperty(elem: Element, props: ParagraphProperties
         case "rPr":
             props.runProps = parseRunProperties(elem, xml);
             break;
-        
+
         default:
             return false;
     }
