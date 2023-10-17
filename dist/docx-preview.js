@@ -1944,7 +1944,13 @@ exports.LengthUsage = {
     VmlEmu: { mul: 1 / 12700, unit: "" },
 };
 function convertLength(val, usage = exports.LengthUsage.Dxa) {
-    if (val == null || /.+(p[xt]|[%])$/.test(val)) {
+    if (!val) {
+        return undefined;
+    }
+    if (typeof val === 'number') {
+        return `${(val * usage.mul).toFixed(2)}${usage.unit}`;
+    }
+    if (/.+(p[xt]|[%])$/.test(val)) {
         return val;
     }
     return `${(parseInt(val) * usage.mul).toFixed(2)}${usage.unit}`;
@@ -2246,6 +2252,7 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.parseSectionProperties = exports.SectionType = void 0;
 const xml_parser_1 = __webpack_require__(/*! ../parser/xml-parser */ "./src/parser/xml-parser.ts");
 const border_1 = __webpack_require__(/*! ./border */ "./src/document/border.ts");
+const common_1 = __webpack_require__(/*! ./common */ "./src/document/common.ts");
 var SectionType;
 (function (SectionType) {
     SectionType["Continuous"] = "continuous";
@@ -2257,6 +2264,7 @@ var SectionType;
 function parseSectionProperties(elem, xml = xml_parser_1.default) {
     var _a, _b;
     var section = {};
+    let origin = {};
     for (let e of xml.elements(elem)) {
         switch (e.localName) {
             case "pgSz":
@@ -2264,6 +2272,10 @@ function parseSectionProperties(elem, xml = xml_parser_1.default) {
                     width: xml.lengthAttr(e, "w"),
                     height: xml.lengthAttr(e, "h"),
                     orientation: xml.attr(e, "orient")
+                };
+                origin.pageSize = {
+                    width: xml.intAttr(e, "w"),
+                    height: xml.intAttr(e, "h"),
                 };
                 break;
             case "type":
@@ -2278,6 +2290,15 @@ function parseSectionProperties(elem, xml = xml_parser_1.default) {
                     header: xml.lengthAttr(e, "header"),
                     footer: xml.lengthAttr(e, "footer"),
                     gutter: xml.lengthAttr(e, "gutter"),
+                };
+                origin.pageMargins = {
+                    left: xml.intAttr(e, "left"),
+                    right: xml.intAttr(e, "right"),
+                    top: xml.intAttr(e, "top"),
+                    bottom: xml.intAttr(e, "bottom"),
+                    header: xml.intAttr(e, "header"),
+                    footer: xml.intAttr(e, "footer"),
+                    gutter: xml.intAttr(e, "gutter"),
                 };
                 break;
             case "cols":
@@ -2300,6 +2321,12 @@ function parseSectionProperties(elem, xml = xml_parser_1.default) {
                 break;
         }
     }
+    let { width, height } = origin.pageSize;
+    let { left, right, top, bottom } = origin.pageMargins;
+    section.contentSize = {
+        width: (0, common_1.convertLength)(width - left - right),
+        height: (0, common_1.convertLength)(height - top - bottom),
+    };
     return section;
 }
 exports.parseSectionProperties = parseSectionProperties;
@@ -2831,27 +2858,40 @@ class HtmlRenderer {
             this.currentFootnoteIds = [];
             const section = sections[i];
             const props = section.sectProps || document.props;
-            const sectionElement = this.createSection(this.className, props);
-            this.renderStyleValues(document.cssStyle, sectionElement);
-            if (this.options.renderHeaders) {
-                await this.renderHeaderFooterRef(props.headerRefs, props, result.length, prevProps != props, sectionElement);
-            }
-            let contentElement = this.createElement("article");
-            await this.renderElements(section.elements, contentElement);
-            sectionElement.appendChild(contentElement);
-            if (this.options.renderFootnotes) {
-                await this.renderNotes(this.currentFootnoteIds, this.footnoteMap, sectionElement);
-            }
-            if (this.options.renderEndnotes && i == l - 1) {
-                await this.renderNotes(this.currentEndnoteIds, this.endnoteMap, sectionElement);
-            }
-            if (this.options.renderFooters) {
-                await this.renderHeaderFooterRef(props.footerRefs, props, result.length, prevProps != props, sectionElement);
-            }
-            result.push(sectionElement);
+            let pageIndex = result.length;
+            let isFirstSection = prevProps != props;
+            let isLastSection = i === (l - 1);
+            let sectionElement = await this.renderSection(section, props, document.cssStyle, pageIndex, isFirstSection, isLastSection);
+            result.push(...sectionElement);
             prevProps = props;
         }
         return result;
+    }
+    async renderSection(section, props, sectionStyle, pageIndex, isFirstSection, isLastSection) {
+        const sectionElement = this.createSection(this.className, props);
+        this.renderStyleValues(sectionStyle, sectionElement);
+        if (this.options.renderHeaders) {
+            await this.renderHeaderFooterRef(props.headerRefs, props, pageIndex, isFirstSection, sectionElement);
+        }
+        let contentElement = this.createElement("article");
+        if (this.options.breakPages) {
+            contentElement.style.minHeight = props.contentSize.height;
+        }
+        else {
+            contentElement.style.minHeight = props.contentSize.height;
+        }
+        await this.renderElements(section.elements, contentElement);
+        sectionElement.appendChild(contentElement);
+        if (this.options.renderFootnotes) {
+            await this.renderNotes(this.currentFootnoteIds, this.footnoteMap, sectionElement);
+        }
+        if (this.options.renderEndnotes && isLastSection) {
+            await this.renderNotes(this.currentEndnoteIds, this.endnoteMap, sectionElement);
+        }
+        if (this.options.renderFooters) {
+            await this.renderHeaderFooterRef(props.footerRefs, props, pageIndex, isFirstSection, sectionElement);
+        }
+        return [sectionElement];
     }
     async renderHeaderFooterRef(refs, props, page, firstOfSection, into) {
         var _a, _b, _c, _d, _e, _f, _g, _h;
@@ -2868,16 +2908,16 @@ class HtmlRenderer {
             switch (part.rootElement.type) {
                 case dom_1.DomType.Header:
                     part.rootElement.cssStyle = {
-                        top: (_c = props.pageMargins) === null || _c === void 0 ? void 0 : _c.header,
-                        left: (_d = props.pageMargins) === null || _d === void 0 ? void 0 : _d.left,
-                        right: (_e = props.pageMargins) === null || _e === void 0 ? void 0 : _e.right,
+                        left: (_c = props.pageMargins) === null || _c === void 0 ? void 0 : _c.left,
+                        width: (_d = props.contentSize) === null || _d === void 0 ? void 0 : _d.width,
+                        height: (_e = props.pageMargins) === null || _e === void 0 ? void 0 : _e.top,
                     };
                     break;
                 case dom_1.DomType.Footer:
                     part.rootElement.cssStyle = {
-                        bottom: (_f = props.pageMargins) === null || _f === void 0 ? void 0 : _f.footer,
-                        left: (_g = props.pageMargins) === null || _g === void 0 ? void 0 : _g.left,
-                        right: (_h = props.pageMargins) === null || _h === void 0 ? void 0 : _h.right,
+                        left: (_f = props.pageMargins) === null || _f === void 0 ? void 0 : _f.left,
+                        width: (_g = props.contentSize) === null || _g === void 0 ? void 0 : _g.width,
+                        height: (_h = props.pageMargins) === null || _h === void 0 ? void 0 : _h.bottom,
                     };
                     break;
                 default:
@@ -2984,9 +3024,9 @@ class HtmlRenderer {
 			.${c}-wrapper>section.${c} { background: white; box-shadow: 0 0 10px rgba(0, 0, 0, 0.5); margin-bottom: 30px; }
 			.${c} { color: black; hyphens: auto; }
 			section.${c} { box-sizing: border-box; display: flex; flex-flow: column nowrap; position: relative; overflow: hidden; }
-            section.${c}>header { position: absolute; z-index: 1; }
-			section.${c}>article { margin-bottom: auto; z-index: 1; }
-			section.${c}>footer { position: absolute; z-index: 1; }
+            section.${c}>header { position: absolute; top: 0; z-index: 1; display: flex; align-items: flex-end; }
+			section.${c}>article { overflow: hidden; z-index: 1; }
+			section.${c}>footer { position: absolute; bottom: 0; z-index: 1; }
 			.${c} table { border-collapse: collapse; }
 			.${c} table td, .${c} table th { vertical-align: top; }
 			.${c} p { margin: 0pt; min-height: 1em; }
@@ -3181,7 +3221,10 @@ class HtmlRenderer {
         let result = [];
         for (let i = 0; i < elems.length; i++) {
             let element = await this.renderElement(elems[i]);
-            if (element) {
+            if (Array.isArray(element)) {
+                result.push(...element);
+            }
+            else if (element) {
                 result.push(element);
             }
         }
@@ -3189,6 +3232,9 @@ class HtmlRenderer {
             appendChildren(into, result);
         }
         return result;
+    }
+    checkOverflow(el) {
+        return el.clientWidth < el.scrollWidth || el.clientHeight < el.scrollHeight;
     }
     async renderContainer(elem, tagName, props) {
         return this.createElement(tagName, props, await this.renderChildren(elem));

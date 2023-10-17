@@ -1,6 +1,6 @@
 import globalXmlParser, { XmlParser } from "../parser/xml-parser";
 import { Borders, parseBorders } from "./border";
-import { Length } from "./common";
+import { Length, convertLength } from "./common";
 import { OpenXmlElement } from "./dom";
 
 export interface Column {
@@ -16,9 +16,12 @@ export interface Columns {
     columns: Column[];
 }
 
-export interface PageSize {
+export interface ContentSize {
     width: Length,
     height: Length,
+}
+
+export interface PageSize extends ContentSize {
     orientation: "landscape" | string
 }
 
@@ -64,6 +67,7 @@ export interface SectionProperties {
     footerRefs: FooterHeaderReference[];
     headerRefs: FooterHeaderReference[];
     titlePage: boolean;
+    contentSize: ContentSize;
 }
 
 export interface Section {
@@ -71,8 +75,27 @@ export interface Section {
     elements: OpenXmlElement[],
 }
 
+// 原始尺寸数据，单位：dxa
+interface OriginSize {
+    pageSize: {
+        width: number,
+        height: number,
+    },
+    pageMargins: {
+        top: number;
+        right: number;
+        bottom: number;
+        left: number;
+        header: number;
+        footer: number;
+        gutter: number;
+    }
+}
+
 export function parseSectionProperties(elem: Element, xml: XmlParser = globalXmlParser): SectionProperties {
     var section = <SectionProperties>{};
+    // 原始尺寸，单位：dxa
+    let origin = <OriginSize>{};
 
     for (let e of xml.elements(elem)) {
         switch (e.localName) {
@@ -81,6 +104,11 @@ export function parseSectionProperties(elem: Element, xml: XmlParser = globalXml
                     width: xml.lengthAttr(e, "w"),
                     height: xml.lengthAttr(e, "h"),
                     orientation: xml.attr(e, "orient")
+                }
+                // 记录原始尺寸
+                origin.pageSize = {
+                    width: xml.intAttr(e, "w"),
+                    height: xml.intAttr(e, "h"),
                 }
                 break;
 
@@ -98,6 +126,16 @@ export function parseSectionProperties(elem: Element, xml: XmlParser = globalXml
                     footer: xml.lengthAttr(e, "footer"),
                     gutter: xml.lengthAttr(e, "gutter"),
                 };
+                // 记录原始尺寸
+                origin.pageMargins = {
+                    left: xml.intAttr(e, "left"),
+                    right: xml.intAttr(e, "right"),
+                    top: xml.intAttr(e, "top"),
+                    bottom: xml.intAttr(e, "bottom"),
+                    header: xml.intAttr(e, "header"),
+                    footer: xml.intAttr(e, "footer"),
+                    gutter: xml.intAttr(e, "gutter"),
+                }
                 break;
 
             case "cols":
@@ -124,6 +162,15 @@ export function parseSectionProperties(elem: Element, xml: XmlParser = globalXml
                 section.pageNumber = parsePageNumber(e, xml);
                 break;
         }
+    }
+
+    // 根据原始尺寸，计算内容区域的宽高
+    let { width, height } = origin.pageSize;
+    let { left, right, top, bottom } = origin.pageMargins;
+
+    section.contentSize = {
+        width: convertLength(width - left - right),
+        height: convertLength(height - top - bottom),
     }
 
     return section;

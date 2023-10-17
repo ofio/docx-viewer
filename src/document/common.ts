@@ -29,7 +29,7 @@ export const LengthUsage: Record<string, LengthUsageType> = {
     // Windows系统默认是96dpi，Apple系统默认是72dpi。pt = 1/72(英寸), px = 1/dpi(英寸)
     // 目前只考虑Windows系统，px = pt * 96 / 72 ;
     Px: { mul: 1 / 15, unit: "px" },
-    Dxa: { mul: 0.05, unit: "pt" }, // twentieth = 1/20
+    Dxa: { mul: 0.05, unit: "pt" }, // 单位：twips，twentieth = 1/20
     Emu: { mul: 1 / 12700, unit: "pt" },
     FontSize: { mul: 0.5, unit: "pt" },
     Border: { mul: 0.125, unit: "pt" },
@@ -39,12 +39,22 @@ export const LengthUsage: Record<string, LengthUsageType> = {
     VmlEmu: { mul: 1 / 12700, unit: "" },
 }
 
-export function convertLength(val: string, usage: LengthUsageType = LengthUsage.Dxa): string {
+export function convertLength(val: string | number, usage: LengthUsageType = LengthUsage.Dxa): string {
     //"simplified" docx documents use pt's as units
-    if (val == null || /.+(p[xt]|[%])$/.test(val)) {
-        return val;
+    // undefined类型
+    if (!val) {
+        return undefined;
+    }
+    // number类型
+    if (typeof val === 'number') {
+        return `${(val * usage.mul).toFixed(2)}${usage.unit}`;
     }
 
+    // 默认不转换如下单位：px、pt、%
+    if (/.+(p[xt]|[%])$/.test(val)) {
+        return val;
+    }
+    // 字符串类型
     return `${(parseInt(val) * usage.mul).toFixed(2)}${usage.unit}`;
 }
 

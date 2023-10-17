@@ -242,7 +242,7 @@ export class HtmlRenderer {
     }
 
     // 文档CSS主题样式
-    renderTheme(themePart: ThemePart, styleContainer: HTMLElement | DocumentFragment) {
+    renderTheme(themePart: ThemePart, styleContainer: HTMLElement) {
         const variables = {};
         const fontScheme = themePart.theme?.fontScheme;
 
@@ -269,7 +269,7 @@ export class HtmlRenderer {
     }
 
     // 字体列表CSS样式
-    renderFontTable(fontsPart: FontTablePart, styleContainer: HTMLElement | DocumentFragment) {
+    renderFontTable(fontsPart: FontTablePart, styleContainer: HTMLElement) {
         for (let f of fontsPart.fonts) {
             for (let ref of f.embedFontRefs) {
                 this.document.loadFont(ref.id, ref.key).then(fontData => {
@@ -413,7 +413,6 @@ export class HtmlRenderer {
                 }
                 if (!this.options.ignoreHeight) {
                     elem.style.minHeight = props.pageSize.height;
-                    // elem.style.height = props.pageSize.height;
                 }
             }
 
@@ -430,12 +429,12 @@ export class HtmlRenderer {
         return elem;
     }
 
-    // 生成Page Section
+    // 生成所有的Page Section
     async renderSections(document: DocumentElement): Promise<HTMLElement[]> {
         const result = [];
         // 生成页面parent父级关系
         this.processElement(document);
-        // 根据options.breakPages，判断是否分页
+        // 根据options.breakPages，选择是否分页
         let sections: Section[];
         if (this.options.breakPages) {
             // 根据section切分页面
@@ -450,40 +449,66 @@ export class HtmlRenderer {
         for (let i = 0, l = sections.length; i < l; i++) {
             this.currentFootnoteIds = [];
 
-            const section = sections[i];
-            const props = section.sectProps || document.props;
-            // 根据sectProps，创建section
-            const sectionElement = this.createSection(this.className, props);
-            // 给section添加style样式
-            this.renderStyleValues(document.cssStyle, sectionElement);
-            // 渲染页眉
-            if (this.options.renderHeaders) {
-                await this.renderHeaderFooterRef(props.headerRefs, props, result.length, prevProps != props, sectionElement);
-            }
-            // 渲染Page内容
-            let contentElement = this.createElement("article");
-            await this.renderElements(section.elements, contentElement);
-            sectionElement.appendChild(contentElement);
-            // 渲染脚注
-            if (this.options.renderFootnotes) {
-                await this.renderNotes(this.currentFootnoteIds, this.footnoteMap, sectionElement);
-            }
-            // 渲染尾注
-            if (this.options.renderEndnotes && i == l - 1) {
-                await this.renderNotes(this.currentEndnoteIds, this.endnoteMap, sectionElement);
-            }
-            // 渲染页脚
-            if (this.options.renderFooters) {
-                await this.renderHeaderFooterRef(props.footerRefs, props, result.length, prevProps != props, sectionElement);
-            }
+            const section: Section = sections[i];
+            // 页面属性
+            const props: SectionProperties = section.sectProps || document.props;
+            // 页码
+            let pageIndex = result.length;
+            // 是否第一个section
+            let isFirstSection = prevProps != props;
+            // 是否最后一个section
+            let isLastSection = i === (l - 1);
+            // 渲染单个section，有可能多个section
+            let sectionElement: HTMLElement[] = await this.renderSection(section, props, document.cssStyle, pageIndex, isFirstSection, isLastSection);
 
-            result.push(sectionElement);
+            result.push(...sectionElement);
             prevProps = props;
         }
 
         return result;
     }
 
+    // 生成单个section,如果发现超出一页，自动拆分为下一个section
+    async renderSection(section: Section, props: SectionProperties, sectionStyle: Record<string, string>, pageIndex: number, isFirstSection: boolean, isLastSection: boolean): Promise<HTMLElement[]> {
+        // 根据sectProps，创建section
+        const sectionElement = this.createSection(this.className, props);
+        // 给section添加style样式
+        this.renderStyleValues(sectionStyle, sectionElement);
+        // 渲染页眉
+        if (this.options.renderHeaders) {
+            await this.renderHeaderFooterRef(props.headerRefs, props, pageIndex, isFirstSection, sectionElement);
+        }
+        // 渲染Page内容
+        let contentElement = this.createElement("article");
+        // 根据options.breakPages，设置article的高度
+        if (this.options.breakPages) {
+            // TODO 暂时无法切分页面，高度固定
+            // contentElement.style.height = props.contentSize.height;
+            contentElement.style.minHeight = props.contentSize.height;
+        } else {
+            // 不分页则，拥有最小高度
+            contentElement.style.minHeight = props.contentSize.height;
+        }
+
+        await this.renderElements(section.elements, contentElement);
+
+        sectionElement.appendChild(contentElement);
+        // 渲染脚注
+        if (this.options.renderFootnotes) {
+            await this.renderNotes(this.currentFootnoteIds, this.footnoteMap, sectionElement);
+        }
+        // 渲染尾注，判断最后一页
+        if (this.options.renderEndnotes && isLastSection) {
+            await this.renderNotes(this.currentEndnoteIds, this.endnoteMap, sectionElement);
+        }
+        // 渲染页脚
+        if (this.options.renderFooters) {
+            await this.renderHeaderFooterRef(props.footerRefs, props, pageIndex, isFirstSection, sectionElement);
+        }
+        return [sectionElement]
+    }
+
+    // TODO 分页不准确，页脚页码混乱
     // 渲染页眉/页脚的Ref
     async renderHeaderFooterRef(refs: FooterHeaderReference[], props: SectionProperties, page: number, firstOfSection: boolean, into: HTMLElement) {
         if (!refs) return;
@@ -505,16 +530,16 @@ export class HtmlRenderer {
             switch (part.rootElement.type) {
                 case DomType.Header:
                     part.rootElement.cssStyle = {
-                        top: props.pageMargins?.header,
                         left: props.pageMargins?.left,
-                        right: props.pageMargins?.right,
+                        width: props.contentSize?.width,
+                        height: props.pageMargins?.top,
                     }
                     break;
                 case DomType.Footer:
                     part.rootElement.cssStyle = {
-                        bottom: props.pageMargins?.footer,
                         left: props.pageMargins?.left,
-                        right: props.pageMargins?.right,
+                        width: props.contentSize?.width,
+                        height: props.pageMargins?.bottom,
                     }
                     break;
                 default:
@@ -689,9 +714,9 @@ export class HtmlRenderer {
 			.${c}-wrapper>section.${c} { background: white; box-shadow: 0 0 10px rgba(0, 0, 0, 0.5); margin-bottom: 30px; }
 			.${c} { color: black; hyphens: auto; }
 			section.${c} { box-sizing: border-box; display: flex; flex-flow: column nowrap; position: relative; overflow: hidden; }
-            section.${c}>header { position: absolute; z-index: 1; }
-			section.${c}>article { margin-bottom: auto; z-index: 1; }
-			section.${c}>footer { position: absolute; z-index: 1; }
+            section.${c}>header { position: absolute; top: 0; z-index: 1; display: flex; align-items: flex-end; }
+			section.${c}>article { overflow: hidden; z-index: 1; }
+			section.${c}>footer { position: absolute; bottom: 0; z-index: 1; }
 			.${c} table { border-collapse: collapse; }
 			.${c} table td, .${c} table th { vertical-align: top; }
 			.${c} p { margin: 0pt; min-height: 1em; }
@@ -767,7 +792,7 @@ export class HtmlRenderer {
     //     return createStyleElement(css);
     // }
 
-    renderNumbering(numberings: IDomNumbering[], styleContainer: HTMLElement | DocumentFragment) {
+    renderNumbering(numberings: IDomNumbering[], styleContainer: HTMLElement) {
         let styleText = "";
         let resetCounters = [];
 
@@ -1025,7 +1050,7 @@ export class HtmlRenderer {
         return await this.renderElements(elem.children, into);
     }
 
-    // 渲染多元素
+    // 渲染多元素，
     async renderElements(elems: OpenXmlElement[], into?: Element): Promise<Node[]> {
         if (elems == null) {
             return null;
@@ -1035,9 +1060,10 @@ export class HtmlRenderer {
 
         for (let i = 0; i < elems.length; i++) {
             let element = await this.renderElement(elems[i]);
-
-            if (element) {
-                result.push(element as Node);
+            if (Array.isArray(element)) {
+                result.push(...element);
+            } else if (element) {
+                result.push(element);
             }
         }
 
@@ -1046,6 +1072,13 @@ export class HtmlRenderer {
         }
 
         return result;
+    }
+    // 判断文本区是否溢出
+    checkOverflow(el) {
+        //先让溢出效果为 hidden 这样才可以比较 clientHeight和scrollHeight
+
+        return el.clientWidth < el.scrollWidth || el.clientHeight < el.scrollHeight;
+
     }
 
     async renderContainer(elem: OpenXmlElement, tagName: keyof HTMLElementTagNameMap, props?: Record<string, any>) {
@@ -1650,7 +1683,7 @@ function removeAllElements(elem: HTMLElement) {
 }
 
 // 插入子元素
-function appendChildren(parent: Element | DocumentFragment, children: (Node | string)[]) {
+function appendChildren(parent: Element, children: (Node | string)[]) {
     children.forEach(child => {
         parent.appendChild(isString(child) ? document.createTextNode(child) : child)
     });
@@ -1662,7 +1695,7 @@ function createStyleElement(cssText: string) {
 }
 
 // 插入注释
-function appendComment(elem: HTMLElement | DocumentFragment, comment: string) {
+function appendComment(elem: HTMLElement, comment: string) {
     elem.appendChild(document.createComment(comment));
 }
 
