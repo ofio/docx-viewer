@@ -1,8 +1,12 @@
-import { WordDocument } from './word-document';
+import {WordDocument} from './word-document';
 
-import { DocumentParser } from './document-parser';
+import {DocumentParser} from './document-parser';
 
-import { HtmlRenderer } from './html-renderer';
+// 异步渲染
+import {HtmlRenderer} from './html-renderer';
+
+// 同步渲染
+import {HtmlRendererSync} from "./html-renderer-sync";
 
 export interface Options {
     className: string;                      //class name/prefix for default and document style classes
@@ -42,15 +46,15 @@ export const defaultOptions: Options = {
     renderChanges: false
 }
 
-export function praseAsync(data: Blob | any, userOptions: Partial<Options> = null): Promise<any> {
-    const ops = { ...defaultOptions, ...userOptions };
+export function parseAsync(data: Blob | any, userOptions: Partial<Options> = null): Promise<any> {
+    const ops = {...defaultOptions, ...userOptions};
     return WordDocument.load(data, new DocumentParser(ops), ops);
 }
 
 export async function renderAsync(data: Blob | any, bodyContainer: HTMLElement, styleContainer: HTMLElement = null, userOptions: Partial<Options> = null): Promise<any> {
-    const ops = { ...defaultOptions, ...userOptions };
+    const ops = {...defaultOptions, ...userOptions};
     // HTML渲染器实例
-    const renderer = new HtmlRenderer(window.document);
+    const renderer = new HtmlRenderer();
     // 加载blob对象，根据DocumentParser转换规则，blob对象 => Object对象
     const doc = await WordDocument.load(data, new DocumentParser(ops), ops)
     // Object对象 => HTML标签
@@ -58,11 +62,15 @@ export async function renderAsync(data: Blob | any, bodyContainer: HTMLElement, 
 
     return doc;
 }
-// TODO DOM元素在内存中，渲染错位
-export async function docx2html(data: Blob | any, styleContainer: HTMLElement = null, userOptions: Partial<Options> = null): Promise<any> {
-    const ops = { ...defaultOptions, ...userOptions };
-    const renderer = new HtmlRenderer(window.document);
-    const doc = await WordDocument.load(data, new DocumentParser(ops), ops)
 
-    return renderer.renderFragment(doc, styleContainer, ops);
+export async function renderSync(data: Blob | any, bodyContainer: HTMLElement, styleContainer: HTMLElement = null, userOptions: Partial<Options> = null): Promise<any> {
+    const ops = {...defaultOptions, ...userOptions};
+    // HTML渲染器实例
+    const renderer = new HtmlRendererSync();
+    // 加载blob对象，根据DocumentParser转换规则，blob对象 => Object对象
+    const doc = await WordDocument.load(data, new DocumentParser(ops), ops)
+    // Object对象 => HTML标签
+    await renderer.render(doc, bodyContainer, styleContainer, ops);
+
+    return doc;
 }

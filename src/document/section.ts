@@ -1,7 +1,7 @@
-import globalXmlParser, { XmlParser } from "../parser/xml-parser";
-import { Borders, parseBorders } from "./border";
-import { Length, convertLength } from "./common";
-import { OpenXmlElement } from "./dom";
+import globalXmlParser, {XmlParser} from "../parser/xml-parser";
+import {Borders, parseBorders} from "./border";
+import {Length, convertLength} from "./common";
+import {OpenXmlElement} from "./dom";
 
 export interface Column {
     space: Length;
@@ -30,8 +30,8 @@ export interface PageNumber {
     chapSep: "colon" | "emDash" | "endash" | "hyphen" | "period" | string;
     chapStyle: string;
     format: "none" | "cardinalText" | "decimal" | "decimalEnclosedCircle" | "decimalEnclosedFullstop"
-    | "decimalEnclosedParen" | "decimalZero" | "lowerLetter" | "lowerRoman"
-    | "ordinalText" | "upperLetter" | "upperRoman" | string;
+        | "decimalEnclosedParen" | "decimalZero" | "lowerLetter" | "lowerRoman"
+        | "ordinalText" | "upperLetter" | "upperRoman" | string;
 }
 
 export interface PageMargins {
@@ -73,6 +73,13 @@ export interface SectionProperties {
 export interface Section {
     sectProps: SectionProperties,
     elements: OpenXmlElement[],
+    is_split: boolean,
+    isFirstSection?: boolean;
+    isLastSection?: boolean;
+    pageIndex?: number;
+	elementIndex?: number;
+    contentElement?: Element;
+    checking_overflow?: boolean,
 }
 
 // 原始尺寸数据，单位：dxa
@@ -165,8 +172,8 @@ export function parseSectionProperties(elem: Element, xml: XmlParser = globalXml
     }
 
     // 根据原始尺寸，计算内容区域的宽高
-    let { width, height } = origin.pageSize;
-    let { left, right, top, bottom } = origin.pageMargins;
+    let {width, height} = origin.pageSize;
+    let {left, right, top, bottom} = origin.pageMargins;
 
     section.contentSize = {
         width: convertLength(width - left - right),

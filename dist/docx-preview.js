@@ -2184,10 +2184,11 @@ function parseFooterHeaderReference(elem, xml) {
 
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.docx2html = exports.renderAsync = exports.praseAsync = exports.defaultOptions = void 0;
+exports.renderSync = exports.renderAsync = exports.parseAsync = exports.defaultOptions = void 0;
 const word_document_1 = __webpack_require__(/*! ./word-document */ "./src/word-document.ts");
 const document_parser_1 = __webpack_require__(/*! ./document-parser */ "./src/document-parser.ts");
 const html_renderer_1 = __webpack_require__(/*! ./html-renderer */ "./src/html-renderer.ts");
+const html_renderer_sync_1 = __webpack_require__(/*! ./html-renderer-sync */ "./src/html-renderer-sync.ts");
 exports.defaultOptions = {
     ignoreHeight: false,
     ignoreWidth: false,
@@ -2206,26 +2207,27 @@ exports.defaultOptions = {
     useBase64URL: false,
     renderChanges: false
 };
-function praseAsync(data, userOptions = null) {
+function parseAsync(data, userOptions = null) {
     const ops = Object.assign(Object.assign({}, exports.defaultOptions), userOptions);
     return word_document_1.WordDocument.load(data, new document_parser_1.DocumentParser(ops), ops);
 }
-exports.praseAsync = praseAsync;
+exports.parseAsync = parseAsync;
 async function renderAsync(data, bodyContainer, styleContainer = null, userOptions = null) {
     const ops = Object.assign(Object.assign({}, exports.defaultOptions), userOptions);
-    const renderer = new html_renderer_1.HtmlRenderer(window.document);
+    const renderer = new html_renderer_1.HtmlRenderer();
     const doc = await word_document_1.WordDocument.load(data, new document_parser_1.DocumentParser(ops), ops);
     await renderer.render(doc, bodyContainer, styleContainer, ops);
     return doc;
 }
 exports.renderAsync = renderAsync;
-async function docx2html(data, styleContainer = null, userOptions = null) {
+async function renderSync(data, bodyContainer, styleContainer = null, userOptions = null) {
     const ops = Object.assign(Object.assign({}, exports.defaultOptions), userOptions);
-    const renderer = new html_renderer_1.HtmlRenderer(window.document);
+    const renderer = new html_renderer_sync_1.HtmlRendererSync();
     const doc = await word_document_1.WordDocument.load(data, new document_parser_1.DocumentParser(ops), ops);
-    return renderer.renderFragment(doc, styleContainer, ops);
+    await renderer.render(doc, bodyContainer, styleContainer, ops);
+    return doc;
 }
-exports.docx2html = docx2html;
+exports.renderSync = renderSync;
 
 
 /***/ }),
@@ -2372,6 +2374,1382 @@ exports.FooterPart = FooterPart;
 
 /***/ }),
 
+/***/ "./src/html-renderer-sync.ts":
+/*!***********************************!*\
+  !*** ./src/html-renderer-sync.ts ***!
+  \***********************************/
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.HtmlRendererSync = void 0;
+const dom_1 = __webpack_require__(/*! ./document/dom */ "./src/document/dom.ts");
+const utils_1 = __webpack_require__(/*! ./utils */ "./src/utils.ts");
+const javascript_1 = __webpack_require__(/*! ./javascript */ "./src/javascript.ts");
+const ns = {
+    html: "http://www.w3.org/1999/xhtml",
+    svg: "http://www.w3.org/2000/svg",
+    mathML: "http://www.w3.org/1998/Math/MathML"
+};
+class HtmlRendererSync {
+    constructor() {
+        this.className = "docx";
+        this.styleMap = {};
+        this.currentPart = null;
+        this.current_element = { parent: null };
+        this.tableVerticalMerges = [];
+        this.currentVerticalMerge = null;
+        this.tableCellPositions = [];
+        this.currentCellPosition = null;
+        this.footnoteMap = {};
+        this.endnoteMap = {};
+        this.currentEndnoteIds = [];
+        this.usedHederFooterParts = [];
+        this.currentTabs = [];
+        this.tabsTimeout = 0;
+    }
+    render(document, bodyContainer, styleContainer = null, options) {
+        var _a;
+        this.document = document;
+        this.options = options;
+        this.className = options.className;
+        this.rootSelector = options.inWrapper ? `.${this.className}-wrapper` : ':root';
+        this.styleMap = null;
+        this.wrapper = bodyContainer;
+        styleContainer = styleContainer || bodyContainer;
+        removeAllElements(styleContainer);
+        removeAllElements(bodyContainer);
+        appendComment(styleContainer, "docxjs library predefined styles");
+        styleContainer.appendChild(this.renderDefaultStyle());
+        if (document.themePart) {
+            appendComment(styleContainer, "docxjs document theme values");
+            this.renderTheme(document.themePart, styleContainer);
+        }
+        if (document.stylesPart != null) {
+            this.styleMap = this.processStyles(document.stylesPart.styles);
+            appendComment(styleContainer, "docxjs document styles");
+            styleContainer.appendChild(this.renderStyles(document.stylesPart.styles));
+        }
+        if (document.numberingPart) {
+            this.processNumberings(document.numberingPart.domNumberings);
+            appendComment(styleContainer, "docxjs document numbering styles");
+            styleContainer.appendChild(this.renderNumbering(document.numberingPart.domNumberings, styleContainer));
+        }
+        if (!options.ignoreFonts && document.fontTablePart) {
+            this.renderFontTable(document.fontTablePart, styleContainer);
+        }
+        if (document.footnotesPart) {
+            this.footnoteMap = (0, utils_1.keyBy)(document.footnotesPart.notes, x => x.id);
+        }
+        if (document.endnotesPart) {
+            this.endnoteMap = (0, utils_1.keyBy)(document.endnotesPart.notes, x => x.id);
+        }
+        if (document.settingsPart) {
+            this.defaultTabSize = (_a = document.settingsPart.settings) === null || _a === void 0 ? void 0 : _a.defaultTabStop;
+        }
+        if (this.options.inWrapper) {
+            this.wrapper = this.renderWrapper();
+            bodyContainer.appendChild(this.wrapper);
+        }
+        else {
+            this.wrapper = bodyContainer;
+        }
+        this.renderSections(document.documentPart.body);
+        this.refreshTabStops();
+    }
+    renderDefaultStyle() {
+        let c = this.className;
+        let styleText = `
+			.${c}-wrapper { background: gray; padding: 30px; padding-bottom: 0px; display: flex; flex-flow: column; align-items: center; } 
+			.${c}-wrapper>section.${c} { background: white; box-shadow: 0 0 10px rgba(0, 0, 0, 0.5); margin-bottom: 30px; }
+			.${c} { color: black; hyphens: auto; }
+			section.${c} { box-sizing: border-box; display: flex; flex-flow: column nowrap; position: relative; overflow: hidden; }
+            section.${c}>header { position: absolute; top: 0; z-index: 1; display: flex; align-items: flex-end; }
+			section.${c}>article { overflow: hidden; z-index: 1; }
+			section.${c}>footer { position: absolute; bottom: 0; z-index: 1; }
+			.${c} table { border-collapse: collapse; }
+			.${c} table td, .${c} table th { vertical-align: top; }
+			.${c} p { margin: 0pt; min-height: 1em; }
+			.${c} span { white-space: pre-wrap; overflow-wrap: break-word; }
+			.${c} a { color: inherit; text-decoration: inherit; }
+		`;
+        return createStyleElement(styleText);
+    }
+    renderTheme(themePart, styleContainer) {
+        var _a, _b;
+        const variables = {};
+        const fontScheme = (_a = themePart.theme) === null || _a === void 0 ? void 0 : _a.fontScheme;
+        if (fontScheme) {
+            if (fontScheme.majorFont) {
+                variables['--docx-majorHAnsi-font'] = fontScheme.majorFont.latinTypeface;
+            }
+            if (fontScheme.minorFont) {
+                variables['--docx-minorHAnsi-font'] = fontScheme.minorFont.latinTypeface;
+            }
+        }
+        const colorScheme = (_b = themePart.theme) === null || _b === void 0 ? void 0 : _b.colorScheme;
+        if (colorScheme) {
+            for (let [k, v] of Object.entries(colorScheme.colors)) {
+                variables[`--docx-${k}-color`] = `#${v}`;
+            }
+        }
+        const cssText = this.styleToString(`.${this.className}`, variables);
+        styleContainer.appendChild(createStyleElement(cssText));
+    }
+    processStyleName(className) {
+        return className ? `${this.className}_${(0, utils_1.escapeClassName)(className)}` : this.className;
+    }
+    processStyles(styles) {
+        const stylesMap = (0, utils_1.keyBy)(styles.filter(x => x.id != null), x => x.id);
+        for (const style of styles.filter(x => x.basedOn)) {
+            let baseStyle = stylesMap[style.basedOn];
+            if (baseStyle) {
+                style.paragraphProps = (0, utils_1.mergeDeep)(style.paragraphProps, baseStyle.paragraphProps);
+                style.runProps = (0, utils_1.mergeDeep)(style.runProps, baseStyle.runProps);
+                for (const baseValues of baseStyle.styles) {
+                    const styleValues = style.styles.find(x => x.target == baseValues.target);
+                    if (styleValues) {
+                        this.copyStyleProperties(baseValues.values, styleValues.values);
+                    }
+                    else {
+                        style.styles.push(Object.assign(Object.assign({}, baseValues), { values: Object.assign({}, baseValues.values) }));
+                    }
+                }
+            }
+            else if (this.options.debug) {
+                console.warn(`Can't find base style ${style.basedOn}`);
+            }
+        }
+        for (let style of styles) {
+            style.cssName = this.processStyleName(style.id);
+        }
+        return stylesMap;
+    }
+    renderStyles(styles) {
+        var _a;
+        let styleText = "";
+        const stylesMap = this.styleMap;
+        const defaultStyles = (0, utils_1.keyBy)(styles.filter(s => s.isDefault), s => s.target);
+        for (const style of styles) {
+            let subStyles = style.styles;
+            if (style.linked) {
+                let linkedStyle = style.linked && stylesMap[style.linked];
+                if (linkedStyle)
+                    subStyles = subStyles.concat(linkedStyle.styles);
+                else if (this.options.debug)
+                    console.warn(`Can't find linked style ${style.linked}`);
+            }
+            for (const subStyle of subStyles) {
+                let selector = `${(_a = style.target) !== null && _a !== void 0 ? _a : ''}.${style.cssName}`;
+                if (style.target != subStyle.target)
+                    selector += ` ${subStyle.target}`;
+                if (defaultStyles[style.target] == style)
+                    selector = `.${this.className} ${style.target}, ` + selector;
+                styleText += this.styleToString(selector, subStyle.values);
+            }
+        }
+        return createStyleElement(styleText);
+    }
+    processNumberings(numberings) {
+        var _a;
+        for (let num of numberings.filter(n => n.pStyleName)) {
+            const style = this.findStyle(num.pStyleName);
+            if ((_a = style === null || style === void 0 ? void 0 : style.paragraphProps) === null || _a === void 0 ? void 0 : _a.numbering) {
+                style.paragraphProps.numbering.level = num.level;
+            }
+        }
+    }
+    renderNumbering(numberings, styleContainer) {
+        let styleText = "";
+        let resetCounters = [];
+        for (let num of numberings) {
+            let selector = `p.${this.numberingClass(num.id, num.level)}`;
+            let listStyleType = "none";
+            if (num.bullet) {
+                let valiable = `--${this.className}-${num.bullet.src}`.toLowerCase();
+                styleText += this.styleToString(`${selector}:before`, {
+                    "content": "' '",
+                    "display": "inline-block",
+                    "background": `var(${valiable})`
+                }, num.bullet.style);
+                this.document.loadNumberingImage(num.bullet.src).then(data => {
+                    let text = `${this.rootSelector} { ${valiable}: url(${data}) }`;
+                    styleContainer.appendChild(createStyleElement(text));
+                });
+            }
+            else if (num.levelText) {
+                let counter = this.numberingCounter(num.id, num.level);
+                const counterReset = counter + " " + (num.start - 1);
+                if (num.level > 0) {
+                    styleText += this.styleToString(`p.${this.numberingClass(num.id, num.level - 1)}`, {
+                        "counter-reset": counterReset
+                    });
+                }
+                resetCounters.push(counterReset);
+                styleText += this.styleToString(`${selector}:before`, Object.assign({ "content": this.levelTextToContent(num.levelText, num.suff, num.id, this.numFormatToCssValue(num.format)), "counter-increment": counter }, num.rStyle));
+            }
+            else {
+                listStyleType = this.numFormatToCssValue(num.format);
+            }
+            styleText += this.styleToString(selector, Object.assign({ "display": "list-item", "list-style-position": "inside", "list-style-type": listStyleType }, num.pStyle));
+        }
+        if (resetCounters.length > 0) {
+            styleText += this.styleToString(this.rootSelector, {
+                "counter-reset": resetCounters.join(" ")
+            });
+        }
+        return createStyleElement(styleText);
+    }
+    numberingClass(id, lvl) {
+        return `${this.className}-num-${id}-${lvl}`;
+    }
+    styleToString(selectors, values, cssText = null) {
+        let result = `${selectors} {\r\n`;
+        for (const key in values) {
+            if (key.startsWith('$'))
+                continue;
+            result += `  ${key}: ${values[key]};\r\n`;
+        }
+        if (cssText)
+            result += cssText;
+        return result + "}\r\n";
+    }
+    numberingCounter(id, lvl) {
+        return `${this.className}-num-${id}-${lvl}`;
+    }
+    levelTextToContent(text, suff, id, numformat) {
+        var _a;
+        const suffMap = {
+            "tab": "\\9",
+            "space": "\\a0",
+        };
+        let result = text.replace(/%\d*/g, s => {
+            let lvl = parseInt(s.substring(1), 10) - 1;
+            return `"counter(${this.numberingCounter(id, lvl)}, ${numformat})"`;
+        });
+        return `"${result}${(_a = suffMap[suff]) !== null && _a !== void 0 ? _a : ""}"`;
+    }
+    numFormatToCssValue(format) {
+        var _a;
+        let mapping = {
+            none: "none",
+            bullet: "disc",
+            decimal: "decimal",
+            lowerLetter: "lower-alpha",
+            upperLetter: "upper-alpha",
+            lowerRoman: "lower-roman",
+            upperRoman: "upper-roman",
+            decimalZero: "decimal-leading-zero",
+            aiueo: "katakana",
+            aiueoFullWidth: "katakana",
+            chineseCounting: "simp-chinese-informal",
+            chineseCountingThousand: "simp-chinese-informal",
+            chineseLegalSimplified: "simp-chinese-formal",
+            chosung: "hangul-consonant",
+            ideographDigital: "cjk-ideographic",
+            ideographTraditional: "cjk-heavenly-stem",
+            ideographLegalTraditional: "trad-chinese-formal",
+            ideographZodiac: "cjk-earthly-branch",
+            iroha: "katakana-iroha",
+            irohaFullWidth: "katakana-iroha",
+            japaneseCounting: "japanese-informal",
+            japaneseDigitalTenThousand: "cjk-decimal",
+            japaneseLegal: "japanese-formal",
+            thaiNumbers: "thai",
+            koreanCounting: "korean-hangul-formal",
+            koreanDigital: "korean-hangul-formal",
+            koreanDigital2: "korean-hanja-informal",
+            hebrew1: "hebrew",
+            hebrew2: "hebrew",
+            hindiNumbers: "devanagari",
+            ganada: "hangul",
+            taiwaneseCounting: "cjk-ideographic",
+            taiwaneseCountingThousand: "cjk-ideographic",
+            taiwaneseDigital: "cjk-decimal",
+        };
+        return (_a = mapping[format]) !== null && _a !== void 0 ? _a : format;
+    }
+    renderFontTable(fontsPart, styleContainer) {
+        for (let f of fontsPart.fonts) {
+            for (let ref of f.embedFontRefs) {
+                this.document.loadFont(ref.id, ref.key).then(fontData => {
+                    const cssValues = {
+                        'font-family': f.name,
+                        'src': `url(${fontData})`
+                    };
+                    if (ref.type == "bold" || ref.type == "boldItalic") {
+                        cssValues['font-weight'] = 'bold';
+                    }
+                    if (ref.type == "italic" || ref.type == "boldItalic") {
+                        cssValues['font-style'] = 'italic';
+                    }
+                    appendComment(styleContainer, `docxjs ${f.name} font`);
+                    const cssText = this.styleToString("@font-face", cssValues);
+                    styleContainer.appendChild(createStyleElement(cssText));
+                    this.refreshTabStops();
+                });
+            }
+        }
+    }
+    renderWrapper() {
+        return createElement("div", { className: `${this.className}-wrapper` });
+    }
+    copyStyleProperties(input, output, attrs = null) {
+        if (!input) {
+            return output;
+        }
+        if (output == null) {
+            output = {};
+        }
+        if (attrs == null) {
+            attrs = Object.getOwnPropertyNames(input);
+        }
+        for (let key of attrs) {
+            if (input.hasOwnProperty(key) && !output.hasOwnProperty(key))
+                output[key] = input[key];
+        }
+        return output;
+    }
+    processElement(element) {
+        if (element.children) {
+            for (let e of element.children) {
+                e.parent = element;
+                if (e.type == dom_1.DomType.Table) {
+                    this.processTable(e);
+                }
+                else {
+                    this.processElement(e);
+                }
+            }
+        }
+    }
+    processTable(table) {
+        for (let r of table.children) {
+            for (let c of r.children) {
+                c.cssStyle = this.copyStyleProperties(table.cellStyle, c.cssStyle, [
+                    "border-left", "border-right", "border-top", "border-bottom",
+                    "padding-left", "padding-right", "padding-top", "padding-bottom"
+                ]);
+                this.processElement(c);
+            }
+        }
+    }
+    splitBySection(elements) {
+        var _a;
+        let current_section = { sectProps: null, elements: [], is_split: false, };
+        let sections = [current_section];
+        for (let elem of elements) {
+            current_section.elements.push(elem);
+            if (elem.type == dom_1.DomType.Paragraph) {
+                const p = elem;
+                let sectProps = p.sectionProps;
+                const default_paragraph_style = this.findStyle(p.styleName);
+                if ((_a = default_paragraph_style === null || default_paragraph_style === void 0 ? void 0 : default_paragraph_style.paragraphProps) === null || _a === void 0 ? void 0 : _a.pageBreakBefore) {
+                    current_section.is_split = true;
+                    current_section.sectProps = sectProps;
+                    current_section = { sectProps: null, elements: [], is_split: false };
+                    sections.push(current_section);
+                }
+                let pBreakIndex = -1;
+                let rBreakIndex = -1;
+                if (p.children) {
+                    pBreakIndex = p.children.findIndex(r => {
+                        var _a;
+                        rBreakIndex = (_a = r.children) === null || _a === void 0 ? void 0 : _a.findIndex((t) => {
+                            if (t.type != dom_1.DomType.Break) {
+                                return false;
+                            }
+                            if (t.break == "lastRenderedPageBreak") {
+                                return current_section.elements.length > 1 || !this.options.ignoreLastRenderedPageBreak;
+                            }
+                            if (t.break === "page") {
+                                return true;
+                            }
+                        });
+                        rBreakIndex = rBreakIndex !== null && rBreakIndex !== void 0 ? rBreakIndex : -1;
+                        return rBreakIndex != -1;
+                    });
+                }
+                if (sectProps) {
+                    current_section.is_split = false;
+                }
+                if (pBreakIndex != -1) {
+                    current_section.is_split = true;
+                }
+                if (sectProps || pBreakIndex != -1) {
+                    current_section.sectProps = sectProps;
+                    current_section = { sectProps: null, elements: [], is_split: false };
+                    sections.push(current_section);
+                }
+                if (pBreakIndex != -1) {
+                    let breakRun = p.children[pBreakIndex];
+                    let is_split = rBreakIndex < breakRun.children.length - 1;
+                    if (pBreakIndex < p.children.length - 1 || is_split) {
+                        let origin_run = p.children;
+                        let new_paragraph = Object.assign(Object.assign({}, p), { children: origin_run.slice(pBreakIndex) });
+                        p.children = origin_run.slice(0, pBreakIndex);
+                        current_section.elements.push(new_paragraph);
+                        if (is_split) {
+                            let origin_elements = breakRun.children;
+                            let newRun = Object.assign(Object.assign({}, breakRun), { children: origin_elements.slice(0, rBreakIndex) });
+                            p.children.push(newRun);
+                            breakRun.children = origin_elements.slice(rBreakIndex);
+                        }
+                    }
+                }
+            }
+            if (elem.type === dom_1.DomType.Table) {
+                current_section.is_split = false;
+            }
+        }
+        let currentSectProps = null;
+        for (let i = sections.length - 1; i >= 0; i--) {
+            if (sections[i].sectProps == null) {
+                sections[i].sectProps = currentSectProps;
+            }
+            else {
+                currentSectProps = sections[i].sectProps;
+            }
+        }
+        return sections;
+    }
+    renderSections(document) {
+        this.processElement(document);
+        let sections;
+        if (this.options.breakPages) {
+            sections = this.splitBySection(document.children);
+        }
+        else {
+            sections = [{ sectProps: document.props, elements: document.children, is_split: false }];
+        }
+        let prevProps = null;
+        for (let i = 0, l = sections.length; i < l; i++) {
+            this.currentFootnoteIds = [];
+            let section = sections[i];
+            let { sectProps } = section;
+            section.sectProps = sectProps !== null && sectProps !== void 0 ? sectProps : document.props;
+            section.isFirstSection = prevProps != sectProps;
+            section.isLastSection = i === (l - 1);
+            section.pageIndex = i;
+            section.checking_overflow = false;
+            this.current_section = section;
+            this.renderSection();
+            prevProps = sectProps;
+        }
+    }
+    renderSection() {
+        let section = this.current_section;
+        let { sectProps, isFirstSection, isLastSection, pageIndex } = section;
+        const sectionElement = this.createSection(this.className, sectProps);
+        this.renderStyleValues(this.document.documentPart.body.cssStyle, sectionElement);
+        if (this.options.renderHeaders) {
+            this.renderHeaderFooterRef(sectProps.headerRefs, sectProps, pageIndex, isFirstSection, sectionElement);
+        }
+        if (this.options.renderFootnotes) {
+            this.renderNotes(this.currentFootnoteIds, this.footnoteMap, sectionElement);
+        }
+        if (this.options.renderEndnotes && isLastSection) {
+            this.renderNotes(this.currentEndnoteIds, this.endnoteMap, sectionElement);
+        }
+        if (this.options.renderFooters) {
+            this.renderHeaderFooterRef(sectProps.footerRefs, sectProps, pageIndex, isFirstSection, sectionElement);
+        }
+        let contentElement = createElement("article");
+        if (this.options.breakPages) {
+            contentElement.style.height = sectProps.contentSize.height;
+        }
+        else {
+            contentElement.style.minHeight = sectProps.contentSize.height;
+        }
+        this.current_section.contentElement = contentElement;
+        sectionElement.appendChild(contentElement);
+        this.current_section.checking_overflow = true;
+        this.renderElements(section.elements, contentElement);
+        this.current_section.checking_overflow = false;
+    }
+    createSection(className, props) {
+        let elem = createElement("section", { className });
+        if (props) {
+            if (props.pageMargins) {
+                elem.style.paddingLeft = props.pageMargins.left;
+                elem.style.paddingRight = props.pageMargins.right;
+                elem.style.paddingTop = props.pageMargins.top;
+                elem.style.paddingBottom = props.pageMargins.bottom;
+            }
+            if (props.pageSize) {
+                if (!this.options.ignoreWidth) {
+                    elem.style.width = props.pageSize.width;
+                }
+                if (!this.options.ignoreHeight) {
+                    elem.style.minHeight = props.pageSize.height;
+                }
+            }
+            if (props.columns && props.columns.numberOfColumns) {
+                elem.style.columnCount = `${props.columns.numberOfColumns}`;
+                elem.style.columnGap = props.columns.space;
+                if (props.columns.separator) {
+                    elem.style.columnRule = "1px solid black";
+                }
+            }
+        }
+        this.wrapper.appendChild(elem);
+        return elem;
+    }
+    renderHeaderFooterRef(refs, props, page, firstOfSection, parent) {
+        var _a, _b, _c, _d, _e, _f, _g, _h;
+        if (!refs)
+            return;
+        let ref = (_b = (_a = (props.titlePage && firstOfSection ? refs.find(x => x.type == "first") : null)) !== null && _a !== void 0 ? _a : (page % 2 == 1 ? refs.find(x => x.type == "even") : null)) !== null && _b !== void 0 ? _b : refs.find(x => x.type == "default");
+        let part = ref && this.document.findPartByRelId(ref.id, this.document.documentPart);
+        if (part) {
+            this.currentPart = part;
+            if (!this.usedHederFooterParts.includes(part.path)) {
+                this.processElement(part.rootElement);
+                this.usedHederFooterParts.push(part.path);
+            }
+            switch (part.rootElement.type) {
+                case dom_1.DomType.Header:
+                    part.rootElement.cssStyle = {
+                        left: (_c = props.pageMargins) === null || _c === void 0 ? void 0 : _c.left,
+                        width: (_d = props.contentSize) === null || _d === void 0 ? void 0 : _d.width,
+                        height: (_e = props.pageMargins) === null || _e === void 0 ? void 0 : _e.top,
+                    };
+                    break;
+                case dom_1.DomType.Footer:
+                    part.rootElement.cssStyle = {
+                        left: (_f = props.pageMargins) === null || _f === void 0 ? void 0 : _f.left,
+                        width: (_g = props.contentSize) === null || _g === void 0 ? void 0 : _g.width,
+                        height: (_h = props.pageMargins) === null || _h === void 0 ? void 0 : _h.bottom,
+                    };
+                    break;
+                default:
+                    console.warn('set header/footer style error', part.rootElement.type);
+                    break;
+            }
+            this.renderElements([part.rootElement], parent);
+            this.currentPart = null;
+        }
+    }
+    renderNotes(noteIds, notesMap, parent) {
+        let notes = noteIds.map(id => notesMap[id]).filter(x => x);
+        if (notes.length > 0) {
+            let oList = createElement("ol", null);
+            this.renderElements(notes, oList);
+            parent.appendChild(oList);
+        }
+    }
+    renderElements(elems, parent) {
+        for (let i = 0; i < elems.length; i++) {
+            this.renderElement(elems[i], parent);
+            this.current_section.elementIndex = i;
+        }
+    }
+    renderElement(elem, parent) {
+        let oNode;
+        switch (elem.type) {
+            case dom_1.DomType.Paragraph:
+                oNode = this.renderParagraph(elem, parent);
+                break;
+            case dom_1.DomType.BookmarkStart:
+                oNode = this.renderBookmarkStart(elem, parent);
+                break;
+            case dom_1.DomType.BookmarkEnd:
+                oNode = null;
+                break;
+            case dom_1.DomType.Run:
+                oNode = this.renderRun(elem, parent);
+                break;
+            case dom_1.DomType.Table:
+                oNode = this.renderTable(elem, parent);
+                break;
+            case dom_1.DomType.Row:
+                oNode = this.renderTableRow(elem, parent);
+                break;
+            case dom_1.DomType.Cell:
+                oNode = this.renderTableCell(elem, parent);
+                break;
+            case dom_1.DomType.Hyperlink:
+                oNode = this.renderHyperlink(elem, parent);
+                break;
+            case dom_1.DomType.Drawing:
+                oNode = this.renderDrawing(elem, parent);
+                break;
+            case dom_1.DomType.Image:
+                oNode = this.renderImage(elem, parent);
+                break;
+            case dom_1.DomType.Text:
+                oNode = this.renderText(elem, parent);
+                break;
+            case dom_1.DomType.DeletedText:
+                oNode = this.renderDeletedText(elem, parent);
+                break;
+            case dom_1.DomType.Tab:
+                oNode = this.renderTab(elem, parent);
+                break;
+            case dom_1.DomType.Symbol:
+                oNode = this.renderSymbol(elem, parent);
+                break;
+            case dom_1.DomType.Break:
+                oNode = this.renderBreak(elem, parent);
+                break;
+            case dom_1.DomType.Footer:
+                oNode = this.renderHeaderFooter(elem, "footer");
+                if (parent) {
+                    this.appendChildren(parent, oNode);
+                }
+                break;
+            case dom_1.DomType.Header:
+                oNode = this.renderHeaderFooter(elem, "header");
+                if (parent) {
+                    this.appendChildren(parent, oNode);
+                }
+                break;
+            case dom_1.DomType.Footnote:
+            case dom_1.DomType.Endnote:
+                oNode = this.renderContainer(elem, "li");
+                if (parent) {
+                    this.appendChildren(parent, oNode);
+                }
+                break;
+            case dom_1.DomType.FootnoteReference:
+                oNode = this.renderFootnoteReference(elem);
+                if (parent) {
+                    this.appendChildren(parent, oNode);
+                }
+                break;
+            case dom_1.DomType.EndnoteReference:
+                oNode = this.renderEndnoteReference(elem);
+                if (parent) {
+                    this.appendChildren(parent, oNode);
+                }
+                break;
+            case dom_1.DomType.NoBreakHyphen:
+                oNode = createElement("wbr");
+                if (parent) {
+                    this.appendChildren(parent, oNode);
+                }
+                break;
+            case dom_1.DomType.VmlPicture:
+                oNode = this.renderVmlPicture(elem);
+                if (parent) {
+                    this.appendChildren(parent, oNode);
+                }
+                break;
+            case dom_1.DomType.VmlElement:
+                oNode = this.renderVmlElement(elem);
+                if (parent) {
+                    this.appendChildren(parent, oNode);
+                }
+                break;
+            case dom_1.DomType.MmlMath:
+                oNode = this.renderContainerNS(elem, ns.mathML, "math", { xmlns: ns.mathML });
+                if (parent) {
+                    this.appendChildren(parent, oNode);
+                }
+                break;
+            case dom_1.DomType.MmlMathParagraph:
+                oNode = this.renderContainer(elem, "span");
+                if (parent) {
+                    this.appendChildren(parent, oNode);
+                }
+                break;
+            case dom_1.DomType.MmlFraction:
+                oNode = this.renderContainerNS(elem, ns.mathML, "mfrac");
+                if (parent) {
+                    this.appendChildren(parent, oNode);
+                }
+                break;
+            case dom_1.DomType.MmlBase:
+                oNode = this.renderContainerNS(elem, ns.mathML, elem.parent.type == dom_1.DomType.MmlMatrixRow ? "mtd" : "mrow");
+                if (parent) {
+                    this.appendChildren(parent, oNode);
+                }
+                break;
+            case dom_1.DomType.MmlNumerator:
+            case dom_1.DomType.MmlDenominator:
+            case dom_1.DomType.MmlFunction:
+            case dom_1.DomType.MmlLimit:
+            case dom_1.DomType.MmlBox:
+                oNode = this.renderContainerNS(elem, ns.mathML, "mrow");
+                if (parent) {
+                    this.appendChildren(parent, oNode);
+                }
+                break;
+            case dom_1.DomType.MmlGroupChar:
+                oNode = this.renderMmlGroupChar(elem);
+                if (parent) {
+                    this.appendChildren(parent, oNode);
+                }
+                break;
+            case dom_1.DomType.MmlLimitLower:
+                oNode = this.renderContainerNS(elem, ns.mathML, "munder");
+                if (parent) {
+                    this.appendChildren(parent, oNode);
+                }
+                break;
+            case dom_1.DomType.MmlMatrix:
+                oNode = this.renderContainerNS(elem, ns.mathML, "mtable");
+                if (parent) {
+                    this.appendChildren(parent, oNode);
+                }
+                break;
+            case dom_1.DomType.MmlMatrixRow:
+                oNode = this.renderContainerNS(elem, ns.mathML, "mtr");
+                if (parent) {
+                    this.appendChildren(parent, oNode);
+                }
+                break;
+            case dom_1.DomType.MmlRadical:
+                oNode = this.renderMmlRadical(elem);
+                if (parent) {
+                    this.appendChildren(parent, oNode);
+                }
+                break;
+            case dom_1.DomType.MmlSuperscript:
+                oNode = this.renderContainerNS(elem, ns.mathML, "msup");
+                if (parent) {
+                    this.appendChildren(parent, oNode);
+                }
+                break;
+            case dom_1.DomType.MmlSubscript:
+                oNode = this.renderContainerNS(elem, ns.mathML, "msub");
+                if (parent) {
+                    this.appendChildren(parent, oNode);
+                }
+                break;
+            case dom_1.DomType.MmlDegree:
+            case dom_1.DomType.MmlSuperArgument:
+            case dom_1.DomType.MmlSubArgument:
+                oNode = this.renderContainerNS(elem, ns.mathML, "mn");
+                if (parent) {
+                    this.appendChildren(parent, oNode);
+                }
+                break;
+            case dom_1.DomType.MmlFunctionName:
+                oNode = this.renderContainerNS(elem, ns.mathML, "ms");
+                if (parent) {
+                    this.appendChildren(parent, oNode);
+                }
+                break;
+            case dom_1.DomType.MmlDelimiter:
+                oNode = this.renderMmlDelimiter(elem);
+                if (parent) {
+                    this.appendChildren(parent, oNode);
+                }
+                break;
+            case dom_1.DomType.MmlRun:
+                oNode = this.renderMmlRun(elem);
+                if (parent) {
+                    this.appendChildren(parent, oNode);
+                }
+                break;
+            case dom_1.DomType.MmlNary:
+                oNode = this.renderMmlNary(elem);
+                if (parent) {
+                    this.appendChildren(parent, oNode);
+                }
+                break;
+            case dom_1.DomType.MmlPreSubSuper:
+                oNode = this.renderMmlPreSubSuper(elem);
+                if (parent) {
+                    this.appendChildren(parent, oNode);
+                }
+                break;
+            case dom_1.DomType.MmlBar:
+                oNode = this.renderMmlBar(elem);
+                if (parent) {
+                    this.appendChildren(parent, oNode);
+                }
+                break;
+            case dom_1.DomType.MmlEquationArray:
+                oNode = this.renderMllList(elem);
+                if (parent) {
+                    this.appendChildren(parent, oNode);
+                }
+                break;
+            case dom_1.DomType.Inserted:
+                oNode = this.renderInserted(elem);
+                if (parent) {
+                    this.appendChildren(parent, oNode);
+                }
+                break;
+            case dom_1.DomType.Deleted:
+                oNode = this.renderDeleted(elem);
+                if (parent) {
+                    this.appendChildren(parent, oNode);
+                }
+                break;
+        }
+        return oNode;
+    }
+    isPageBreakElement(elem) {
+        if (elem.type != dom_1.DomType.Break) {
+            return false;
+        }
+        if (elem.break == "lastRenderedPageBreak") {
+            return !this.options.ignoreLastRenderedPageBreak;
+        }
+        if (elem.break === "page") {
+            return true;
+        }
+    }
+    renderChildren(elem, parent) {
+        this.renderElements(elem.children, parent);
+    }
+    appendChildren(parent, children) {
+        appendChildren(parent, children);
+        let { is_split, contentElement, pageIndex, elementIndex, checking_overflow, elements } = this.current_section;
+        if (is_split === false && checking_overflow) {
+            let is_overflow = checkOverflow(contentElement);
+            if (is_overflow) {
+                console.log(elementIndex, children, is_overflow);
+                removeElements(children, parent);
+                elements.splice(0, elementIndex);
+                pageIndex += 1;
+                checking_overflow = false;
+                this.current_section = Object.assign(Object.assign({}, this.current_section), { pageIndex, checking_overflow, elements });
+                this.renderSection();
+            }
+        }
+    }
+    renderContainer(elem, tagName, props) {
+        let parent = createElement(tagName, props);
+        this.renderChildren(elem, parent);
+        return parent;
+    }
+    renderContainerNS(elem, ns, tagName, props) {
+        let parent = createElementNS(ns, tagName, props);
+        this.renderChildren(elem, parent);
+        return parent;
+    }
+    renderParagraph(elem, parent) {
+        var _a, _b, _c, _d;
+        let oParagraph = createElement("p");
+        const style = this.findStyle(elem.styleName);
+        (_a = elem.tabs) !== null && _a !== void 0 ? _a : (elem.tabs = (_b = style === null || style === void 0 ? void 0 : style.paragraphProps) === null || _b === void 0 ? void 0 : _b.tabs);
+        this.renderClass(elem, oParagraph);
+        this.renderStyleValues(elem.cssStyle, oParagraph);
+        this.renderCommonProperties(oParagraph.style, elem);
+        if (parent) {
+            this.appendChildren(parent, oParagraph);
+        }
+        this.renderChildren(elem, oParagraph);
+        const numbering = (_c = elem.numbering) !== null && _c !== void 0 ? _c : (_d = style === null || style === void 0 ? void 0 : style.paragraphProps) === null || _d === void 0 ? void 0 : _d.numbering;
+        if (numbering) {
+            oParagraph.classList.add(this.numberingClass(numbering.id, numbering.level));
+        }
+        return oParagraph;
+    }
+    renderRunProperties(style, props) {
+        this.renderCommonProperties(style, props);
+    }
+    renderCommonProperties(style, props) {
+        if (props == null)
+            return;
+        if (props.color) {
+            style["color"] = props.color;
+        }
+        if (props.fontSize) {
+            style["font-size"] = props.fontSize;
+        }
+    }
+    renderHyperlink(elem, parent) {
+        let oAnchor = createElement("a");
+        if (parent) {
+            this.appendChildren(parent, oAnchor);
+        }
+        this.renderChildren(elem, oAnchor);
+        this.renderStyleValues(elem.cssStyle, oAnchor);
+        if (elem.href) {
+            oAnchor.href = elem.href;
+        }
+        else if (elem.id) {
+            const rel = this.document.documentPart.rels
+                .find(it => it.id == elem.id && it.targetMode === "External");
+            oAnchor.href = rel === null || rel === void 0 ? void 0 : rel.target;
+        }
+        return oAnchor;
+    }
+    renderDrawing(elem, parent) {
+        let oDrawing = createElement("div");
+        oDrawing.style.display = "inline-block";
+        oDrawing.style.position = "relative";
+        oDrawing.style.textIndent = "0px";
+        this.renderChildren(elem, oDrawing);
+        this.renderStyleValues(elem.cssStyle, oDrawing);
+        if (parent) {
+            this.appendChildren(parent, oDrawing);
+        }
+        return oDrawing;
+    }
+    renderImage(elem, parent) {
+        let oImage = createElement("img");
+        this.renderStyleValues(elem.cssStyle, oImage);
+        if (this.document) {
+            this.document
+                .loadDocumentImage(elem.src, this.currentPart)
+                .then(src => {
+                oImage.src = src;
+            });
+        }
+        if (parent) {
+            this.appendChildren(parent, oImage);
+        }
+        return oImage;
+    }
+    renderText(elem, parent) {
+        let oText = document.createTextNode(elem.text);
+        if (parent) {
+            this.appendChildren(parent, oText);
+        }
+        return oText;
+    }
+    renderDeletedText(elem, parent) {
+        let oDeletedText;
+        if (this.options.renderEndnotes) {
+            oDeletedText = document.createTextNode(elem.text);
+            if (parent) {
+                this.appendChildren(parent, oDeletedText);
+            }
+        }
+        else {
+            oDeletedText = null;
+        }
+        return oDeletedText;
+    }
+    renderBreak(elem, parent) {
+        if (elem.break == "textWrapping") {
+            let oBr = createElement("br");
+            if (parent) {
+                this.appendChildren(parent, oBr);
+            }
+            return oBr;
+        }
+        return null;
+    }
+    renderInserted(elem) {
+        if (this.options.renderChanges) {
+            return this.renderContainer(elem, "ins");
+        }
+        return this.renderContainer(elem, "span");
+    }
+    renderDeleted(elem) {
+        if (this.options.renderChanges) {
+            return this.renderContainer(elem, "del");
+        }
+        return null;
+    }
+    renderSymbol(elem, parent) {
+        let oSpan = createElement("span");
+        oSpan.style.fontFamily = elem.font;
+        oSpan.innerHTML = `&#x${elem.char};`;
+        if (parent) {
+            this.appendChildren(parent, oSpan);
+        }
+        return oSpan;
+    }
+    renderHeaderFooter(elem, tagName) {
+        let oElement = createElement(tagName);
+        this.renderChildren(elem, oElement);
+        this.renderStyleValues(elem.cssStyle, oElement);
+        return oElement;
+    }
+    renderFootnoteReference(elem) {
+        let oSup = createElement("sup");
+        this.currentFootnoteIds.push(elem.id);
+        oSup.textContent = `${this.currentFootnoteIds.length}`;
+        return oSup;
+    }
+    renderEndnoteReference(elem) {
+        let oSup = createElement("sup");
+        this.currentEndnoteIds.push(elem.id);
+        oSup.textContent = `${this.currentEndnoteIds.length}`;
+        return oSup;
+    }
+    renderTab(elem, parent) {
+        var _a;
+        let tabSpan = createElement("span");
+        tabSpan.innerHTML = "&emsp;";
+        if (this.options.experimental) {
+            tabSpan.className = this.tabStopClass();
+            let stops = (_a = findParent(elem, dom_1.DomType.Paragraph)) === null || _a === void 0 ? void 0 : _a.tabs;
+            this.currentTabs.push({ stops, span: tabSpan });
+        }
+        if (parent) {
+            this.appendChildren(parent, tabSpan);
+        }
+        return tabSpan;
+    }
+    renderBookmarkStart(elem, parent) {
+        let oSpan = createElement("span");
+        oSpan.id = elem.name;
+        if (parent) {
+            this.appendChildren(parent, oSpan);
+        }
+        return oSpan;
+    }
+    renderRun(elem, parent) {
+        if (elem.fieldRun) {
+            return null;
+        }
+        const oSpan = createElement("span");
+        if (elem.id) {
+            oSpan.id = elem.id;
+        }
+        this.renderClass(elem, oSpan);
+        this.renderStyleValues(elem.cssStyle, oSpan);
+        if (parent) {
+            this.appendChildren(parent, oSpan);
+        }
+        if (elem.verticalAlign) {
+            const wrapper = createElement(elem.verticalAlign);
+            this.renderChildren(elem, wrapper);
+            this.appendChildren(oSpan, wrapper);
+        }
+        else {
+            this.renderChildren(elem, oSpan);
+        }
+        return oSpan;
+    }
+    renderTable(elem, parent) {
+        let oTable = createElement("table");
+        this.tableCellPositions.push(this.currentCellPosition);
+        this.tableVerticalMerges.push(this.currentVerticalMerge);
+        this.currentVerticalMerge = {};
+        this.currentCellPosition = { col: 0, row: 0 };
+        this.renderClass(elem, oTable);
+        this.renderStyleValues(elem.cssStyle, oTable);
+        if (parent) {
+            this.appendChildren(parent, oTable);
+        }
+        if (elem.columns) {
+            let oColumns = this.renderTableColumns(elem.columns, oTable);
+        }
+        this.renderChildren(elem, oTable);
+        this.currentVerticalMerge = this.tableVerticalMerges.pop();
+        this.currentCellPosition = this.tableCellPositions.pop();
+        return oTable;
+    }
+    renderTableColumns(columns, parent) {
+        let oColGroup = createElement("colgroup");
+        if (parent) {
+            this.appendChildren(parent, oColGroup);
+        }
+        for (let col of columns) {
+            let oCol = createElement("col");
+            if (col.width) {
+                oCol.style.width = col.width;
+            }
+            this.appendChildren(oColGroup, oCol);
+        }
+        return oColGroup;
+    }
+    renderTableRow(elem, parent) {
+        let oTableRow = createElement("tr");
+        this.currentCellPosition.col = 0;
+        if (parent) {
+            this.appendChildren(parent, oTableRow);
+        }
+        this.renderClass(elem, oTableRow);
+        this.renderChildren(elem, oTableRow);
+        this.renderStyleValues(elem.cssStyle, oTableRow);
+        this.currentCellPosition.row++;
+        return oTableRow;
+    }
+    renderTableCell(elem, parent) {
+        let oTableCell = createElement("td");
+        const key = this.currentCellPosition.col;
+        if (elem.verticalMerge) {
+            if (elem.verticalMerge == "restart") {
+                this.currentVerticalMerge[key] = oTableCell;
+                oTableCell.rowSpan = 1;
+            }
+            else if (this.currentVerticalMerge[key]) {
+                this.currentVerticalMerge[key].rowSpan += 1;
+                oTableCell.style.display = "none";
+            }
+        }
+        else {
+            this.currentVerticalMerge[key] = null;
+        }
+        if (parent) {
+            this.appendChildren(parent, oTableCell);
+        }
+        this.renderClass(elem, oTableCell);
+        this.renderChildren(elem, oTableCell);
+        this.renderStyleValues(elem.cssStyle, oTableCell);
+        if (elem.span)
+            oTableCell.colSpan = elem.span;
+        this.currentCellPosition.col += oTableCell.colSpan;
+        return oTableCell;
+    }
+    renderVmlPicture(elem) {
+        let oPictureContainer = createElement("div");
+        this.renderChildren(elem, oPictureContainer);
+        return oPictureContainer;
+    }
+    renderVmlElement(elem) {
+        var _a, _b;
+        let oSvg = createSvgElement("svg");
+        oSvg.setAttribute("style", elem.cssStyleText);
+        const oChildren = this.renderVmlChildElement(elem);
+        if ((_a = elem.imageHref) === null || _a === void 0 ? void 0 : _a.id) {
+            (_b = this.document) === null || _b === void 0 ? void 0 : _b.loadDocumentImage(elem.imageHref.id, this.currentPart).then(x => oChildren.setAttribute("href", x));
+        }
+        appendChildren(oSvg, oChildren);
+        requestAnimationFrame(() => {
+            const bb = oSvg.firstElementChild.getBBox();
+            oSvg.setAttribute("width", `${Math.ceil(bb.x + bb.width)}`);
+            oSvg.setAttribute("height", `${Math.ceil(bb.y + bb.height)}`);
+        });
+        return oSvg;
+    }
+    renderVmlChildElement(elem) {
+        const oSvgElement = createSvgElement(elem.tagName);
+        Object.entries(elem.attrs).forEach(([k, v]) => oSvgElement.setAttribute(k, v));
+        for (let child of elem.children) {
+            if (child.type == dom_1.DomType.VmlElement) {
+                let oChild = this.renderVmlChildElement(child);
+                appendChildren(oSvgElement, oChild);
+            }
+            else {
+                let oChild = this.renderElement(child);
+                appendChildren(oSvgElement, oChild);
+            }
+        }
+        return oSvgElement;
+    }
+    renderMmlRadical(elem) {
+        var _a;
+        const base = elem.children.find(el => el.type == dom_1.DomType.MmlBase);
+        let oParent;
+        if ((_a = elem.props) === null || _a === void 0 ? void 0 : _a.hideDegree) {
+            oParent = createElementNS(ns.mathML, "msqrt", null);
+            this.renderElements([base], oParent);
+            return oParent;
+        }
+        const degree = elem.children.find(el => el.type == dom_1.DomType.MmlDegree);
+        oParent = createElementNS(ns.mathML, "mroot", null);
+        this.renderElements([base, degree], oParent);
+        return oParent;
+    }
+    renderMmlDelimiter(elem) {
+        var _a, _b;
+        let oMrow = createElementNS(ns.mathML, "mrow", null);
+        let oBegin = createElementNS(ns.mathML, "mo", null, [(_a = elem.props.beginChar) !== null && _a !== void 0 ? _a : '(']);
+        appendChildren(oMrow, oBegin);
+        this.renderElements(elem.children, oMrow);
+        let oEnd = createElementNS(ns.mathML, "mo", null, [(_b = elem.props.endChar) !== null && _b !== void 0 ? _b : ')']);
+        appendChildren(oMrow, oEnd);
+        return oMrow;
+    }
+    renderMmlNary(elem) {
+        var _a, _b;
+        const children = [];
+        const grouped = (0, utils_1.keyBy)(elem.children, x => x.type);
+        const sup = grouped[dom_1.DomType.MmlSuperArgument];
+        const sub = grouped[dom_1.DomType.MmlSubArgument];
+        const supElem = sup ? createElementNS(ns.mathML, "mo", null, (0, utils_1.asArray)(this.renderElement(sup))) : null;
+        const subElem = sub ? createElementNS(ns.mathML, "mo", null, (0, utils_1.asArray)(this.renderElement(sub))) : null;
+        const charElem = createElementNS(ns.mathML, "mo", null, [(_b = (_a = elem.props) === null || _a === void 0 ? void 0 : _a.char) !== null && _b !== void 0 ? _b : '\u222B']);
+        if (supElem || subElem) {
+            children.push(createElementNS(ns.mathML, "munderover", null, [charElem, subElem, supElem]));
+        }
+        else if (supElem) {
+            children.push(createElementNS(ns.mathML, "mover", null, [charElem, supElem]));
+        }
+        else if (subElem) {
+            children.push(createElementNS(ns.mathML, "munder", null, [charElem, subElem]));
+        }
+        else {
+            children.push(charElem);
+        }
+        let oMrow = createElementNS(ns.mathML, "mrow", null);
+        appendChildren(oMrow, children);
+        this.renderElements(grouped[dom_1.DomType.MmlBase].children, oMrow);
+        return oMrow;
+    }
+    renderMmlPreSubSuper(elem) {
+        const children = [];
+        const grouped = (0, utils_1.keyBy)(elem.children, x => x.type);
+        const sup = grouped[dom_1.DomType.MmlSuperArgument];
+        const sub = grouped[dom_1.DomType.MmlSubArgument];
+        const supElem = sup ? createElementNS(ns.mathML, "mo", null, (0, utils_1.asArray)(this.renderElement(sup))) : null;
+        const subElem = sub ? createElementNS(ns.mathML, "mo", null, (0, utils_1.asArray)(this.renderElement(sub))) : null;
+        const stubElem = createElementNS(ns.mathML, "mo", null);
+        children.push(createElementNS(ns.mathML, "msubsup", null, [stubElem, subElem, supElem]));
+        let oMrow = createElementNS(ns.mathML, "mrow", null);
+        appendChildren(oMrow, children);
+        this.renderElements(grouped[dom_1.DomType.MmlBase].children, oMrow);
+        return oMrow;
+    }
+    renderMmlGroupChar(elem) {
+        const tagName = elem.props.verticalJustification === "bot" ? "mover" : "munder";
+        const oGroupChar = this.renderContainerNS(elem, ns.mathML, tagName);
+        if (elem.props.char) {
+            let oMo = createElementNS(ns.mathML, "mo", null, [elem.props.char]);
+            appendChildren(oGroupChar, oMo);
+        }
+        return oGroupChar;
+    }
+    renderMmlBar(elem) {
+        const oMrow = this.renderContainerNS(elem, ns.mathML, "mrow");
+        switch (elem.props.position) {
+            case "top":
+                oMrow.style.textDecoration = "overline";
+                break;
+            case "bottom":
+                oMrow.style.textDecoration = "underline";
+                break;
+        }
+        return oMrow;
+    }
+    renderMmlRun(elem) {
+        const oMs = createElementNS(ns.mathML, "ms");
+        this.renderClass(elem, oMs);
+        this.renderStyleValues(elem.cssStyle, oMs);
+        this.renderChildren(elem, oMs);
+        return oMs;
+    }
+    renderMllList(elem) {
+        const oMtable = createElementNS(ns.mathML, "mtable");
+        this.renderClass(elem, oMtable);
+        this.renderStyleValues(elem.cssStyle, oMtable);
+        for (let child of elem.children) {
+            let oChild = this.renderElement(child);
+            let oMtd = createElementNS(ns.mathML, "mtd", null, [oChild]);
+            let oMtr = createElementNS(ns.mathML, "mtr", null, [oMtd]);
+            appendChildren(oMtable, oMtr);
+        }
+        return oMtable;
+    }
+    renderStyleValues(style, output) {
+        for (let k in style) {
+            if (k.startsWith("$")) {
+                output.setAttribute(k.slice(1), style[k]);
+            }
+            else {
+                output.style[k] = style[k];
+            }
+        }
+    }
+    renderClass(input, output) {
+        if (input.className) {
+            output.className = input.className;
+        }
+        if (input.styleName) {
+            output.classList.add(this.processStyleName(input.styleName));
+        }
+    }
+    findStyle(styleName) {
+        var _a;
+        return styleName && ((_a = this.styleMap) === null || _a === void 0 ? void 0 : _a[styleName]);
+    }
+    tabStopClass() {
+        return `${this.className}-tab-stop`;
+    }
+    refreshTabStops() {
+        if (!this.options.experimental) {
+            return;
+        }
+        clearTimeout(this.tabsTimeout);
+        this.tabsTimeout = setTimeout(() => {
+            const pixelToPoint = (0, javascript_1.computePixelToPoint)();
+            for (let tab of this.currentTabs) {
+                (0, javascript_1.updateTabStop)(tab.span, tab.stops, this.defaultTabSize, pixelToPoint);
+            }
+        }, 500);
+    }
+}
+exports.HtmlRendererSync = HtmlRendererSync;
+function createElement(tagName, props) {
+    return createElementNS(null, tagName, props);
+}
+function createSvgElement(tagName, props) {
+    return createElementNS(ns.svg, tagName, props);
+}
+function createElementNS(ns, tagName, props, children) {
+    let oParent;
+    switch (ns) {
+        case "http://www.w3.org/1998/Math/MathML":
+            oParent = document.createElementNS(ns, tagName);
+            break;
+        case "http://www.w3.org/2000/svg":
+            oParent = document.createElementNS(ns, tagName);
+            break;
+        case "http://www.w3.org/1999/xhtml":
+            oParent = document.createElement(tagName);
+            break;
+        default:
+            oParent = document.createElement(tagName);
+    }
+    if (props) {
+        Object.assign(oParent, props);
+    }
+    if (children) {
+        appendChildren(oParent, children);
+    }
+    return oParent;
+}
+function removeAllElements(elem) {
+    elem.innerHTML = '';
+}
+function appendChildren(parent, children) {
+    if (Array.isArray(children)) {
+        parent.append(...children);
+    }
+    else if (children) {
+        if ((0, utils_1.isString)(children)) {
+            parent.append(children);
+        }
+        else {
+            parent.appendChild(children);
+        }
+    }
+}
+function checkOverflow(el) {
+    return el.clientWidth < el.scrollWidth || el.clientHeight < el.scrollHeight;
+}
+function removeElements(target, parent) {
+    if (Array.isArray(target)) {
+        target.forEach((elem) => {
+            if (elem instanceof Element) {
+                elem.remove();
+            }
+            else {
+                if (parent) {
+                    parent.removeChild(elem);
+                }
+            }
+        });
+    }
+    else {
+        if (target instanceof Element) {
+            target.remove();
+        }
+        else {
+            if (target) {
+                parent.removeChild(target);
+            }
+        }
+    }
+}
+function createStyleElement(cssText) {
+    return createElement("style", { innerHTML: cssText });
+}
+function appendComment(elem, comment) {
+    elem.appendChild(document.createComment(comment));
+}
+function findParent(elem, type) {
+    let parent = elem.parent;
+    while (parent != null && parent.type != type)
+        parent = parent.parent;
+    return parent;
+}
+
+
+/***/ }),
+
 /***/ "./src/html-renderer.ts":
 /*!******************************!*\
   !*** ./src/html-renderer.ts ***!
@@ -2389,8 +3767,7 @@ const ns = {
     mathML: "http://www.w3.org/1998/Math/MathML"
 };
 class HtmlRenderer {
-    constructor(htmlDocument) {
-        this.htmlDocument = htmlDocument;
+    constructor() {
         this.className = "docx";
         this.styleMap = {};
         this.currentPart = null;
@@ -2406,7 +3783,7 @@ class HtmlRenderer {
         this.tabsTimeout = 0;
         this.createElement = createElement;
     }
-    async render(document, bodyContainer, styleContainer = null, options) {
+    render(document, bodyContainer, styleContainer = null, options) {
         var _a;
         this.document = document;
         this.options = options;
@@ -2444,7 +3821,7 @@ class HtmlRenderer {
         if (document.settingsPart) {
             this.defaultTabSize = (_a = document.settingsPart.settings) === null || _a === void 0 ? void 0 : _a.defaultTabStop;
         }
-        let sectionElements = await this.renderSections(document.documentPart.body);
+        let sectionElements = this.renderSections(document.documentPart.body);
         if (this.options.inWrapper) {
             bodyContainer.appendChild(this.renderWrapper(sectionElements));
         }
@@ -2452,53 +3829,6 @@ class HtmlRenderer {
             appendChildren(bodyContainer, sectionElements);
         }
         this.refreshTabStops();
-    }
-    async renderFragment(document, styleContainer = null, options) {
-        var _a;
-        this.document = document;
-        this.options = options;
-        this.className = options.className;
-        this.rootSelector = options.inWrapper ? `.${this.className}-wrapper` : ':root';
-        this.styleMap = null;
-        const template = this.createElement('template');
-        removeAllElements(styleContainer);
-        appendComment(styleContainer, "docxjs library predefined styles");
-        styleContainer.appendChild(this.renderDefaultStyle());
-        if (document.themePart) {
-            appendComment(styleContainer, "docxjs document theme values");
-            this.renderTheme(document.themePart, styleContainer);
-        }
-        if (document.stylesPart != null) {
-            this.styleMap = this.processStyles(document.stylesPart.styles);
-            appendComment(styleContainer, "docxjs document styles");
-            styleContainer.appendChild(this.renderStyles(document.stylesPart.styles));
-        }
-        if (document.numberingPart) {
-            this.processNumberings(document.numberingPart.domNumberings);
-            appendComment(styleContainer, "docxjs document numbering styles");
-            styleContainer.appendChild(this.renderNumbering(document.numberingPart.domNumberings, styleContainer));
-        }
-        if (!options.ignoreFonts && document.fontTablePart) {
-            this.renderFontTable(document.fontTablePart, styleContainer);
-        }
-        if (document.footnotesPart) {
-            this.footnoteMap = (0, utils_1.keyBy)(document.footnotesPart.notes, x => x.id);
-        }
-        if (document.endnotesPart) {
-            this.endnoteMap = (0, utils_1.keyBy)(document.endnotesPart.notes, x => x.id);
-        }
-        if (document.settingsPart) {
-            this.defaultTabSize = (_a = document.settingsPart.settings) === null || _a === void 0 ? void 0 : _a.defaultTabStop;
-        }
-        let sectionElements = await this.renderSections(document.documentPart.body);
-        if (this.options.inWrapper) {
-            template.appendChild(this.renderWrapper(sectionElements));
-        }
-        else {
-            appendChildren(template, sectionElements);
-        }
-        this.refreshTabStops();
-        return template.innerHTML;
     }
     renderTheme(themePart, styleContainer) {
         var _a, _b;
@@ -2648,7 +3978,7 @@ class HtmlRenderer {
         }
         return elem;
     }
-    async renderSections(document) {
+    renderSections(document) {
         const result = [];
         this.processElement(document);
         let sections;
@@ -2656,7 +3986,7 @@ class HtmlRenderer {
             sections = this.splitBySection(document.children);
         }
         else {
-            sections = [{ sectProps: document.props, elements: document.children }];
+            sections = [{ sectProps: document.props, elements: document.children, is_split: false }];
         }
         let prevProps = null;
         for (let i = 0, l = sections.length; i < l; i++) {
@@ -2666,39 +3996,39 @@ class HtmlRenderer {
             let pageIndex = result.length;
             let isFirstSection = prevProps != props;
             let isLastSection = i === (l - 1);
-            let sectionElement = await this.renderSection(section, props, document.cssStyle, pageIndex, isFirstSection, isLastSection);
+            let sectionElement = this.renderSection(section, props, document.cssStyle, pageIndex, isFirstSection, isLastSection);
             result.push(...sectionElement);
             prevProps = props;
         }
         return result;
     }
-    async renderSection(section, props, sectionStyle, pageIndex, isFirstSection, isLastSection) {
+    renderSection(section, props, sectionStyle, pageIndex, isFirstSection, isLastSection) {
         const sectionElement = this.createSection(this.className, props);
         this.renderStyleValues(sectionStyle, sectionElement);
         if (this.options.renderHeaders) {
-            await this.renderHeaderFooterRef(props.headerRefs, props, pageIndex, isFirstSection, sectionElement);
+            this.renderHeaderFooterRef(props.headerRefs, props, pageIndex, isFirstSection, sectionElement);
         }
         let contentElement = this.createElement("article");
         if (this.options.breakPages) {
-            contentElement.style.minHeight = props.contentSize.height;
+            contentElement.style.height = props.contentSize.height;
         }
         else {
             contentElement.style.minHeight = props.contentSize.height;
         }
-        await this.renderElements(section.elements, contentElement);
+        this.renderElements(section.elements, contentElement);
         sectionElement.appendChild(contentElement);
         if (this.options.renderFootnotes) {
-            await this.renderNotes(this.currentFootnoteIds, this.footnoteMap, sectionElement);
+            this.renderNotes(this.currentFootnoteIds, this.footnoteMap, sectionElement);
         }
         if (this.options.renderEndnotes && isLastSection) {
-            await this.renderNotes(this.currentEndnoteIds, this.endnoteMap, sectionElement);
+            this.renderNotes(this.currentEndnoteIds, this.endnoteMap, sectionElement);
         }
         if (this.options.renderFooters) {
-            await this.renderHeaderFooterRef(props.footerRefs, props, pageIndex, isFirstSection, sectionElement);
+            this.renderHeaderFooterRef(props.footerRefs, props, pageIndex, isFirstSection, sectionElement);
         }
         return [sectionElement];
     }
-    async renderHeaderFooterRef(refs, props, page, firstOfSection, into) {
+    renderHeaderFooterRef(refs, props, page, firstOfSection, parent) {
         var _a, _b, _c, _d, _e, _f, _g, _h;
         if (!refs)
             return;
@@ -2729,7 +4059,7 @@ class HtmlRenderer {
                     console.warn('set header/footer style error', part.rootElement.type);
                     break;
             }
-            await this.renderElements([part.rootElement], into);
+            this.renderElements([part.rootElement], parent);
             this.currentPart = null;
         }
     }
@@ -2746,23 +4076,20 @@ class HtmlRenderer {
     }
     splitBySection(elements) {
         var _a;
-        let current_section = { sectProps: null, elements: [] };
+        let current_section = { sectProps: null, elements: [], is_split: false, };
         let sections = [current_section];
         for (let elem of elements) {
+            current_section.elements.push(elem);
             if (elem.type == dom_1.DomType.Paragraph) {
                 const p = elem;
                 let sectProps = p.sectionProps;
                 const default_paragraph_style = this.findStyle(p.styleName);
                 if ((_a = default_paragraph_style === null || default_paragraph_style === void 0 ? void 0 : default_paragraph_style.paragraphProps) === null || _a === void 0 ? void 0 : _a.pageBreakBefore) {
+                    current_section.is_split = true;
                     current_section.sectProps = sectProps;
-                    current_section = { sectProps: null, elements: [] };
+                    current_section = { sectProps: null, elements: [], is_split: false };
                     sections.push(current_section);
                 }
-            }
-            current_section.elements.push(elem);
-            if (elem.type == dom_1.DomType.Paragraph) {
-                const p = elem;
-                let sectProps = p.sectionProps;
                 let pBreakIndex = -1;
                 let rBreakIndex = -1;
                 if (p.children) {
@@ -2784,8 +4111,9 @@ class HtmlRenderer {
                     });
                 }
                 if (sectProps || pBreakIndex != -1) {
+                    current_section.is_split = true;
                     current_section.sectProps = sectProps;
-                    current_section = { sectProps: null, elements: [] };
+                    current_section = { sectProps: null, elements: [], is_split: false };
                     sections.push(current_section);
                 }
                 if (pBreakIndex != -1) {
@@ -2806,6 +4134,7 @@ class HtmlRenderer {
                 }
             }
             if (elem.type === dom_1.DomType.Table) {
+                current_section.is_split = false;
             }
         }
         let currentSectProps = null;
@@ -2885,7 +4214,7 @@ class HtmlRenderer {
         var _a;
         let styleText = "";
         const stylesMap = this.styleMap;
-        const defautStyles = (0, utils_1.keyBy)(styles.filter(s => s.isDefault), s => s.target);
+        const defaultStyles = (0, utils_1.keyBy)(styles.filter(s => s.isDefault), s => s.target);
         for (const style of styles) {
             let subStyles = style.styles;
             if (style.linked) {
@@ -2899,22 +4228,22 @@ class HtmlRenderer {
                 let selector = `${(_a = style.target) !== null && _a !== void 0 ? _a : ''}.${style.cssName}`;
                 if (style.target != subStyle.target)
                     selector += ` ${subStyle.target}`;
-                if (defautStyles[style.target] == style)
+                if (defaultStyles[style.target] == style)
                     selector = `.${this.className} ${style.target}, ` + selector;
                 styleText += this.styleToString(selector, subStyle.values);
             }
         }
         return createStyleElement(styleText);
     }
-    async renderNotes(noteIds, notesMap, parent) {
+    renderNotes(noteIds, notesMap, parent) {
         let notes = noteIds.map(id => notesMap[id]).filter(x => x);
         if (notes.length > 0) {
-            let children = await this.renderElements(notes);
+            let children = this.renderElements(notes);
             let result = this.createElement("ol", null, children);
             parent.appendChild(result);
         }
     }
-    async renderElement(elem) {
+    renderElement(elem) {
         switch (elem.type) {
             case dom_1.DomType.Paragraph:
                 return this.renderParagraph(elem);
@@ -2935,7 +4264,7 @@ class HtmlRenderer {
             case dom_1.DomType.Drawing:
                 return this.renderDrawing(elem);
             case dom_1.DomType.Image:
-                return await this.renderImage(elem);
+                return this.renderImage(elem);
             case dom_1.DomType.Text:
                 return this.renderText(elem);
             case dom_1.DomType.DeletedText:
@@ -3016,16 +4345,16 @@ class HtmlRenderer {
         }
         return null;
     }
-    async renderChildren(elem, into) {
-        return await this.renderElements(elem.children, into);
+    renderChildren(elem, parent) {
+        return this.renderElements(elem.children, parent);
     }
-    async renderElements(elems, into) {
+    renderElements(elems, parent) {
         if (elems == null) {
             return null;
         }
         let result = [];
         for (let i = 0; i < elems.length; i++) {
-            let element = await this.renderElement(elems[i]);
+            let element = this.renderElement(elems[i]);
             if (Array.isArray(element)) {
                 result.push(...element);
             }
@@ -3033,27 +4362,24 @@ class HtmlRenderer {
                 result.push(element);
             }
         }
-        if (into) {
-            appendChildren(into, result);
+        if (parent) {
+            appendChildren(parent, result);
         }
         return result;
     }
-    checkOverflow(el) {
-        return el.clientWidth < el.scrollWidth || el.clientHeight < el.scrollHeight;
+    renderContainer(elem, tagName, props) {
+        return this.createElement(tagName, props, this.renderChildren(elem));
     }
-    async renderContainer(elem, tagName, props) {
-        return this.createElement(tagName, props, await this.renderChildren(elem));
+    renderContainerNS(elem, ns, tagName, props) {
+        return createElementNS(ns, tagName, props, this.renderChildren(elem));
     }
-    async renderContainerNS(elem, ns, tagName, props) {
-        return createElementNS(ns, tagName, props, await this.renderChildren(elem));
-    }
-    async renderParagraph(elem) {
+    renderParagraph(elem) {
         var _a, _b, _c, _d;
         let result = this.createElement("p");
         const style = this.findStyle(elem.styleName);
         (_a = elem.tabs) !== null && _a !== void 0 ? _a : (elem.tabs = (_b = style === null || style === void 0 ? void 0 : style.paragraphProps) === null || _b === void 0 ? void 0 : _b.tabs);
         this.renderClass(elem, result);
-        await this.renderChildren(elem, result);
+        this.renderChildren(elem, result);
         this.renderStyleValues(elem.cssStyle, result);
         this.renderCommonProperties(result.style, elem);
         const numbering = (_c = elem.numbering) !== null && _c !== void 0 ? _c : (_d = style === null || style === void 0 ? void 0 : style.paragraphProps) === null || _d === void 0 ? void 0 : _d.numbering;
@@ -3075,9 +4401,9 @@ class HtmlRenderer {
             style["font-size"] = props.fontSize;
         }
     }
-    async renderHyperlink(elem) {
+    renderHyperlink(elem) {
         let result = this.createElement("a");
-        await this.renderChildren(elem, result);
+        this.renderChildren(elem, result);
         this.renderStyleValues(elem.cssStyle, result);
         if (elem.href) {
             result.href = elem.href;
@@ -3089,28 +4415,32 @@ class HtmlRenderer {
         }
         return result;
     }
-    async renderDrawing(elem) {
+    renderDrawing(elem) {
         let result = this.createElement("div");
         result.style.display = "inline-block";
         result.style.position = "relative";
         result.style.textIndent = "0px";
-        await this.renderChildren(elem, result);
+        this.renderChildren(elem, result);
         this.renderStyleValues(elem.cssStyle, result);
         return result;
     }
-    async renderImage(elem) {
+    renderImage(elem) {
         let result = this.createElement("img");
         this.renderStyleValues(elem.cssStyle, result);
         if (this.document) {
-            result.src = await this.document.loadDocumentImage(elem.src, this.currentPart);
+            this.document
+                .loadDocumentImage(elem.src, this.currentPart)
+                .then(src => {
+                result.src = src;
+            });
         }
         return result;
     }
     renderText(elem) {
-        return this.htmlDocument.createTextNode(elem.text);
+        return document.createTextNode(elem.text);
     }
     renderDeletedText(elem) {
-        return this.options.renderEndnotes ? this.htmlDocument.createTextNode(elem.text) : null;
+        return this.options.renderEndnotes ? document.createTextNode(elem.text) : null;
     }
     renderBreak(elem) {
         if (elem.break == "textWrapping") {
@@ -3118,15 +4448,15 @@ class HtmlRenderer {
         }
         return null;
     }
-    async renderInserted(elem) {
+    renderInserted(elem) {
         if (this.options.renderChanges) {
-            return await this.renderContainer(elem, "ins");
+            return this.renderContainer(elem, "ins");
         }
-        return await this.renderChildren(elem);
+        return this.renderChildren(elem);
     }
-    async renderDeleted(elem) {
+    renderDeleted(elem) {
         if (this.options.renderChanges) {
-            return await this.renderContainer(elem, "del");
+            return this.renderContainer(elem, "del");
         }
         return null;
     }
@@ -3136,9 +4466,9 @@ class HtmlRenderer {
         span.innerHTML = `&#x${elem.char};`;
         return span;
     }
-    async renderHeaderFooter(elem, tagName) {
+    renderHeaderFooter(elem, tagName) {
         let result = this.createElement(tagName);
-        await this.renderChildren(elem, result);
+        this.renderChildren(elem, result);
         this.renderStyleValues(elem.cssStyle, result);
         return result;
     }
@@ -3170,7 +4500,7 @@ class HtmlRenderer {
         result.id = elem.name;
         return result;
     }
-    async renderRun(elem) {
+    renderRun(elem) {
         if (elem.fieldRun)
             return null;
         const result = this.createElement("span");
@@ -3180,29 +4510,29 @@ class HtmlRenderer {
         this.renderStyleValues(elem.cssStyle, result);
         if (elem.verticalAlign) {
             const wrapper = this.createElement(elem.verticalAlign);
-            await this.renderChildren(elem, wrapper);
+            this.renderChildren(elem, wrapper);
             result.appendChild(wrapper);
         }
         else {
-            await this.renderChildren(elem, result);
+            this.renderChildren(elem, result);
         }
         return result;
     }
-    async renderTable(elem) {
-        let result = this.createElement("table");
+    renderTable(elem) {
+        let oTable = this.createElement("table");
         this.tableCellPositions.push(this.currentCellPosition);
         this.tableVerticalMerges.push(this.currentVerticalMerge);
         this.currentVerticalMerge = {};
         this.currentCellPosition = { col: 0, row: 0 };
         if (elem.columns) {
-            result.appendChild(this.renderTableColumns(elem.columns));
+            oTable.appendChild(this.renderTableColumns(elem.columns));
         }
-        this.renderClass(elem, result);
-        await this.renderChildren(elem, result);
-        this.renderStyleValues(elem.cssStyle, result);
+        this.renderClass(elem, oTable);
+        this.renderChildren(elem, oTable);
+        this.renderStyleValues(elem.cssStyle, oTable);
         this.currentVerticalMerge = this.tableVerticalMerges.pop();
         this.currentCellPosition = this.tableCellPositions.pop();
-        return result;
+        return oTable;
     }
     renderTableColumns(columns) {
         let result = this.createElement("colgroup");
@@ -3214,16 +4544,16 @@ class HtmlRenderer {
         }
         return result;
     }
-    async renderTableRow(elem) {
+    renderTableRow(elem) {
         let result = this.createElement("tr");
         this.currentCellPosition.col = 0;
         this.renderClass(elem, result);
-        await this.renderChildren(elem, result);
+        this.renderChildren(elem, result);
         this.renderStyleValues(elem.cssStyle, result);
         this.currentCellPosition.row++;
         return result;
     }
-    async renderTableCell(elem) {
+    renderTableCell(elem) {
         let result = this.createElement("td");
         const key = this.currentCellPosition.col;
         if (elem.verticalMerge) {
@@ -3240,23 +4570,23 @@ class HtmlRenderer {
             this.currentVerticalMerge[key] = null;
         }
         this.renderClass(elem, result);
-        await this.renderChildren(elem, result);
+        this.renderChildren(elem, result);
         this.renderStyleValues(elem.cssStyle, result);
         if (elem.span)
             result.colSpan = elem.span;
         this.currentCellPosition.col += result.colSpan;
         return result;
     }
-    async renderVmlPicture(elem) {
+    renderVmlPicture(elem) {
         let result = createElement("div");
-        await this.renderChildren(elem, result);
+        this.renderChildren(elem, result);
         return result;
     }
-    async renderVmlElement(elem) {
+    renderVmlElement(elem) {
         var _a, _b;
         let container = createSvgElement("svg");
         container.setAttribute("style", elem.cssStyleText);
-        const result = await this.renderVmlChildElement(elem);
+        const result = this.renderVmlChildElement(elem);
         if ((_a = elem.imageHref) === null || _a === void 0 ? void 0 : _a.id) {
             (_b = this.document) === null || _b === void 0 ? void 0 : _b.loadDocumentImage(elem.imageHref.id, this.currentPart).then(x => result.setAttribute("href", x));
         }
@@ -3268,44 +4598,44 @@ class HtmlRenderer {
         });
         return container;
     }
-    async renderVmlChildElement(elem) {
+    renderVmlChildElement(elem) {
         const result = createSvgElement(elem.tagName);
         Object.entries(elem.attrs).forEach(([k, v]) => result.setAttribute(k, v));
         for (let child of elem.children) {
             if (child.type == dom_1.DomType.VmlElement) {
-                result.appendChild(await this.renderVmlChildElement(child));
+                result.appendChild(this.renderVmlChildElement(child));
             }
             else {
-                result.appendChild(...(0, utils_1.asArray)(await this.renderElement(child)));
+                result.append(...(0, utils_1.asArray)(this.renderElement(child)));
             }
         }
         return result;
     }
-    async renderMmlRadical(elem) {
+    renderMmlRadical(elem) {
         var _a;
         const base = elem.children.find(el => el.type == dom_1.DomType.MmlBase);
         if ((_a = elem.props) === null || _a === void 0 ? void 0 : _a.hideDegree) {
-            return createElementNS(ns.mathML, "msqrt", null, await this.renderElements([base]));
+            return createElementNS(ns.mathML, "msqrt", null, this.renderElements([base]));
         }
         const degree = elem.children.find(el => el.type == dom_1.DomType.MmlDegree);
-        return createElementNS(ns.mathML, "mroot", null, await this.renderElements([base, degree]));
+        return createElementNS(ns.mathML, "mroot", null, this.renderElements([base, degree]));
     }
-    async renderMmlDelimiter(elem) {
+    renderMmlDelimiter(elem) {
         var _a, _b;
         const children = [];
         children.push(createElementNS(ns.mathML, "mo", null, [(_a = elem.props.beginChar) !== null && _a !== void 0 ? _a : '(']));
-        children.push(...await this.renderElements(elem.children));
+        children.push(...this.renderElements(elem.children));
         children.push(createElementNS(ns.mathML, "mo", null, [(_b = elem.props.endChar) !== null && _b !== void 0 ? _b : ')']));
         return createElementNS(ns.mathML, "mrow", null, children);
     }
-    async renderMmlNary(elem) {
+    renderMmlNary(elem) {
         var _a, _b;
         const children = [];
         const grouped = (0, utils_1.keyBy)(elem.children, x => x.type);
         const sup = grouped[dom_1.DomType.MmlSuperArgument];
         const sub = grouped[dom_1.DomType.MmlSubArgument];
-        const supElem = sup ? createElementNS(ns.mathML, "mo", null, (0, utils_1.asArray)(await this.renderElement(sup))) : null;
-        const subElem = sub ? createElementNS(ns.mathML, "mo", null, (0, utils_1.asArray)(await this.renderElement(sub))) : null;
+        const supElem = sup ? createElementNS(ns.mathML, "mo", null, (0, utils_1.asArray)(this.renderElement(sup))) : null;
+        const subElem = sub ? createElementNS(ns.mathML, "mo", null, (0, utils_1.asArray)(this.renderElement(sub))) : null;
         const charElem = createElementNS(ns.mathML, "mo", null, [(_b = (_a = elem.props) === null || _a === void 0 ? void 0 : _a.char) !== null && _b !== void 0 ? _b : '\u222B']);
         if (supElem || subElem) {
             children.push(createElementNS(ns.mathML, "munderover", null, [charElem, subElem, supElem]));
@@ -3319,31 +4649,31 @@ class HtmlRenderer {
         else {
             children.push(charElem);
         }
-        children.push(...await this.renderElements(grouped[dom_1.DomType.MmlBase].children));
+        children.push(...this.renderElements(grouped[dom_1.DomType.MmlBase].children));
         return createElementNS(ns.mathML, "mrow", null, children);
     }
-    async renderMmlPreSubSuper(elem) {
+    renderMmlPreSubSuper(elem) {
         const children = [];
         const grouped = (0, utils_1.keyBy)(elem.children, x => x.type);
         const sup = grouped[dom_1.DomType.MmlSuperArgument];
         const sub = grouped[dom_1.DomType.MmlSubArgument];
-        const supElem = sup ? createElementNS(ns.mathML, "mo", null, (0, utils_1.asArray)(await this.renderElement(sup))) : null;
-        const subElem = sub ? createElementNS(ns.mathML, "mo", null, (0, utils_1.asArray)(await this.renderElement(sub))) : null;
+        const supElem = sup ? createElementNS(ns.mathML, "mo", null, (0, utils_1.asArray)(this.renderElement(sup))) : null;
+        const subElem = sub ? createElementNS(ns.mathML, "mo", null, (0, utils_1.asArray)(this.renderElement(sub))) : null;
         const stubElem = createElementNS(ns.mathML, "mo", null);
         children.push(createElementNS(ns.mathML, "msubsup", null, [stubElem, subElem, supElem]));
-        children.push(...await this.renderElements(grouped[dom_1.DomType.MmlBase].children));
+        children.push(...this.renderElements(grouped[dom_1.DomType.MmlBase].children));
         return createElementNS(ns.mathML, "mrow", null, children);
     }
-    async renderMmlGroupChar(elem) {
+    renderMmlGroupChar(elem) {
         const tagName = elem.props.verticalJustification === "bot" ? "mover" : "munder";
-        const result = await this.renderContainerNS(elem, ns.mathML, tagName);
+        const result = this.renderContainerNS(elem, ns.mathML, tagName);
         if (elem.props.char) {
             result.appendChild(createElementNS(ns.mathML, "mo", null, [elem.props.char]));
         }
         return result;
     }
-    async renderMmlBar(elem) {
-        const result = await this.renderContainerNS(elem, ns.mathML, "mrow");
+    renderMmlBar(elem) {
+        const result = this.renderContainerNS(elem, ns.mathML, "mrow");
         switch (elem.props.position) {
             case "top":
                 result.style.textDecoration = "overline";
@@ -3354,41 +4684,41 @@ class HtmlRenderer {
         }
         return result;
     }
-    async renderMmlRun(elem) {
+    renderMmlRun(elem) {
         const result = createElementNS(ns.mathML, "ms");
         this.renderClass(elem, result);
         this.renderStyleValues(elem.cssStyle, result);
-        await this.renderChildren(elem, result);
+        this.renderChildren(elem, result);
         return result;
     }
-    async renderMllList(elem) {
+    renderMllList(elem) {
         const result = createElementNS(ns.mathML, "mtable");
         this.renderClass(elem, result);
         this.renderStyleValues(elem.cssStyle, result);
-        const childern = await this.renderChildren(elem);
-        for (let child of await this.renderChildren(elem)) {
+        const children = this.renderChildren(elem);
+        for (let child of children) {
             result.appendChild(createElementNS(ns.mathML, "mtr", null, [
                 createElementNS(ns.mathML, "mtd", null, [child])
             ]));
         }
         return result;
     }
-    renderStyleValues(style, ouput) {
+    renderStyleValues(style, output) {
         for (let k in style) {
             if (k.startsWith("$")) {
-                ouput.setAttribute(k.slice(1), style[k]);
+                output.setAttribute(k.slice(1), style[k]);
             }
             else {
-                ouput.style[k] = style[k];
+                output.style[k] = style[k];
             }
         }
     }
-    renderClass(input, ouput) {
+    renderClass(input, output) {
         if (input.className) {
-            ouput.className = input.className;
+            output.className = input.className;
         }
         if (input.styleName) {
-            ouput.classList.add(this.processStyleName(input.styleName));
+            output.classList.add(this.processStyleName(input.styleName));
         }
     }
     findStyle(styleName) {

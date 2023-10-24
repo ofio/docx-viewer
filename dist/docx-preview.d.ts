@@ -22,4 +22,4 @@ export declare const defaultOptions: Options;
 
 export declare function renderAsync(data: any, bodyContainer: HTMLElement, styleContainer?: HTMLElement, options?: Partial<Options>): Promise<any>;
 
-export declare function docx2html(data: any, styleContainer?: HTMLElement, options?: Partial<Options>): Promise<any>;
+export declare function renderSync(data: any, bodyContainer: HTMLElement, styleContainer?: HTMLElement, options?: Partial<Options>): Promise<any>;
