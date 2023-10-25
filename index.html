@@ -5,12 +5,10 @@
     <meta charset="UTF-8">
     <link href="https://cdn.bootcdn.net/ajax/libs/twitter-bootstrap/5.3.1/css/bootstrap.min.css" rel="stylesheet">
     <script src="https://cdn.bootcdn.net/ajax/libs/twitter-bootstrap/5.3.1/js/bootstrap.bundle.min.js"></script>
-    <!--polyfills-->
-    <script src="https://cdn.bootcdn.net/ajax/libs/core-js/3.32.2/minified.js"></script>
     <!--dependencies-->
     <script src="https://cdn.bootcdn.net/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <!--library-->
-    <script src="dist/docx-preview.js"></script>
+    <script src="dist/docx-preview.umd.js"></script>
     <!--thumbnail example-->
     <script src="./demo/thumbnail.example.js"></script>
     <link href="./demo/thumbnail.example.css" rel="stylesheet">
@@ -72,7 +70,7 @@
 
             if (!currentDocument) return;
 
-            docx.renderSync(currentDocument, document_container, style_container, null, docxOptions)
+            docx.renderAsync(currentDocument, document_container, style_container, null, docxOptions)
                 .then((x) => {
                     console.log(x);
                 });

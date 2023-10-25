@@ -1,31 +1,31 @@
 {
-  "name": "docx-preview",
-  "version": "0.1.20",
+  "name": "docx-preview-sync",
+  "version": "0.1.1",
   "license": "Apache-2.0",
   "keywords": [
     "word",
     "docx"
   ],
   "author": {
-    "name": "Volodymyr Baydalka"
+    "name": "millet0328"
   },
+  "maintainers": [
+    "millet0328"
+  ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/zVolodymyr/docxjs.git"
+    "url": "git+https://github.com/luotuo19880328/docx-preview-sync.git"
   },
   "dependencies": {
     "jszip": ">=3.0.0"
   },
   "devDependencies": {
-    "css-loader": "^6.7.1",
     "diff": "^5.0.0",
-    "jasmine-core": "^4.1.0",
+    "jasmine-core": "^5.1.0",
     "karma": "^6.3.9",
     "karma-chrome-launcher": "^3.1.0",
     "karma-firefox-launcher": "^2.1.2",
     "karma-jasmine": "^5.0.0",
-    "sass": "^1.51.0",
-    "sass-loader": "^13.2.2",
     "ts-loader": "^9.2.6",
     "tslib": "^2.4.0",
     "typescript": "^5.0.3",
@@ -35,8 +35,9 @@
   "scripts": {
     "build": "webpack",
     "build-prod": "webpack --mode production",
-    "build-all": "npm run build & npm run build-prod",
-    "watch": "webpack --watch",
+    "build-umd": "webpack --env umd=true",
+    "build-all": "npm run build & npm run build-prod & npm run build-umd",
+    "watch": "webpack --env umd=true --watch",
     "e2e": "karma start --single-run",
     "e2e-watch": "karma start"
   },

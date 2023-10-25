@@ -390,9 +390,6 @@ export class HtmlRenderer {
 		let contentElement = this.createElement("article");
 		// 根据options.breakPages，设置article的高度
 		if (this.options.breakPages) {
-			// 切分页面，高度固定
-			contentElement.style.height = props.contentSize.height;
-		} else {
 			// 不分页则，拥有最小高度
 			contentElement.style.minHeight = props.contentSize.height;
 		}
