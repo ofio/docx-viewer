@@ -1264,7 +1264,7 @@ export class HtmlRendererSync {
 		if (numbering) {
 			oParagraph.classList.add(this.numberingClass(numbering.id, numbering.level));
 		}
-		// TODO 段落children为空，需要添加一个br标签，配合富文本编辑器，同时产生行高
+
 		// 针对后代子元素进行溢出检测
 		oParagraph.is_overflow = this.renderChildren(elem, oParagraph);
 

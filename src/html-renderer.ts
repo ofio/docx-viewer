@@ -144,7 +144,7 @@ export class HtmlRenderer {
 			.${c} { color: black; hyphens: auto; }
 			section.${c} { box-sizing: border-box; display: flex; flex-flow: column nowrap; position: relative; overflow: hidden; }
             section.${c}>header { position: absolute; top: 0; z-index: 1; display: flex; align-items: flex-end; }
-			section.${c}>article { overflow: hidden; z-index: 1; }
+			section.${c}>article { z-index: 1; }
 			section.${c}>footer { position: absolute; bottom: 0; z-index: 1; }
 			.${c} table { border-collapse: collapse; }
 			.${c} table td, .${c} table th { vertical-align: top; }

@@ -8,15 +8,15 @@
     <!--dependencies-->
     <script src="https://cdn.bootcdn.net/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <!--library-->
-    <script src="dist/docx-preview.umd.js"></script>
+    <script src="../dist/docx-preview.umd.js"></script>
     <!--thumbnail example-->
-    <script src="./demo/thumbnail.example.js"></script>
-    <link href="./demo/thumbnail.example.css" rel="stylesheet">
+    <script src="js/thumbnail.example.js"></script>
+    <link href="css/thumbnail.example.css" rel="stylesheet">
 </head>
 
 <body class="vh-100 d-flex flex-column">
 <div class="hstack bg-black">
-    <a class="mx-auto p-2 text-white" href="https://war.ukraine.ua">Support Ukraine 🇺🇦</a>
+    <div class="mx-auto p-3 text-white">docx.renderAsync function</div>
 </div>
 
 <div class="hstack p-2 gap-2 bg-light">
@@ -70,7 +70,7 @@
 
         if (!currentDocument) return;
 
-        docx.renderSync(currentDocument, document_container, style_container, null, docxOptions)
+        docx.renderAsync(currentDocument, document_container, style_container, null, docxOptions)
             .then((x) => {
                 console.log(x);
             });
@@ -122,7 +122,7 @@
         const selected = testDocuments.selectedOptions[0].label;
 
         if (selected) {
-            let resp = await fetch(`tests/render-test/${selected}/document.docx`);
+            let resp = await fetch(`../tests/render-test/${selected}/document.docx`);
             renderDocx(await resp.blob());
             fileInput.value = "";
         }

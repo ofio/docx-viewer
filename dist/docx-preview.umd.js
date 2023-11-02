@@ -242,7 +242,7 @@ class DocumentParser {
                     children.push(this.parseTable(elem));
                     break;
                 case "sdt":
-                    children.push(...this.parseSdt(elem, e => this.parseBodyElements(e)));
+                    children.push(...this.parseSdt(elem, (e) => this.parseBodyElements(e)));
                     break;
             }
         }
@@ -566,15 +566,19 @@ class DocumentParser {
                     result.children.push(this.parseMathElement(el));
                     break;
                 case "sdt":
-                    result.children.push(...this.parseSdt(el, e => this.parseParagraph(e).children));
+                    result.children.push(...this.parseSdt(el, (e) => this.parseParagraph(e).children));
                     break;
                 case "ins":
-                    result.children.push(this.parseInserted(el, e => this.parseParagraph(e)));
+                    result.children.push(this.parseInserted(el, (e) => this.parseParagraph(e)));
                     break;
                 case "del":
-                    result.children.push(this.parseDeleted(el, e => this.parseParagraph(e)));
+                    result.children.push(this.parseDeleted(el, (e) => this.parseParagraph(e)));
                     break;
             }
+        }
+        if (result.children.length === 0) {
+            let br = { type: dom_1.DomType.Break, "break": "textWrapping" };
+            result.children = [br];
         }
         return result;
     }
@@ -1080,8 +1084,9 @@ class DocumentParser {
                     style.verticalAlign = xml_parser_1.default.lengthAttr(c, "val", common_1.LengthUsage.FontSize);
                     break;
                 case "tcW":
-                    if (this.options.ignoreWidth)
-                        break;
+                    if (this.options.ignoreWidth) {
+                    }
+                    break;
                 case "tblW":
                     style["width"] = values.valueOfSize(c, "w");
                     break;
@@ -1247,8 +1252,7 @@ class DocumentParser {
         if (fonts.length > 0) {
             style["font-family"] = fonts_value;
         }
-        let hint = xml_parser_1.default.attr(node, "hint");
-        style["_hint"] = hint;
+        style["_hint"] = xml_parser_1.default.attr(node, "hint");
     }
     parseIndentation(node, style) {
         var firstLine = xml_parser_1.default.lengthAttr(node, "firstLine");
@@ -3894,7 +3898,7 @@ class HtmlRenderer {
 			.${c} { color: black; hyphens: auto; }
 			section.${c} { box-sizing: border-box; display: flex; flex-flow: column nowrap; position: relative; overflow: hidden; }
             section.${c}>header { position: absolute; top: 0; z-index: 1; display: flex; align-items: flex-end; }
-			section.${c}>article { overflow: hidden; z-index: 1; }
+			section.${c}>article { z-index: 1; }
 			section.${c}>footer { position: absolute; bottom: 0; z-index: 1; }
 			.${c} table { border-collapse: collapse; }
 			.${c} table td, .${c} table th { vertical-align: top; }
