@@ -77,8 +77,8 @@ export interface Section {
     isFirstSection?: boolean;
     isLastSection?: boolean;
     pageIndex?: number;
-	elementIndex?: number;
-    contentElement?: Element;
+    elementIndex?: number;
+    contentElement?: HTMLElement;
     checking_overflow?: boolean,
 }
 

@@ -3,16 +3,16 @@ import {
 	WmlHyperlink, IDomImage, OpenXmlElement, WmlTableColumn, WmlTableCell,
 	WmlTableRow, NumberingPicBullet, WmlText, WmlSymbol, WmlBreak, WmlNoteReference
 } from './document/dom';
-import { DocumentElement } from './document/document';
-import { WmlParagraph, parseParagraphProperties, parseParagraphProperty } from './document/paragraph';
-import { parseSectionProperties, SectionProperties } from './document/section';
+import {DocumentElement} from './document/document';
+import {WmlParagraph, parseParagraphProperties, parseParagraphProperty} from './document/paragraph';
+import {parseSectionProperties, SectionProperties} from './document/section';
 import xml from './parser/xml-parser';
-import { parseRunProperties, WmlRun } from './document/run';
-import { parseBookmarkEnd, parseBookmarkStart } from './document/bookmarks';
-import { IDomStyle, IDomSubStyle } from './document/style';
-import { WmlFieldChar, WmlFieldSimple, WmlInstructionText } from './document/fields';
-import { convertLength, LengthUsage, LengthUsageType } from './document/common';
-import { parseVmlElement } from './vml/vml';
+import {parseRunProperties, WmlRun} from './document/run';
+import {parseBookmarkEnd, parseBookmarkStart} from './document/bookmarks';
+import {IDomStyle, IDomSubStyle} from './document/style';
+import {WmlFieldChar, WmlFieldSimple, WmlInstructionText} from './document/fields';
+import {convertLength, LengthUsage, LengthUsageType} from './document/common';
+import {parseVmlElement} from './vml/vml';
 
 export var autos = {
 	shd: "inherit",
@@ -106,7 +106,7 @@ export class DocumentParser {
 	}
 
 	parseBodyElements(element: Element): OpenXmlElement[] {
-		var children = [];
+		let children = [];
 
 		for (let elem of xml.elements(element)) {
 			switch (elem.localName) {
@@ -193,9 +193,15 @@ export class DocumentParser {
 		};
 
 		switch (xml.attr(node, "type")) {
-			case "paragraph": result.target = "p"; break;
-			case "table": result.target = "table"; break;
-			case "character": result.target = "span"; break;
+			case "paragraph":
+				result.target = "p";
+				break;
+			case "table":
+				result.target = "table";
+				break;
+			case "character":
+				result.target = "span";
+				break;
 			//case "numbering": result.target = "p"; break;
 		}
 
@@ -308,7 +314,8 @@ export class DocumentParser {
 				modificator = ":not(.no-hband)";
 				selector = "tr.even-row";
 				break;
-			default: return [];
+			default:
+				return [];
 		}
 
 		xmlUtil.foreach(node, n => {
@@ -470,7 +477,7 @@ export class DocumentParser {
 	}
 
 	parseParagraph(node: Element): OpenXmlElement {
-		var result = <WmlParagraph>{ type: DomType.Paragraph, children: [] };
+		var result = <WmlParagraph>{type: DomType.Paragraph, children: []};
 
 		for (let el of xml.elements(node)) {
 			switch (el.localName) {
@@ -554,7 +561,7 @@ export class DocumentParser {
 	}
 
 	parseHyperlink(node: Element, parent?: OpenXmlElement): WmlHyperlink {
-		var result: WmlHyperlink = <WmlHyperlink>{ type: DomType.Hyperlink, parent: parent, children: [] };
+		var result: WmlHyperlink = <WmlHyperlink>{type: DomType.Hyperlink, parent: parent, children: []};
 		var anchor = xml.attr(node, "anchor");
 		var relId = xml.attr(node, "id");
 
@@ -576,7 +583,7 @@ export class DocumentParser {
 	}
 
 	parseRun(node: Element, parent?: OpenXmlElement): WmlRun {
-		var result: WmlRun = <WmlRun>{ type: DomType.Run, parent: parent, children: [] };
+		var result: WmlRun = <WmlRun>{type: DomType.Run, parent: parent, children: []};
 
 		xmlUtil.foreach(node, c => {
 			c = this.checkAlternateContent(c);
@@ -587,7 +594,7 @@ export class DocumentParser {
 					// 是否保留空格
 					let is_preserve_space = xml.attr(c, "xml:space") === "preserve";
 					if (is_preserve_space) {
-						// TODO \u00A0 = 不间断空格，英文应该一个空格，中文两个空格，暂时两个空格，后期修复
+						// \u00A0 = 不间断空格，英文应该一个空格，中文两个空格。受到font-family影响。
 						textContent = textContent.split(/\s/).join("\u00A0");
 					}
 					result.children.push(<WmlText>{
@@ -631,7 +638,7 @@ export class DocumentParser {
 					break;
 
 				case "noBreakHyphen":
-					result.children.push({ type: DomType.NoBreakHyphen });
+					result.children.push({type: DomType.NoBreakHyphen});
 					break;
 
 				case "br":
@@ -657,7 +664,7 @@ export class DocumentParser {
 					break;
 
 				case "tab":
-					result.children.push({ type: DomType.Tab });
+					result.children.push({type: DomType.Tab});
 					break;
 
 				case "footnoteReference":
@@ -696,7 +703,7 @@ export class DocumentParser {
 
 	parseMathElement(elem: Element): OpenXmlElement {
 		const propsTag = `${elem.localName}Pr`;
-		const result = { type: mmlTagMap[elem.localName], children: [] } as OpenXmlElement;
+		const result = {type: mmlTagMap[elem.localName], children: []} as OpenXmlElement;
 
 		for (const el of xml.elements(elem)) {
 			const childType = mmlTagMap[el.localName];
@@ -720,12 +727,24 @@ export class DocumentParser {
 
 		for (const el of xml.elements(elem)) {
 			switch (el.localName) {
-				case "chr": result.char = xml.attr(el, "val"); break;
-				case "vertJc": result.verticalJustification = xml.attr(el, "val"); break;
-				case "pos": result.position = xml.attr(el, "val"); break;
-				case "degHide": result.hideDegree = xml.boolAttr(el, "val"); break;
-				case "begChr": result.beginChar = xml.attr(el, "val"); break;
-				case "endChr": result.endChar = xml.attr(el, "val"); break;
+				case "chr":
+					result.char = xml.attr(el, "val");
+					break;
+				case "vertJc":
+					result.verticalJustification = xml.attr(el, "val");
+					break;
+				case "pos":
+					result.position = xml.attr(el, "val");
+					break;
+				case "degHide":
+					result.hideDegree = xml.boolAttr(el, "val");
+					break;
+				case "begChr":
+					result.beginChar = xml.attr(el, "val");
+					break;
+				case "endChr":
+					result.endChar = xml.attr(el, "val");
+					break;
 			}
 		}
 
@@ -752,7 +771,7 @@ export class DocumentParser {
 	}
 
 	parseVmlPicture(elem: Element): OpenXmlElement {
-		const result = { type: DomType.VmlPicture, children: [] };
+		const result = {type: DomType.VmlPicture, children: []};
 
 		for (const el of xml.elements(elem)) {
 			const child = parseVmlElement(el, this);
@@ -790,7 +809,7 @@ export class DocumentParser {
 	}
 
 	parseDrawingWrapper(node: Element): OpenXmlElement {
-		var result = <OpenXmlElement>{ type: DomType.Drawing, children: [], cssStyle: {} };
+		var result = <OpenXmlElement>{type: DomType.Drawing, children: [], cssStyle: {}};
 		var isAnchor = node.localName == "anchor";
 
 		//TODO 计算
@@ -802,8 +821,8 @@ export class DocumentParser {
 		let wrapType: "wrapTopAndBottom" | "wrapNone" | null = null;
 		let simplePos = xml.boolAttr(node, "simplePos");
 
-		let posX = { relative: "page", align: "left", offset: "0" };
-		let posY = { relative: "page", align: "top", offset: "0" };
+		let posX = {relative: "page", align: "left", offset: "0"};
+		let posY = {relative: "page", align: "top", offset: "0"};
 
 		for (var n of xml.elements(node)) {
 			switch (n.localName) {
@@ -860,8 +879,7 @@ export class DocumentParser {
 				result.cssStyle['text-align'] = posX.align;
 				result.cssStyle['width'] = "100%";
 			}
-		}
-		else if (wrapType == "wrapNone") {
+		} else if (wrapType == "wrapNone") {
 			result.cssStyle['display'] = 'block';
 			result.cssStyle['position'] = 'relative';
 			result.cssStyle["width"] = "0px";
@@ -871,8 +889,7 @@ export class DocumentParser {
 				result.cssStyle["left"] = posX.offset;
 			if (posY.offset)
 				result.cssStyle["top"] = posY.offset;
-		}
-		else if (isAnchor && (posX.align == 'left' || posX.align == 'right')) {
+		} else if (isAnchor && (posX.align == 'left' || posX.align == 'right')) {
 			result.cssStyle["float"] = posX.align;
 		}
 
@@ -893,7 +910,7 @@ export class DocumentParser {
 	}
 
 	parsePicture(elem: Element): IDomImage {
-		var result = <IDomImage>{ type: DomType.Image, src: "", cssStyle: {} };
+		var result = <IDomImage>{type: DomType.Image, src: "", cssStyle: {}};
 		var blipFill = xml.element(elem, "blipFill");
 		var blip = xml.element(blipFill, "blip");
 
@@ -922,7 +939,7 @@ export class DocumentParser {
 	}
 
 	parseTable(node: Element): WmlTable {
-		var result: WmlTable = { type: DomType.Table, children: [] };
+		var result: WmlTable = {type: DomType.Table, children: []};
 
 		xmlUtil.foreach(node, c => {
 			switch (c.localName) {
@@ -949,7 +966,7 @@ export class DocumentParser {
 		xmlUtil.foreach(node, n => {
 			switch (n.localName) {
 				case "gridCol":
-					result.push({ width: xml.lengthAttr(n, "w") });
+					result.push({width: xml.lengthAttr(n, "w")});
 					break;
 			}
 		});
@@ -972,7 +989,8 @@ export class DocumentParser {
 					break;
 
 				case "tblpPr":
-					this.parseTablePosition(c, table);
+					// TODO 浮动表格,会导致后续元素错乱，暂时忽略。
+					// this.parseTablePosition(c, table);
 					break;
 
 				case "tblStyleColBandSize":
@@ -1018,7 +1036,7 @@ export class DocumentParser {
 	}
 
 	parseTableRow(node: Element): WmlTableRow {
-		var result: WmlTableRow = { type: DomType.Row, children: [] };
+		var result: WmlTableRow = {type: DomType.Row, children: []};
 
 		xmlUtil.foreach(node, c => {
 			switch (c.localName) {
@@ -1041,9 +1059,9 @@ export class DocumentParser {
 				case "cnfStyle":
 					row.className = values.classNameOfCnfStyle(c);
 					break;
-
+				// 	tblHeader attribute is boolean attribute
 				case "tblHeader":
-					row.isHeader = xml.boolAttr(c, "val");
+					row.isHeader = xml.boolAttr(c, "val", true);
 					break;
 
 				default:
@@ -1055,7 +1073,7 @@ export class DocumentParser {
 	}
 
 	parseTableCell(node: Element): OpenXmlElement {
-		var result: WmlTableCell = { type: DomType.Cell, children: [] };
+		var result: WmlTableCell = {type: DomType.Cell, children: []};
 
 		xmlUtil.foreach(node, c => {
 			switch (c.localName) {
@@ -1121,6 +1139,7 @@ export class DocumentParser {
 
 				case "sz":
 					style["font-size"] = style["min-height"] = xml.lengthAttr(c, "val", LengthUsage.FontSize);
+					// style["font-size"] = xml.lengthAttr(c, "val", LengthUsage.FontSize);
 					break;
 
 				case "shd":
@@ -1261,11 +1280,11 @@ export class DocumentParser {
 				case "tblStyleColBandSize": //TODO
 				case "tblStyleRowBandSize": //TODO
 				case "webHidden": //TODO - maybe web-hidden should be implemented
-				case "pageBreakBefore": //TODO - maybe ignore 
+				case "pageBreakBefore": //TODO - maybe ignore
 				case "suppressLineNumbers": //TODO - maybe ignore
 				case "keepLines": //TODO - maybe ignore
 				case "keepNext": //TODO - maybe ignore
-				case "widowControl": //TODO - maybe ignore 
+				case "widowControl": //TODO - maybe ignore
 				case "bidi": //TODO - maybe ignore
 				case "rtl": //TODO - maybe ignore
 				case "noProof": //ignore spellcheck
@@ -1334,6 +1353,7 @@ export class DocumentParser {
 		if (col)
 			style["text-decoration-color"] = col;
 	}
+
 	// 转换Run字体，包含四种，ascii，eastAsia，ComplexScript，高 ANSI Font
 	parseFont(node: Element, style: Record<string, string>) {
 		// 字体
@@ -1361,6 +1381,10 @@ export class DocumentParser {
 		if (fonts.length > 0) {
 			style["font-family"] = fonts_value;
 		}
+
+		// 字体提示：hint，拥有三种值：ComplexScript（cs）、Default（default）、EastAsia（eastAsia）
+		let hint = xml.attr(node, "hint");
+		style["_hint"] = hint;
 	}
 
 	parseIndentation(node: Element, style: Record<string, string>) {
@@ -1394,6 +1418,10 @@ export class DocumentParser {
 
 				case "atLeast":
 					style["line-height"] = `calc(100% + ${line / 20}pt)`;
+					break;
+
+				case "Exact":
+					style["line-height"] = `${line / 20}pt`;
 					break;
 
 				default:
@@ -1435,7 +1463,7 @@ export class DocumentParser {
 			default:
 				output["height"] = xml.lengthAttr(node, "val");
 				// min-height doesn't work for tr
-				//output["min-height"] = xml.sizeAttr(node, "val");  
+				//output["min-height"] = xml.sizeAttr(node, "val");
 				break;
 		}
 	}
@@ -1511,9 +1539,13 @@ class values {
 		var type = LengthUsage.Dxa;
 
 		switch (xml.attr(c, "type")) {
-			case "dxa": break;
-			case "pct": type = LengthUsage.Percent; break;
-			case "auto": return "auto";
+			case "dxa":
+				break;
+			case "pct":
+				type = LengthUsage.Percent;
+				break;
+			case "auto":
+				return "auto";
 		}
 
 		return xml.lengthAttr(c, attr, type);
@@ -1556,11 +1588,15 @@ class values {
 
 		switch (type) {
 			case "start":
-			case "left": return "left";
-			case "center": return "center";
+			case "left":
+				return "left";
+			case "center":
+				return "center";
 			case "end":
-			case "right": return "right";
-			case "both": return "justify";
+			case "right":
+				return "right";
+			case "both":
+				return "justify";
 		}
 
 		return type;
@@ -1570,8 +1606,10 @@ class values {
 		var type = xml.attr(c, "val");
 
 		switch (type) {
-			case "subscript": return "sub";
-			case "superscript": return asTagName ? "sup" : "super";
+			case "subscript":
+				return "sub";
+			case "superscript":
+				return asTagName ? "sup" : "super";
 		}
 
 		return asTagName ? null : type;
@@ -1582,10 +1620,14 @@ class values {
 
 		switch (type) {
 			case "auto":
-			case "baseline": return "baseline";
-			case "top": return "top";
-			case "center": return "middle";
-			case "bottom": return "bottom";
+			case "baseline":
+				return "baseline";
+			case "top":
+				return "top";
+			case "center":
+				return "middle";
+			case "bottom":
+				return "bottom";
 		}
 
 		return type;

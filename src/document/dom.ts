@@ -1,29 +1,29 @@
 export enum DomType {
-    Document = "document",
-    Paragraph = "paragraph",
-    Run = "run",
-    Break = "break",
-    NoBreakHyphen = "noBreakHyphen",
-    Table = "table",
-    Row = "row",
-    Cell = "cell",
-    Hyperlink = "hyperlink",
-    Drawing = "drawing",
-    Image = "image",
-    Text = "text",
-    Tab = "tab",
-    Symbol = "symbol",
-    BookmarkStart = "bookmarkStart",
-    BookmarkEnd = "bookmarkEnd",
-    Footer = "footer",
-    Header = "header",
-    FootnoteReference = "footnoteReference", 
+	Document = "document",
+	Paragraph = "paragraph",
+	Run = "run",
+	Break = "break",
+	NoBreakHyphen = "noBreakHyphen",
+	Table = "table",
+	Row = "row",
+	Cell = "cell",
+	Hyperlink = "hyperlink",
+	Drawing = "drawing",
+	Image = "image",
+	Text = "text",
+	Tab = "tab",
+	Symbol = "symbol",
+	BookmarkStart = "bookmarkStart",
+	BookmarkEnd = "bookmarkEnd",
+	Footer = "footer",
+	Header = "header",
+	FootnoteReference = "footnoteReference",
 	EndnoteReference = "endnoteReference",
-    Footnote = "footnote",
-    Endnote = "endnote",
-    SimpleField = "simpleField",
-    ComplexField = "complexField",
-    Instruction = "instruction",
+	Footnote = "footnote",
+	Endnote = "endnote",
+	SimpleField = "simpleField",
+	ComplexField = "complexField",
+	Instruction = "instruction",
 	VmlPicture = "vmlPicture",
 	MmlMath = "mmlMath",
 	MmlMathParagraph = "mmlMathParagraph",
@@ -58,54 +58,55 @@ export enum DomType {
 }
 
 export interface OpenXmlElement {
-    type: DomType;
-    children?: OpenXmlElement[];
-    cssStyle?: Record<string, string>;
-    props?: Record<string, any>;
-    
+	type: DomType;
+	children?: OpenXmlElement[];
+	cssStyle?: Record<string, string>;
+	props?: Record<string, any>;
+	level?: number;
+
 	styleName?: string; //style name
 	className?: string; //class mods
 
-    parent?: OpenXmlElement;
+	parent?: OpenXmlElement;
 }
 
 export abstract class OpenXmlElementBase implements OpenXmlElement {
-    type: DomType;
-    children?: OpenXmlElement[] = [];
-    cssStyle?: Record<string, string> = {};
-    props?: Record<string, any>;
+	type: DomType;
+	children?: OpenXmlElement[] = [];
+	cssStyle?: Record<string, string> = {};
+	props?: Record<string, any>;
 
-    className?: string;
-    styleName?: string;
+	className?: string;
+	styleName?: string;
 
-    parent?: OpenXmlElement;
+	parent?: OpenXmlElement;
 }
 
 export interface WmlHyperlink extends OpenXmlElement {
 	id?: string;
-    href?: string;
+	href?: string;
 }
 
 export interface WmlNoteReference extends OpenXmlElement {
-    id: string;
+	id: string;
 }
 
-export interface WmlBreak extends OpenXmlElement{
-    break: "page" | "lastRenderedPageBreak" | "textWrapping";
+export interface WmlBreak extends OpenXmlElement {
+	break: "page" | "lastRenderedPageBreak" | "textWrapping";
 }
 
-export interface WmlText extends OpenXmlElement{
-    text: string;
+export interface WmlText extends OpenXmlElement {
+	text: string;
 }
 
 export interface WmlSymbol extends OpenXmlElement {
-    font: string;
-    char: string;
+	font: string;
+	char: string;
 }
 
 export interface WmlTable extends OpenXmlElement {
-    columns?: WmlTableColumn[];
-    cellStyle?: Record<string, string>;
+	columns?: WmlTableColumn[];
+	cellStyle?: Record<string, string>;
 
 	colBandSize?: number;
 	rowBandSize?: number;
@@ -117,32 +118,32 @@ export interface WmlTableRow extends OpenXmlElement {
 
 export interface WmlTableCell extends OpenXmlElement {
 	verticalMerge?: 'restart' | 'continue' | string;
-    span?: number;
+	span?: number;
 }
 
 export interface IDomImage extends OpenXmlElement {
-    src: string;
+	src: string;
 }
 
 export interface WmlTableColumn {
-    width?: string;
+	width?: string;
 }
 
 export interface IDomNumbering {
-    id: string;
-    level: number;
-    start: number;
-    pStyleName: string;
-    pStyle: Record<string, string>;
-    rStyle: Record<string, string>;
-    levelText?: string;
-    suff: string;
-    format?: string;
-    bullet?: NumberingPicBullet;
+	id: string;
+	level: number;
+	start: number;
+	pStyleName: string;
+	pStyle: Record<string, string>;
+	rStyle: Record<string, string>;
+	levelText?: string;
+	suff: string;
+	format?: string;
+	bullet?: NumberingPicBullet;
 }
 
 export interface NumberingPicBullet {
-    id: number;
-    src: string;
-    style?: string;
+	id: number;
+	src: string;
+	style?: string;
 }
