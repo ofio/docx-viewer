@@ -60,7 +60,7 @@ export enum DomType {
 export interface OpenXmlElement {
 	type: DomType;
 	children?: OpenXmlElement[];
-	cssStyle?: Record<string, string>;
+	cssStyle?: Record<string, any>;
 	props?: Record<string, any>;
 	level?: number;
 
@@ -73,7 +73,7 @@ export interface OpenXmlElement {
 export abstract class OpenXmlElementBase implements OpenXmlElement {
 	type: DomType;
 	children?: OpenXmlElement[] = [];
-	cssStyle?: Record<string, string> = {};
+	cssStyle?: Record<string, any> = {};
 	props?: Record<string, any>;
 
 	className?: string;
@@ -123,6 +123,11 @@ export interface WmlTableCell extends OpenXmlElement {
 
 export interface IDomImage extends OpenXmlElement {
 	src: string;
+}
+
+export interface WmlDrawing extends OpenXmlElement {
+	localName?: string;
+	wrapType?: string;
 }
 
 export interface WmlTableColumn {

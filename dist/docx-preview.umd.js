@@ -154,7 +154,7 @@ exports.parseRelationships = parseRelationships;
 
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.DocumentParser = exports.autos = void 0;
+exports.DocumentParser = exports.defaultDocumentParserOptions = exports.autos = void 0;
 const dom_1 = __webpack_require__(/*! ./document/dom */ "./src/document/dom.ts");
 const paragraph_1 = __webpack_require__(/*! ./document/paragraph */ "./src/document/paragraph.ts");
 const section_1 = __webpack_require__(/*! ./document/section */ "./src/document/section.ts");
@@ -197,12 +197,18 @@ const mmlTagMap = {
     "bar": dom_1.DomType.MmlBar,
     "groupChr": dom_1.DomType.MmlGroupChar
 };
+exports.defaultDocumentParserOptions = {
+    ignoreWidth: false,
+    debug: false,
+    ignoreTableWrap: true,
+    ignoreImageWrap: true,
+};
 class DocumentParser {
     constructor(options) {
-        this.options = Object.assign({ ignoreWidth: false, debug: false }, options);
+        this.options = Object.assign(Object.assign({}, exports.defaultDocumentParserOptions), options);
     }
     parseNotes(xmlDoc, elemName, elemClass) {
-        var result = [];
+        let result = [];
         for (let el of xml_parser_1.default.elements(xmlDoc, elemName)) {
             const node = new elemClass();
             node.id = xml_parser_1.default.attr(el, "id");
@@ -213,9 +219,9 @@ class DocumentParser {
         return result;
     }
     parseDocumentFile(xmlDoc) {
-        var xbody = xml_parser_1.default.element(xmlDoc, "body");
-        var background = xml_parser_1.default.element(xmlDoc, "background");
-        var sectPr = xml_parser_1.default.element(xbody, "sectPr");
+        let xbody = xml_parser_1.default.element(xmlDoc, "body");
+        let background = xml_parser_1.default.element(xmlDoc, "background");
+        let sectPr = xml_parser_1.default.element(xbody, "sectPr");
         return {
             type: dom_1.DomType.Document,
             children: this.parseBodyElements(xbody),
@@ -224,8 +230,8 @@ class DocumentParser {
         };
     }
     parseBackground(elem) {
-        var result = {};
-        var color = xmlUtil.colorAttr(elem, "color");
+        let result = {};
+        let color = xmlUtil.colorAttr(elem, "color");
         if (color) {
             result["background-color"] = color;
         }
@@ -249,7 +255,7 @@ class DocumentParser {
         return children;
     }
     parseStylesFile(xstyles) {
-        var result = [];
+        let result = [];
         xmlUtil.foreach(xstyles, n => {
             switch (n.localName) {
                 case "style":
@@ -263,7 +269,7 @@ class DocumentParser {
         return result;
     }
     parseDefaultStyles(node) {
-        var result = {
+        let result = {
             id: null,
             name: null,
             target: null,
@@ -273,7 +279,7 @@ class DocumentParser {
         xmlUtil.foreach(node, c => {
             switch (c.localName) {
                 case "rPrDefault":
-                    var rPr = xml_parser_1.default.element(c, "rPr");
+                    let rPr = xml_parser_1.default.element(c, "rPr");
                     if (rPr)
                         result.styles.push({
                             target: "span",
@@ -281,7 +287,7 @@ class DocumentParser {
                         });
                     break;
                 case "pPrDefault":
-                    var pPr = xml_parser_1.default.element(c, "pPr");
+                    let pPr = xml_parser_1.default.element(c, "pPr");
                     if (pPr)
                         result.styles.push({
                             target: "p",
@@ -293,7 +299,7 @@ class DocumentParser {
         return result;
     }
     parseStyle(node) {
-        var result = {
+        let result = {
             id: xml_parser_1.default.attr(node, "styleId"),
             isDefault: xml_parser_1.default.boolAttr(node, "default"),
             name: null,
@@ -370,10 +376,10 @@ class DocumentParser {
         return result;
     }
     parseTableStyle(node) {
-        var result = [];
-        var type = xml_parser_1.default.attr(node, "type");
-        var selector = "";
-        var modificator = "";
+        let result = [];
+        let type = xml_parser_1.default.attr(node, "type");
+        let selector = "";
+        let modificator = "";
         switch (type) {
             case "firstRow":
                 modificator = ".first-row";
@@ -439,9 +445,9 @@ class DocumentParser {
         return result;
     }
     parseNumberingFile(xnums) {
-        var result = [];
-        var mapping = {};
-        var bullets = [];
+        let result = [];
+        const mapping = {};
+        let bullets = [];
         xmlUtil.foreach(xnums, n => {
             switch (n.localName) {
                 case "abstractNum":
@@ -452,8 +458,8 @@ class DocumentParser {
                     bullets.push(this.parseNumberingPicBullet(n));
                     break;
                 case "num":
-                    var numId = xml_parser_1.default.attr(n, "numId");
-                    var abstractNumId = xml_parser_1.default.elementAttr(n, "abstractNumId", "val");
+                    let numId = xml_parser_1.default.attr(n, "numId");
+                    let abstractNumId = xml_parser_1.default.elementAttr(n, "abstractNumId", "val");
                     mapping[abstractNumId] = numId;
                     break;
             }
@@ -462,9 +468,9 @@ class DocumentParser {
         return result;
     }
     parseNumberingPicBullet(elem) {
-        var pict = xml_parser_1.default.element(elem, "pict");
-        var shape = pict && xml_parser_1.default.element(pict, "shape");
-        var imagedata = shape && xml_parser_1.default.element(shape, "imagedata");
+        let pict = xml_parser_1.default.element(elem, "pict");
+        let shape = pict && xml_parser_1.default.element(pict, "shape");
+        let imagedata = shape && xml_parser_1.default.element(shape, "imagedata");
         return imagedata ? {
             id: xml_parser_1.default.intAttr(elem, "numPicBulletId"),
             src: xml_parser_1.default.attr(imagedata, "id"),
@@ -472,8 +478,8 @@ class DocumentParser {
         } : null;
     }
     parseAbstractNumbering(node, bullets) {
-        var result = [];
-        var id = xml_parser_1.default.attr(node, "abstractNumId");
+        let result = [];
+        let id = xml_parser_1.default.attr(node, "abstractNumId");
         xmlUtil.foreach(node, n => {
             switch (n.localName) {
                 case "lvl":
@@ -484,7 +490,7 @@ class DocumentParser {
         return result;
     }
     parseNumberingLevel(id, node, bullets) {
-        var result = {
+        let result = {
             id: id,
             level: xml_parser_1.default.intAttr(node, "ilvl"),
             start: 1,
@@ -505,7 +511,7 @@ class DocumentParser {
                     this.parseDefaultProperties(n, result.rStyle);
                     break;
                 case "lvlPicBulletId":
-                    var id = xml_parser_1.default.intAttr(n, "val");
+                    let id = xml_parser_1.default.intAttr(n, "val");
                     result.bullet = bullets.find(x => x.id == id);
                     break;
                 case "lvlText":
@@ -543,7 +549,7 @@ class DocumentParser {
         };
     }
     parseParagraph(node) {
-        var result = { type: dom_1.DomType.Paragraph, children: [] };
+        let result = { type: dom_1.DomType.Paragraph, children: [] };
         for (let el of xml_parser_1.default.elements(node)) {
             switch (el.localName) {
                 case "pPr":
@@ -605,14 +611,14 @@ class DocumentParser {
         });
     }
     parseFrame(node, paragraph) {
-        var dropCap = xml_parser_1.default.attr(node, "dropCap");
+        let dropCap = xml_parser_1.default.attr(node, "dropCap");
         if (dropCap == "drop")
             paragraph.cssStyle["float"] = "left";
     }
     parseHyperlink(node, parent) {
-        var result = { type: dom_1.DomType.Hyperlink, parent: parent, children: [] };
-        var anchor = xml_parser_1.default.attr(node, "anchor");
-        var relId = xml_parser_1.default.attr(node, "id");
+        let result = { type: dom_1.DomType.Hyperlink, parent: parent, children: [] };
+        let anchor = xml_parser_1.default.attr(node, "anchor");
+        let relId = xml_parser_1.default.attr(node, "id");
         if (anchor)
             result.href = "#" + anchor;
         if (relId)
@@ -627,7 +633,7 @@ class DocumentParser {
         return result;
     }
     parseRun(node, parent) {
-        var result = { type: dom_1.DomType.Run, parent: parent, children: [] };
+        let result = { type: dom_1.DomType.Run, parent: parent, children: [] };
         xmlUtil.foreach(node, c => {
             c = this.checkAlternateContent(c);
             switch (c.localName) {
@@ -733,7 +739,7 @@ class DocumentParser {
                 result.children.push(this.parseMathElement(el));
             }
             else if (el.localName == "r") {
-                var run = this.parseRun(el);
+                let run = this.parseRun(el);
                 run.type = dom_1.DomType.MmlRun;
                 result.children.push(run);
             }
@@ -796,17 +802,17 @@ class DocumentParser {
         var _a;
         if (elem.localName != 'AlternateContent')
             return elem;
-        var choice = xml_parser_1.default.element(elem, "Choice");
+        let choice = xml_parser_1.default.element(elem, "Choice");
         if (choice) {
-            var requires = xml_parser_1.default.attr(choice, "Requires");
-            var namespaceURI = elem.lookupNamespaceURI(requires);
+            let requires = xml_parser_1.default.attr(choice, "Requires");
+            let namespaceURI = elem.lookupNamespaceURI(requires);
             if (supportedNamespaceURIs.includes(namespaceURI))
                 return choice.firstElementChild;
         }
         return (_a = xml_parser_1.default.element(elem, "Fallback")) === null || _a === void 0 ? void 0 : _a.firstElementChild;
     }
     parseDrawing(node) {
-        for (var n of xml_parser_1.default.elements(node)) {
+        for (let n of xml_parser_1.default.elements(node)) {
             switch (n.localName) {
                 case "inline":
                 case "anchor":
@@ -816,13 +822,21 @@ class DocumentParser {
     }
     parseDrawingWrapper(node) {
         var _a;
-        var result = { type: dom_1.DomType.Drawing, children: [], cssStyle: {} };
-        var isAnchor = node.localName == "anchor";
-        let wrapType = null;
+        let result = {
+            type: dom_1.DomType.Drawing,
+            children: [],
+            cssStyle: {},
+            localName: node.localName,
+            wrapType: null
+        };
+        let isAnchor = node.localName === "anchor";
+        result.cssStyle["margin-top"] = xml_parser_1.default.lengthAttr(node, "distT", common_1.LengthUsage.Emu);
+        result.cssStyle["margin-bottom"] = xml_parser_1.default.lengthAttr(node, "distB", common_1.LengthUsage.Emu);
         let simplePos = xml_parser_1.default.boolAttr(node, "simplePos");
+        result.cssStyle["z-index"] = xml_parser_1.default.intAttr(node, "relativeHeight", 1);
         let posX = { relative: "page", align: "left", offset: "0" };
         let posY = { relative: "page", align: "top", offset: "0" };
-        for (var n of xml_parser_1.default.elements(node)) {
+        for (let n of xml_parser_1.default.elements(node)) {
             switch (n.localName) {
                 case "simplePos":
                     if (simplePos) {
@@ -838,8 +852,8 @@ class DocumentParser {
                 case "positionV":
                     if (!simplePos) {
                         let pos = n.localName == "positionH" ? posX : posY;
-                        var alignNode = xml_parser_1.default.element(n, "align");
-                        var offsetNode = xml_parser_1.default.element(n, "posOffset");
+                        let alignNode = xml_parser_1.default.element(n, "align");
+                        let offsetNode = xml_parser_1.default.element(n, "posOffset");
                         pos.relative = (_a = xml_parser_1.default.attr(n, "relativeFrom")) !== null && _a !== void 0 ? _a : pos.relative;
                         if (alignNode)
                             pos.align = alignNode.textContent;
@@ -848,42 +862,59 @@ class DocumentParser {
                     }
                     break;
                 case "wrapTopAndBottom":
-                    wrapType = "wrapTopAndBottom";
+                    result.wrapType = "wrapTopAndBottom";
                     break;
                 case "wrapNone":
-                    wrapType = "wrapNone";
+                    result.wrapType = "wrapNone";
                     break;
                 case "graphic":
-                    var g = this.parseGraphic(n);
-                    if (g)
+                    let g = this.parseGraphic(n);
+                    if (g) {
                         result.children.push(g);
+                    }
                     break;
             }
         }
-        if (wrapType == "wrapTopAndBottom") {
-            result.cssStyle['display'] = 'block';
-            if (posX.align) {
-                result.cssStyle['text-align'] = posX.align;
-                result.cssStyle['width'] = "100%";
-            }
+        if (this.options.ignoreImageWrap) {
+            result.wrapType = "wrapTopAndBottom";
         }
-        else if (wrapType == "wrapNone") {
-            result.cssStyle['display'] = 'block';
-            result.cssStyle['position'] = 'relative';
-            result.cssStyle["width"] = "0px";
-            result.cssStyle["height"] = "0px";
-            if (posX.offset)
-                result.cssStyle["left"] = posX.offset;
-            if (posY.offset)
-                result.cssStyle["top"] = posY.offset;
-        }
-        else if (isAnchor && (posX.align == 'left' || posX.align == 'right')) {
-            result.cssStyle["float"] = posX.align;
+        switch (result.wrapType) {
+            case "wrapTopAndBottom":
+                result.cssStyle['display'] = 'block';
+                if (posX.align) {
+                    result.cssStyle['text-align'] = posX.align;
+                    result.cssStyle['width'] = "100%";
+                }
+                break;
+            case "wrapNone":
+                result.cssStyle['display'] = 'block';
+                result.cssStyle['position'] = 'relative';
+                result.cssStyle["width"] = "0px";
+                result.cssStyle["height"] = "0px";
+                if (posX.offset) {
+                    result.cssStyle["left"] = posX.offset;
+                }
+                if (posY.offset) {
+                    result.cssStyle["top"] = posY.offset;
+                }
+                break;
+            case "wrapTight":
+                break;
+            case "wrapThrough":
+                break;
+            case "wrapSquare":
+                break;
+            case "wrapPolygon":
+                break;
+            default:
+                if (isAnchor && (posX.align == 'left' || posX.align == 'right')) {
+                    result.cssStyle["float"] = posX.align;
+                }
         }
         return result;
     }
     parseGraphic(elem) {
-        var graphicData = xml_parser_1.default.element(elem, "graphicData");
+        let graphicData = xml_parser_1.default.element(elem, "graphicData");
         for (let n of xml_parser_1.default.elements(graphicData)) {
             switch (n.localName) {
                 case "pic":
@@ -893,14 +924,18 @@ class DocumentParser {
         return null;
     }
     parsePicture(elem) {
-        var result = { type: dom_1.DomType.Image, src: "", cssStyle: {} };
-        var blipFill = xml_parser_1.default.element(elem, "blipFill");
-        var blip = xml_parser_1.default.element(blipFill, "blip");
+        let result = { type: dom_1.DomType.Image, src: "", cssStyle: {} };
+        let blipFill = xml_parser_1.default.element(elem, "blipFill");
+        let blip = xml_parser_1.default.element(blipFill, "blip");
         result.src = xml_parser_1.default.attr(blip, "embed");
-        var spPr = xml_parser_1.default.element(elem, "spPr");
-        var xfrm = xml_parser_1.default.element(spPr, "xfrm");
+        let spPr = xml_parser_1.default.element(elem, "spPr");
+        let xfrm = xml_parser_1.default.element(spPr, "xfrm");
+        let degree = xml_parser_1.default.lengthAttr(xfrm, "rot", common_1.LengthUsage.degree);
+        if (degree) {
+            result.cssStyle["transform"] = `rotate(${degree})`;
+        }
         result.cssStyle["position"] = "relative";
-        for (var n of xml_parser_1.default.elements(xfrm)) {
+        for (let n of xml_parser_1.default.elements(xfrm)) {
             switch (n.localName) {
                 case "ext":
                     result.cssStyle["width"] = xml_parser_1.default.lengthAttr(n, "cx", common_1.LengthUsage.Emu);
@@ -915,7 +950,7 @@ class DocumentParser {
         return result;
     }
     parseTable(node) {
-        var result = { type: dom_1.DomType.Table, children: [] };
+        let result = { type: dom_1.DomType.Table, children: [] };
         xmlUtil.foreach(node, c => {
             switch (c.localName) {
                 case "tr":
@@ -932,7 +967,7 @@ class DocumentParser {
         return result;
     }
     parseTableColumns(node) {
-        var result = [];
+        let result = [];
         xmlUtil.foreach(node, n => {
             switch (n.localName) {
                 case "gridCol":
@@ -954,6 +989,7 @@ class DocumentParser {
                     table.className = values.classNameOftblLook(c);
                     break;
                 case "tblpPr":
+                    this.parseTablePosition(c, table);
                     break;
                 case "tblStyleColBandSize":
                     table.colBandSize = xml_parser_1.default.intAttr(c, "val");
@@ -979,10 +1015,13 @@ class DocumentParser {
         }
     }
     parseTablePosition(node, table) {
-        var topFromText = xml_parser_1.default.lengthAttr(node, "topFromText");
-        var bottomFromText = xml_parser_1.default.lengthAttr(node, "bottomFromText");
-        var rightFromText = xml_parser_1.default.lengthAttr(node, "rightFromText");
-        var leftFromText = xml_parser_1.default.lengthAttr(node, "leftFromText");
+        if (this.options.ignoreTableWrap) {
+            return false;
+        }
+        let topFromText = xml_parser_1.default.lengthAttr(node, "topFromText");
+        let bottomFromText = xml_parser_1.default.lengthAttr(node, "bottomFromText");
+        let rightFromText = xml_parser_1.default.lengthAttr(node, "rightFromText");
+        let leftFromText = xml_parser_1.default.lengthAttr(node, "leftFromText");
         table.cssStyle["float"] = 'left';
         table.cssStyle["margin-bottom"] = values.addSize(table.cssStyle["margin-bottom"], bottomFromText);
         table.cssStyle["margin-left"] = values.addSize(table.cssStyle["margin-left"], leftFromText);
@@ -990,7 +1029,7 @@ class DocumentParser {
         table.cssStyle["margin-top"] = values.addSize(table.cssStyle["margin-top"], topFromText);
     }
     parseTableRow(node) {
-        var result = { type: dom_1.DomType.Row, children: [] };
+        let result = { type: dom_1.DomType.Row, children: [] };
         xmlUtil.foreach(node, c => {
             switch (c.localName) {
                 case "tc":
@@ -1019,7 +1058,7 @@ class DocumentParser {
         });
     }
     parseTableCell(node) {
-        var result = { type: dom_1.DomType.Cell, children: [] };
+        let result = { type: dom_1.DomType.Cell, children: [] };
         xmlUtil.foreach(node, c => {
             switch (c.localName) {
                 case "tbl":
@@ -1193,7 +1232,7 @@ class DocumentParser {
         return style;
     }
     parseUnderline(node, style) {
-        var val = xml_parser_1.default.attr(node, "val");
+        let val = xml_parser_1.default.attr(node, "val");
         if (val == null)
             return;
         switch (val) {
@@ -1230,7 +1269,7 @@ class DocumentParser {
                 style["text-decoration"] = "none";
                 break;
         }
-        var col = xmlUtil.colorAttr(node, "color");
+        let col = xmlUtil.colorAttr(node, "color");
         if (col)
             style["text-decoration-color"] = col;
     }
@@ -1255,12 +1294,12 @@ class DocumentParser {
         style["_hint"] = xml_parser_1.default.attr(node, "hint");
     }
     parseIndentation(node, style) {
-        var firstLine = xml_parser_1.default.lengthAttr(node, "firstLine");
-        var hanging = xml_parser_1.default.lengthAttr(node, "hanging");
-        var left = xml_parser_1.default.lengthAttr(node, "left");
-        var start = xml_parser_1.default.lengthAttr(node, "start");
-        var right = xml_parser_1.default.lengthAttr(node, "right");
-        var end = xml_parser_1.default.lengthAttr(node, "end");
+        let firstLine = xml_parser_1.default.lengthAttr(node, "firstLine");
+        let hanging = xml_parser_1.default.lengthAttr(node, "hanging");
+        let left = xml_parser_1.default.lengthAttr(node, "left");
+        let start = xml_parser_1.default.lengthAttr(node, "start");
+        let right = xml_parser_1.default.lengthAttr(node, "right");
+        let end = xml_parser_1.default.lengthAttr(node, "end");
         if (firstLine)
             style["text-indent"] = firstLine;
         if (hanging)
@@ -1271,10 +1310,10 @@ class DocumentParser {
             style["margin-right"] = right || end;
     }
     parseSpacing(node, style) {
-        var before = xml_parser_1.default.lengthAttr(node, "before");
-        var after = xml_parser_1.default.lengthAttr(node, "after");
-        var line = xml_parser_1.default.intAttr(node, "line", null);
-        var lineRule = xml_parser_1.default.attr(node, "lineRule");
+        let before = xml_parser_1.default.lengthAttr(node, "before");
+        let after = xml_parser_1.default.lengthAttr(node, "after");
+        let line = xml_parser_1.default.intAttr(node, "line", null);
+        let lineRule = xml_parser_1.default.attr(node, "lineRule");
         if (before)
             style["margin-top"] = before;
         if (after)
@@ -1350,7 +1389,7 @@ exports.DocumentParser = DocumentParser;
 const knownColors = ['black', 'blue', 'cyan', 'darkBlue', 'darkCyan', 'darkGray', 'darkGreen', 'darkMagenta', 'darkRed', 'darkYellow', 'green', 'lightGray', 'magenta', 'none', 'red', 'white', 'yellow'];
 class xmlUtil {
     static foreach(node, cb) {
-        for (var i = 0; i < node.childNodes.length; i++) {
+        for (let i = 0; i < node.childNodes.length; i++) {
             let n = node.childNodes[i];
             if (n.nodeType == Node.ELEMENT_NODE) {
                 cb(n);
@@ -1358,7 +1397,7 @@ class xmlUtil {
         }
     }
     static colorAttr(node, attrName, defValue = null, autoColor = 'black') {
-        var v = xml_parser_1.default.attr(node, attrName);
+        let v = xml_parser_1.default.attr(node, attrName);
         if (v) {
             if (v == "auto") {
                 return autoColor;
@@ -1368,7 +1407,7 @@ class xmlUtil {
             }
             return `#${v}`;
         }
-        var themeColor = xml_parser_1.default.attr(node, "themeColor");
+        let themeColor = xml_parser_1.default.attr(node, "themeColor");
         return themeColor ? `var(--docx-${themeColor}-color)` : defValue;
     }
     static sizeValue(node, type = common_1.LengthUsage.Dxa) {
@@ -1377,11 +1416,11 @@ class xmlUtil {
 }
 class values {
     static themeValue(c, attr) {
-        var val = xml_parser_1.default.attr(c, attr);
+        let val = xml_parser_1.default.attr(c, attr);
         return val ? `var(--docx-${val}-font)` : null;
     }
     static valueOfSize(c, attr) {
-        var type = common_1.LengthUsage.Dxa;
+        let type = common_1.LengthUsage.Dxa;
         switch (xml_parser_1.default.attr(c, "type")) {
             case "dxa":
                 break;
@@ -1397,15 +1436,15 @@ class values {
         return xml_parser_1.default.lengthAttr(c, "w");
     }
     static valueOfBorder(c) {
-        var type = xml_parser_1.default.attr(c, "val");
+        let type = xml_parser_1.default.attr(c, "val");
         if (type == "nil")
             return "none";
-        var color = xmlUtil.colorAttr(c, "color");
-        var size = xml_parser_1.default.lengthAttr(c, "sz", common_1.LengthUsage.Border);
+        let color = xmlUtil.colorAttr(c, "color");
+        let size = xml_parser_1.default.lengthAttr(c, "sz", common_1.LengthUsage.Border);
         return `${size} solid ${color == "auto" ? exports.autos.borderColor : color}`;
     }
     static valueOfTblLayout(c) {
-        var type = xml_parser_1.default.attr(c, "val");
+        let type = xml_parser_1.default.attr(c, "val");
         return type == "fixed" ? "fixed" : "auto";
     }
     static classNameOfCnfStyle(c) {
@@ -1418,7 +1457,7 @@ class values {
         return classes.filter((_, i) => val[i] == '1').join(' ');
     }
     static valueOfJc(c) {
-        var type = xml_parser_1.default.attr(c, "val");
+        let type = xml_parser_1.default.attr(c, "val");
         switch (type) {
             case "start":
             case "left":
@@ -1434,7 +1473,7 @@ class values {
         return type;
     }
     static valueOfVertAlign(c, asTagName = false) {
-        var type = xml_parser_1.default.attr(c, "val");
+        let type = xml_parser_1.default.attr(c, "val");
         switch (type) {
             case "subscript":
                 return "sub";
@@ -1444,7 +1483,7 @@ class values {
         return asTagName ? null : type;
     }
     static valueOfTextAlignment(c) {
-        var type = xml_parser_1.default.attr(c, "val");
+        let type = xml_parser_1.default.attr(c, "val");
         switch (type) {
             case "auto":
             case "baseline":
@@ -1778,6 +1817,7 @@ exports.LengthUsage = {
     Percent: { mul: 0.02, unit: "%" },
     LineHeight: { mul: 1 / 240, unit: "" },
     VmlEmu: { mul: 1 / 12700, unit: "" },
+    degree: { mul: 1 / 60000, unit: "deg" },
 };
 function convertLength(val, usage = exports.LengthUsage.Dxa) {
     if (!val) {
@@ -1794,13 +1834,20 @@ function convertLength(val, usage = exports.LengthUsage.Dxa) {
 exports.convertLength = convertLength;
 function convertBoolean(v, defaultValue = false) {
     switch (v) {
-        case "1": return true;
-        case "0": return false;
-        case "on": return true;
-        case "off": return false;
-        case "true": return true;
-        case "false": return false;
-        default: return defaultValue;
+        case "1":
+            return true;
+        case "0":
+            return false;
+        case "on":
+            return true;
+        case "off":
+            return false;
+        case "true":
+            return true;
+        case "false":
+            return false;
+        default:
+            return defaultValue;
     }
 }
 exports.convertBoolean = convertBoolean;
@@ -2211,22 +2258,24 @@ const document_parser_1 = __webpack_require__(/*! ./document-parser */ "./src/do
 const html_renderer_1 = __webpack_require__(/*! ./html-renderer */ "./src/html-renderer.ts");
 const html_renderer_sync_1 = __webpack_require__(/*! ./html-renderer-sync */ "./src/html-renderer-sync.ts");
 exports.defaultOptions = {
+    className: "docx",
+    inWrapper: true,
     ignoreHeight: false,
     ignoreWidth: false,
     ignoreFonts: false,
-    breakPages: true,
-    debug: false,
-    experimental: false,
-    className: "docx",
-    inWrapper: true,
-    trimXmlDeclaration: true,
+    ignoreTableWrap: true,
+    ignoreImageWrap: false,
     ignoreLastRenderedPageBreak: true,
+    breakPages: true,
+    trimXmlDeclaration: true,
+    useBase64URL: false,
     renderHeaders: true,
     renderFooters: true,
     renderFootnotes: true,
     renderEndnotes: true,
-    useBase64URL: false,
-    renderChanges: false
+    renderChanges: false,
+    experimental: false,
+    debug: false,
 };
 function parseAsync(data, userOptions = null) {
     const ops = Object.assign(Object.assign({}, exports.defaultOptions), userOptions);
@@ -2407,11 +2456,17 @@ exports.HtmlRendererSync = void 0;
 const dom_1 = __webpack_require__(/*! ./document/dom */ "./src/document/dom.ts");
 const utils_1 = __webpack_require__(/*! ./utils */ "./src/utils.ts");
 const javascript_1 = __webpack_require__(/*! ./javascript */ "./src/javascript.ts");
-const ns = {
+let ns = {
     html: "http://www.w3.org/1999/xhtml",
     svg: "http://www.w3.org/2000/svg",
     mathML: "http://www.w3.org/1998/Math/MathML"
 };
+var Overflow;
+(function (Overflow) {
+    Overflow["TRUE"] = "true";
+    Overflow["FALSE"] = "false";
+    Overflow["UNKNOWN"] = "undetected";
+})(Overflow || (Overflow = {}));
 class HtmlRendererSync {
     constructor() {
         this.className = "docx";
@@ -2428,7 +2483,7 @@ class HtmlRendererSync {
         this.currentTabs = [];
         this.tabsTimeout = 0;
     }
-    render(document, bodyContainer, styleContainer = null, options) {
+    async render(document, bodyContainer, styleContainer = null, options) {
         var _a;
         this.document = document;
         this.options = options;
@@ -2474,7 +2529,7 @@ class HtmlRendererSync {
         else {
             this.wrapper = bodyContainer;
         }
-        this.renderSections(document.documentPart.body);
+        await this.renderSections(document.documentPart.body);
         this.refreshTabStops();
     }
     renderDefaultStyle() {
@@ -2497,8 +2552,8 @@ class HtmlRendererSync {
     }
     renderTheme(themePart, styleContainer) {
         var _a, _b;
-        const variables = {};
-        const fontScheme = (_a = themePart.theme) === null || _a === void 0 ? void 0 : _a.fontScheme;
+        let variables = {};
+        let fontScheme = (_a = themePart.theme) === null || _a === void 0 ? void 0 : _a.fontScheme;
         if (fontScheme) {
             if (fontScheme.majorFont) {
                 variables['--docx-majorHAnsi-font'] = fontScheme.majorFont.latinTypeface;
@@ -2507,27 +2562,27 @@ class HtmlRendererSync {
                 variables['--docx-minorHAnsi-font'] = fontScheme.minorFont.latinTypeface;
             }
         }
-        const colorScheme = (_b = themePart.theme) === null || _b === void 0 ? void 0 : _b.colorScheme;
+        let colorScheme = (_b = themePart.theme) === null || _b === void 0 ? void 0 : _b.colorScheme;
         if (colorScheme) {
             for (let [k, v] of Object.entries(colorScheme.colors)) {
                 variables[`--docx-${k}-color`] = `#${v}`;
             }
         }
-        const cssText = this.styleToString(`.${this.className}`, variables);
+        let cssText = this.styleToString(`.${this.className}`, variables);
         styleContainer.appendChild(createStyleElement(cssText));
     }
     processStyleName(className) {
         return className ? `${this.className}_${(0, utils_1.escapeClassName)(className)}` : this.className;
     }
     processStyles(styles) {
-        const stylesMap = (0, utils_1.keyBy)(styles.filter(x => x.id != null), x => x.id);
-        for (const style of styles.filter(x => x.basedOn)) {
+        let stylesMap = (0, utils_1.keyBy)(styles.filter(x => x.id != null), x => x.id);
+        for (let style of styles.filter(x => x.basedOn)) {
             let baseStyle = stylesMap[style.basedOn];
             if (baseStyle) {
                 style.paragraphProps = (0, utils_1.mergeDeep)(style.paragraphProps, baseStyle.paragraphProps);
                 style.runProps = (0, utils_1.mergeDeep)(style.runProps, baseStyle.runProps);
-                for (const baseValues of baseStyle.styles) {
-                    const styleValues = style.styles.find(x => x.target == baseValues.target);
+                for (let baseValues of baseStyle.styles) {
+                    let styleValues = style.styles.find(x => x.target == baseValues.target);
                     if (styleValues) {
                         this.copyStyleProperties(baseValues.values, styleValues.values);
                     }
@@ -2548,9 +2603,9 @@ class HtmlRendererSync {
     renderStyles(styles) {
         var _a;
         let styleText = "";
-        const stylesMap = this.styleMap;
-        const defaultStyles = (0, utils_1.keyBy)(styles.filter(s => s.isDefault), s => s.target);
-        for (const style of styles) {
+        let stylesMap = this.styleMap;
+        let defaultStyles = (0, utils_1.keyBy)(styles.filter(s => s.isDefault), s => s.target);
+        for (let style of styles) {
             let subStyles = style.styles;
             if (style.linked) {
                 let linkedStyle = style.linked && stylesMap[style.linked];
@@ -2559,7 +2614,7 @@ class HtmlRendererSync {
                 else if (this.options.debug)
                     console.warn(`Can't find linked style ${style.linked}`);
             }
-            for (const subStyle of subStyles) {
+            for (let subStyle of subStyles) {
                 let selector = `${(_a = style.target) !== null && _a !== void 0 ? _a : ''}.${style.cssName}`;
                 if (style.target != subStyle.target)
                     selector += ` ${subStyle.target}`;
@@ -2573,7 +2628,7 @@ class HtmlRendererSync {
     processNumberings(numberings) {
         var _a;
         for (let num of numberings.filter(n => n.pStyleName)) {
-            const style = this.findStyle(num.pStyleName);
+            let style = this.findStyle(num.pStyleName);
             if ((_a = style === null || style === void 0 ? void 0 : style.paragraphProps) === null || _a === void 0 ? void 0 : _a.numbering) {
                 style.paragraphProps.numbering.level = num.level;
             }
@@ -2599,7 +2654,7 @@ class HtmlRendererSync {
             }
             else if (num.levelText) {
                 let counter = this.numberingCounter(num.id, num.level);
-                const counterReset = counter + " " + (num.start - 1);
+                let counterReset = counter + " " + (num.start - 1);
                 if (num.level > 0) {
                     styleText += this.styleToString(`p.${this.numberingClass(num.id, num.level - 1)}`, {
                         "counter-reset": counterReset
@@ -2625,7 +2680,7 @@ class HtmlRendererSync {
     }
     styleToString(selectors, values, cssText = null) {
         let result = `${selectors} {\r\n`;
-        for (const key in values) {
+        for (let key in values) {
             if (key.startsWith('$'))
                 continue;
             result += `  ${key}: ${values[key]};\r\n`;
@@ -2639,7 +2694,7 @@ class HtmlRendererSync {
     }
     levelTextToContent(text, suff, id, numformat) {
         var _a;
-        const suffMap = {
+        let suffMap = {
             "tab": "\\9",
             "space": "\\a0",
         };
@@ -2693,7 +2748,7 @@ class HtmlRendererSync {
         for (let f of fontsPart.fonts) {
             for (let ref of f.embedFontRefs) {
                 this.document.loadFont(ref.id, ref.key).then(fontData => {
-                    const cssValues = {
+                    let cssValues = {
                         'font-family': f.name,
                         'src': `url(${fontData})`
                     };
@@ -2704,7 +2759,7 @@ class HtmlRendererSync {
                         cssValues['font-style'] = 'italic';
                     }
                     appendComment(styleContainer, `docxjs ${f.name} font`);
-                    const cssText = this.styleToString("@font-face", cssValues);
+                    let cssText = this.styleToString("@font-face", cssValues);
                     styleContainer.appendChild(createStyleElement(cssText));
                     this.refreshTabStops();
                 });
@@ -2762,9 +2817,9 @@ class HtmlRendererSync {
             elem.level = 1;
             current_section.elements.push(elem);
             if (elem.type == dom_1.DomType.Paragraph) {
-                const p = elem;
+                let p = elem;
                 let sectProps = p.sectionProps;
-                const default_paragraph_style = this.findStyle(p.styleName);
+                let default_paragraph_style = this.findStyle(p.styleName);
                 if ((_a = default_paragraph_style === null || default_paragraph_style === void 0 ? void 0 : default_paragraph_style.paragraphProps) === null || _a === void 0 ? void 0 : _a.pageBreakBefore) {
                     current_section.is_split = true;
                     current_section.sectProps = sectProps;
@@ -2841,7 +2896,7 @@ class HtmlRendererSync {
         }
         return sections;
     }
-    renderSections(document) {
+    async renderSections(document) {
         this.processElement(document);
         let sections;
         if (this.options.breakPages) {
@@ -2862,25 +2917,26 @@ class HtmlRendererSync {
             section.checking_overflow = false;
             this.current_section = section;
             prevProps = sectProps;
-            this.renderSection();
+            await this.renderSection();
         }
     }
-    renderSection() {
+    async renderSection() {
         let section = this.current_section;
-        let { sectProps, isFirstSection, isLastSection, pageIndex } = section;
-        const sectionElement = this.createSection(this.className, sectProps);
+        let { is_split, sectProps, isFirstSection, isLastSection, pageIndex } = section;
+        let sectionElement = this.createSection(this.className, sectProps);
+        sectionElement.dataset.splited = String(is_split);
         this.renderStyleValues(this.document.documentPart.body.cssStyle, sectionElement);
         if (this.options.renderHeaders) {
-            this.renderHeaderFooterRef(sectProps.headerRefs, sectProps, pageIndex, isFirstSection, sectionElement);
+            await this.renderHeaderFooterRef(sectProps.headerRefs, sectProps, pageIndex, isFirstSection, sectionElement);
         }
         if (this.options.renderFootnotes) {
-            this.renderNotes(this.currentFootnoteIds, this.footnoteMap, sectionElement);
+            await this.renderNotes(this.currentFootnoteIds, this.footnoteMap, sectionElement);
         }
         if (this.options.renderEndnotes && isLastSection) {
-            this.renderNotes(this.currentEndnoteIds, this.endnoteMap, sectionElement);
+            await this.renderNotes(this.currentEndnoteIds, this.endnoteMap, sectionElement);
         }
         if (this.options.renderFooters) {
-            this.renderHeaderFooterRef(sectProps.footerRefs, sectProps, pageIndex, isFirstSection, sectionElement);
+            await this.renderHeaderFooterRef(sectProps.footerRefs, sectProps, pageIndex, isFirstSection, sectionElement);
         }
         let contentElement = createElement("article");
         if (this.options.breakPages) {
@@ -2892,7 +2948,7 @@ class HtmlRendererSync {
         this.current_section.contentElement = contentElement;
         sectionElement.appendChild(contentElement);
         this.current_section.checking_overflow = true;
-        this.renderElements(section.elements, contentElement);
+        await this.renderElements(section.elements, contentElement);
         this.current_section.checking_overflow = false;
     }
     createSection(className, props) {
@@ -2923,7 +2979,7 @@ class HtmlRendererSync {
         this.wrapper.appendChild(elem);
         return elem;
     }
-    renderHeaderFooterRef(refs, props, page, firstOfSection, parent) {
+    async renderHeaderFooterRef(refs, props, page, firstOfSection, parent) {
         var _a, _b, _c, _d, _e, _f, _g, _h;
         if (!refs)
             return;
@@ -2954,151 +3010,167 @@ class HtmlRendererSync {
                     console.warn('set header/footer style error', part.rootElement.type);
                     break;
             }
-            this.renderElements([part.rootElement], parent);
+            await this.renderElements([part.rootElement], parent);
             this.currentPart = null;
         }
     }
-    renderNotes(noteIds, notesMap, parent) {
+    async renderNotes(noteIds, notesMap, parent) {
         let notes = noteIds.map(id => notesMap[id]).filter(x => x);
         if (notes.length > 0) {
             let oList = createElement("ol", null);
-            this.renderElements(notes, oList);
+            await this.renderElements(notes, oList);
             parent.appendChild(oList);
         }
     }
-    renderElements(elems, parent) {
-        let is_overflow = false;
+    async renderElements(elems, parent) {
+        var _a;
+        let is_overflow = Overflow.FALSE;
         for (let i = 0; i < elems.length; i++) {
             if (elems[i].level === 1) {
                 this.current_section.elementIndex = i;
             }
-            let element = this.renderElement(elems[i], parent);
-            if (element === null || element === void 0 ? void 0 : element.is_overflow) {
-                is_overflow = true;
+            let element = await this.renderElement(elems[i], parent);
+            if (((_a = element === null || element === void 0 ? void 0 : element.dataset) === null || _a === void 0 ? void 0 : _a.overflow) === Overflow.TRUE) {
+                is_overflow = Overflow.TRUE;
                 break;
             }
         }
         return is_overflow;
     }
-    renderElement(elem, parent) {
+    async renderElement(elem, parent) {
         let oNode;
         switch (elem.type) {
             case dom_1.DomType.Paragraph:
-                oNode = this.renderParagraph(elem, parent);
+                oNode = await this.renderParagraph(elem, parent);
+                break;
+            case dom_1.DomType.Run:
+                oNode = await this.renderRun(elem, parent);
+                break;
+            case dom_1.DomType.Text:
+                oNode = await this.renderText(elem, parent);
+                break;
+            case dom_1.DomType.Table:
+                oNode = await this.renderTable(elem, parent);
+                break;
+            case dom_1.DomType.Row:
+                oNode = await this.renderTableRow(elem, parent);
+                break;
+            case dom_1.DomType.Cell:
+                oNode = await this.renderTableCell(elem);
+                if (parent) {
+                    appendChildren(parent, oNode);
+                }
+                break;
+            case dom_1.DomType.Hyperlink:
+                oNode = await this.renderHyperlink(elem, parent);
+                break;
+            case dom_1.DomType.Drawing:
+                oNode = await this.renderDrawing(elem, parent);
+                break;
+            case dom_1.DomType.Image:
+                oNode = await this.renderImage(elem, parent);
                 break;
             case dom_1.DomType.BookmarkStart:
-                oNode = this.renderBookmarkStart(elem, parent);
+                oNode = this.renderBookmarkStart(elem);
+                if (parent) {
+                    appendChildren(parent, oNode);
+                }
                 break;
             case dom_1.DomType.BookmarkEnd:
                 oNode = null;
                 break;
-            case dom_1.DomType.Run:
-                oNode = this.renderRun(elem, parent);
-                break;
-            case dom_1.DomType.Table:
-                oNode = this.renderTable(elem, parent);
-                break;
-            case dom_1.DomType.Row:
-                oNode = this.renderTableRow(elem, parent);
-                break;
-            case dom_1.DomType.Cell:
-                oNode = this.renderTableCell(elem, parent);
-                break;
-            case dom_1.DomType.Hyperlink:
-                oNode = this.renderHyperlink(elem, parent);
-                break;
-            case dom_1.DomType.Drawing:
-                oNode = this.renderDrawing(elem, parent);
-                break;
-            case dom_1.DomType.Image:
-                oNode = this.renderImage(elem, parent);
-                break;
-            case dom_1.DomType.Text:
-                oNode = this.renderText(elem, parent);
-                break;
-            case dom_1.DomType.DeletedText:
-                oNode = this.renderDeletedText(elem, parent);
-                break;
             case dom_1.DomType.Tab:
-                oNode = this.renderTab(elem, parent);
+                oNode = await this.renderTab(elem, parent);
                 break;
             case dom_1.DomType.Symbol:
-                oNode = this.renderSymbol(elem, parent);
+                oNode = await this.renderSymbol(elem, parent);
                 break;
             case dom_1.DomType.Break:
-                oNode = this.renderBreak(elem, parent);
+                oNode = await this.renderBreak(elem, parent);
+                break;
+            case dom_1.DomType.Inserted:
+                oNode = await this.renderInserted(elem);
+                if (parent) {
+                    await this.appendChildren(parent, oNode);
+                }
+                break;
+            case dom_1.DomType.Deleted:
+                oNode = await this.renderDeleted(elem);
+                if (parent) {
+                    await this.appendChildren(parent, oNode);
+                }
+                break;
+            case dom_1.DomType.DeletedText:
+                oNode = await this.renderDeletedText(elem, parent);
+                break;
+            case dom_1.DomType.NoBreakHyphen:
+                oNode = createElement("wbr");
+                if (parent) {
+                    await this.appendChildren(parent, oNode);
+                }
                 break;
             case dom_1.DomType.Footer:
-                oNode = this.renderHeaderFooter(elem, "footer");
+                oNode = await this.renderHeaderFooter(elem, "footer");
                 if (parent) {
-                    this.appendChildren(parent, oNode);
+                    appendChildren(parent, oNode);
                 }
                 break;
             case dom_1.DomType.Header:
-                oNode = this.renderHeaderFooter(elem, "header");
+                oNode = await this.renderHeaderFooter(elem, "header");
                 if (parent) {
-                    this.appendChildren(parent, oNode);
+                    appendChildren(parent, oNode);
                 }
                 break;
             case dom_1.DomType.Footnote:
             case dom_1.DomType.Endnote:
-                oNode = this.renderContainer(elem, "li");
+                oNode = await this.renderContainer(elem, "li");
                 if (parent) {
-                    this.appendChildren(parent, oNode);
+                    appendChildren(parent, oNode);
                 }
                 break;
             case dom_1.DomType.FootnoteReference:
                 oNode = this.renderFootnoteReference(elem);
                 if (parent) {
-                    this.appendChildren(parent, oNode);
+                    appendChildren(parent, oNode);
                 }
                 break;
             case dom_1.DomType.EndnoteReference:
                 oNode = this.renderEndnoteReference(elem);
                 if (parent) {
-                    this.appendChildren(parent, oNode);
-                }
-                break;
-            case dom_1.DomType.NoBreakHyphen:
-                oNode = createElement("wbr");
-                if (parent) {
-                    this.appendChildren(parent, oNode);
-                }
-                break;
-            case dom_1.DomType.VmlPicture:
-                oNode = this.renderVmlPicture(elem);
-                if (parent) {
-                    this.appendChildren(parent, oNode);
+                    appendChildren(parent, oNode);
                 }
                 break;
             case dom_1.DomType.VmlElement:
-                oNode = this.renderVmlElement(elem);
+                oNode = await this.renderVmlElement(elem, parent);
+                break;
+            case dom_1.DomType.VmlPicture:
+                oNode = await this.renderVmlPicture(elem);
                 if (parent) {
-                    this.appendChildren(parent, oNode);
+                    appendChildren(parent, oNode);
                 }
                 break;
             case dom_1.DomType.MmlMath:
-                oNode = this.renderContainerNS(elem, ns.mathML, "math", { xmlns: ns.mathML });
+                oNode = await this.renderContainerNS(elem, ns.mathML, "math", { xmlns: ns.mathML });
                 if (parent) {
-                    this.appendChildren(parent, oNode);
+                    oNode.dataset.overflow = await this.appendChildren(parent, oNode);
                 }
                 break;
             case dom_1.DomType.MmlMathParagraph:
-                oNode = this.renderContainer(elem, "span");
+                oNode = await this.renderContainer(elem, "span");
                 if (parent) {
-                    this.appendChildren(parent, oNode);
+                    appendChildren(parent, oNode);
                 }
                 break;
             case dom_1.DomType.MmlFraction:
-                oNode = this.renderContainerNS(elem, ns.mathML, "mfrac");
+                oNode = await this.renderContainerNS(elem, ns.mathML, "mfrac");
                 if (parent) {
-                    this.appendChildren(parent, oNode);
+                    appendChildren(parent, oNode);
                 }
                 break;
             case dom_1.DomType.MmlBase:
-                oNode = this.renderContainerNS(elem, ns.mathML, elem.parent.type == dom_1.DomType.MmlMatrixRow ? "mtd" : "mrow");
+                oNode = await this.renderContainerNS(elem, ns.mathML, elem.parent.type == dom_1.DomType.MmlMatrixRow ? "mtd" : "mrow");
                 if (parent) {
-                    this.appendChildren(parent, oNode);
+                    appendChildren(parent, oNode);
                 }
                 break;
             case dom_1.DomType.MmlNumerator:
@@ -3106,113 +3178,101 @@ class HtmlRendererSync {
             case dom_1.DomType.MmlFunction:
             case dom_1.DomType.MmlLimit:
             case dom_1.DomType.MmlBox:
-                oNode = this.renderContainerNS(elem, ns.mathML, "mrow");
+                oNode = await this.renderContainerNS(elem, ns.mathML, "mrow");
                 if (parent) {
-                    this.appendChildren(parent, oNode);
+                    appendChildren(parent, oNode);
                 }
                 break;
             case dom_1.DomType.MmlGroupChar:
-                oNode = this.renderMmlGroupChar(elem);
+                oNode = await this.renderMmlGroupChar(elem);
                 if (parent) {
-                    this.appendChildren(parent, oNode);
+                    appendChildren(parent, oNode);
                 }
                 break;
             case dom_1.DomType.MmlLimitLower:
-                oNode = this.renderContainerNS(elem, ns.mathML, "munder");
+                oNode = await this.renderContainerNS(elem, ns.mathML, "munder");
                 if (parent) {
-                    this.appendChildren(parent, oNode);
+                    appendChildren(parent, oNode);
                 }
                 break;
             case dom_1.DomType.MmlMatrix:
-                oNode = this.renderContainerNS(elem, ns.mathML, "mtable");
+                oNode = await this.renderContainerNS(elem, ns.mathML, "mtable");
                 if (parent) {
-                    this.appendChildren(parent, oNode);
+                    appendChildren(parent, oNode);
                 }
                 break;
             case dom_1.DomType.MmlMatrixRow:
-                oNode = this.renderContainerNS(elem, ns.mathML, "mtr");
+                oNode = await this.renderContainerNS(elem, ns.mathML, "mtr");
                 if (parent) {
-                    this.appendChildren(parent, oNode);
+                    appendChildren(parent, oNode);
                 }
                 break;
             case dom_1.DomType.MmlRadical:
-                oNode = this.renderMmlRadical(elem);
+                oNode = await this.renderMmlRadical(elem);
                 if (parent) {
-                    this.appendChildren(parent, oNode);
+                    appendChildren(parent, oNode);
                 }
                 break;
             case dom_1.DomType.MmlSuperscript:
-                oNode = this.renderContainerNS(elem, ns.mathML, "msup");
+                oNode = await this.renderContainerNS(elem, ns.mathML, "msup");
                 if (parent) {
-                    this.appendChildren(parent, oNode);
+                    appendChildren(parent, oNode);
                 }
                 break;
             case dom_1.DomType.MmlSubscript:
-                oNode = this.renderContainerNS(elem, ns.mathML, "msub");
+                oNode = await this.renderContainerNS(elem, ns.mathML, "msub");
                 if (parent) {
-                    this.appendChildren(parent, oNode);
+                    appendChildren(parent, oNode);
                 }
                 break;
             case dom_1.DomType.MmlDegree:
             case dom_1.DomType.MmlSuperArgument:
             case dom_1.DomType.MmlSubArgument:
-                oNode = this.renderContainerNS(elem, ns.mathML, "mn");
+                oNode = await this.renderContainerNS(elem, ns.mathML, "mn");
                 if (parent) {
-                    this.appendChildren(parent, oNode);
+                    appendChildren(parent, oNode);
                 }
                 break;
             case dom_1.DomType.MmlFunctionName:
-                oNode = this.renderContainerNS(elem, ns.mathML, "ms");
+                oNode = await this.renderContainerNS(elem, ns.mathML, "ms");
                 if (parent) {
-                    this.appendChildren(parent, oNode);
+                    appendChildren(parent, oNode);
                 }
                 break;
             case dom_1.DomType.MmlDelimiter:
-                oNode = this.renderMmlDelimiter(elem);
+                oNode = await this.renderMmlDelimiter(elem);
                 if (parent) {
-                    this.appendChildren(parent, oNode);
+                    appendChildren(parent, oNode);
                 }
                 break;
             case dom_1.DomType.MmlRun:
-                oNode = this.renderMmlRun(elem);
+                oNode = await this.renderMmlRun(elem);
                 if (parent) {
-                    this.appendChildren(parent, oNode);
+                    appendChildren(parent, oNode);
                 }
                 break;
             case dom_1.DomType.MmlNary:
-                oNode = this.renderMmlNary(elem);
+                oNode = await this.renderMmlNary(elem);
                 if (parent) {
-                    this.appendChildren(parent, oNode);
+                    appendChildren(parent, oNode);
                 }
                 break;
             case dom_1.DomType.MmlPreSubSuper:
-                oNode = this.renderMmlPreSubSuper(elem);
+                oNode = await this.renderMmlPreSubSuper(elem);
                 if (parent) {
-                    this.appendChildren(parent, oNode);
+                    appendChildren(parent, oNode);
                 }
                 break;
             case dom_1.DomType.MmlBar:
-                oNode = this.renderMmlBar(elem);
+                oNode = await this.renderMmlBar(elem);
                 if (parent) {
-                    this.appendChildren(parent, oNode);
+                    appendChildren(parent, oNode);
                 }
                 break;
             case dom_1.DomType.MmlEquationArray:
-                oNode = this.renderMllList(elem);
+                oNode = await this.renderMllList(elem);
                 if (parent) {
-                    this.appendChildren(parent, oNode);
-                }
-                break;
-            case dom_1.DomType.Inserted:
-                oNode = this.renderInserted(elem);
-                if (parent) {
-                    this.appendChildren(parent, oNode);
-                }
-                break;
-            case dom_1.DomType.Deleted:
-                oNode = this.renderDeleted(elem);
-                if (parent) {
-                    this.appendChildren(parent, oNode);
+                    appendChildren(parent, oNode);
                 }
                 break;
         }
@@ -3229,14 +3289,17 @@ class HtmlRendererSync {
             return true;
         }
     }
-    renderChildren(elem, parent) {
-        return this.renderElements(elem.children, parent);
+    async renderChildren(elem, parent) {
+        return await this.renderElements(elem.children, parent);
     }
-    appendChildren(parent, children, xml_element) {
+    async appendChildren(parent, children, xml_element) {
         appendChildren(parent, children);
         let is_overflow = false;
         let { is_split, contentElement, pageIndex, elementIndex, checking_overflow, elements } = this.current_section;
-        if (is_split === false && checking_overflow) {
+        if (is_split) {
+            return Overflow.UNKNOWN;
+        }
+        if (checking_overflow) {
             is_overflow = checkOverflow(contentElement);
             if (is_overflow) {
                 if ((xml_element === null || xml_element === void 0 ? void 0 : xml_element.type) === dom_1.DomType.Row) {
@@ -3252,204 +3315,78 @@ class HtmlRendererSync {
                 pageIndex += 1;
                 checking_overflow = false;
                 this.current_section = Object.assign(Object.assign({}, this.current_section), { pageIndex, checking_overflow, elements, elementIndex });
-                this.renderSection();
+                await this.renderSection();
             }
         }
-        return is_overflow;
+        return is_overflow ? Overflow.TRUE : Overflow.FALSE;
     }
-    renderContainer(elem, tagName, props) {
+    async renderContainer(elem, tagName, props) {
         let parent = createElement(tagName, props);
-        this.renderChildren(elem, parent);
+        await this.renderChildren(elem, parent);
         return parent;
     }
-    renderContainerNS(elem, ns, tagName, props) {
+    async renderContainerNS(elem, ns, tagName, props) {
         let parent = createElementNS(ns, tagName, props);
-        this.renderChildren(elem, parent);
+        await this.renderChildren(elem, parent);
         return parent;
     }
-    renderParagraph(elem, parent) {
+    async renderParagraph(elem, parent) {
         var _a, _b, _c, _d;
         let oParagraph = createElement("p");
-        const style = this.findStyle(elem.styleName);
+        let style = this.findStyle(elem.styleName);
         (_a = elem.tabs) !== null && _a !== void 0 ? _a : (elem.tabs = (_b = style === null || style === void 0 ? void 0 : style.paragraphProps) === null || _b === void 0 ? void 0 : _b.tabs);
         this.renderClass(elem, oParagraph);
         this.renderStyleValues(elem.cssStyle, oParagraph);
         this.renderCommonProperties(oParagraph.style, elem);
         if (parent) {
-            oParagraph.is_overflow = this.appendChildren(parent, oParagraph);
-            if (oParagraph.is_overflow) {
+            let is_overflow = await this.appendChildren(parent, oParagraph);
+            if (is_overflow === Overflow.TRUE) {
+                oParagraph.dataset.overflow = Overflow.TRUE;
                 return oParagraph;
             }
         }
-        const numbering = (_c = elem.numbering) !== null && _c !== void 0 ? _c : (_d = style === null || style === void 0 ? void 0 : style.paragraphProps) === null || _d === void 0 ? void 0 : _d.numbering;
+        let numbering = (_c = elem.numbering) !== null && _c !== void 0 ? _c : (_d = style === null || style === void 0 ? void 0 : style.paragraphProps) === null || _d === void 0 ? void 0 : _d.numbering;
         if (numbering) {
             oParagraph.classList.add(this.numberingClass(numbering.id, numbering.level));
         }
-        oParagraph.is_overflow = this.renderChildren(elem, oParagraph);
+        oParagraph.dataset.overflow = await this.renderChildren(elem, oParagraph);
         return oParagraph;
     }
-    renderRun(elem, parent) {
+    async renderRun(elem, parent) {
         if (elem.fieldRun) {
             return null;
         }
-        const oSpan = createElement("span");
+        let oSpan = createElement("span");
         if (elem.id) {
             oSpan.id = elem.id;
         }
         this.renderClass(elem, oSpan);
         this.renderStyleValues(elem.cssStyle, oSpan);
         if (parent) {
-            oSpan.is_overflow = this.appendChildren(parent, oSpan);
-            if (oSpan.is_overflow) {
+            let is_overflow = await this.appendChildren(parent, oSpan);
+            if (is_overflow === Overflow.TRUE) {
+                oSpan.dataset.overflow = Overflow.TRUE;
                 return oSpan;
             }
         }
         if (elem.verticalAlign) {
-            const wrapper = createElement(elem.verticalAlign);
-            oSpan.is_overflow = this.renderChildren(elem, wrapper);
-            oSpan.is_overflow = this.appendChildren(oSpan, wrapper);
+            let wrapper = createElement(elem.verticalAlign);
+            oSpan.dataset.overflow = await this.renderChildren(elem, wrapper);
+            oSpan.dataset.overflow = await this.appendChildren(oSpan, wrapper);
         }
         else {
-            oSpan.is_overflow = this.renderChildren(elem, oSpan);
+            oSpan.dataset.overflow = await this.renderChildren(elem, oSpan);
         }
         return oSpan;
     }
-    renderText(elem, parent) {
+    async renderText(elem, parent) {
         let oText = document.createTextNode(elem.text);
         if (parent) {
-            this.appendChildren(parent, oText);
+            appendChildren(parent, oText);
         }
         return oText;
     }
-    renderHyperlink(elem, parent) {
-        let oAnchor = createElement("a");
-        this.renderStyleValues(elem.cssStyle, oAnchor);
-        if (parent) {
-            this.appendChildren(parent, oAnchor);
-        }
-        if (elem.href) {
-            oAnchor.href = elem.href;
-        }
-        else if (elem.id) {
-            const rel = this.document.documentPart.rels
-                .find(it => it.id == elem.id && it.targetMode === "External");
-            oAnchor.href = rel === null || rel === void 0 ? void 0 : rel.target;
-        }
-        this.renderChildren(elem, oAnchor);
-        return oAnchor;
-    }
-    renderDrawing(elem, parent) {
-        let oDrawing = createElement("div");
-        oDrawing.style.display = "inline-block";
-        oDrawing.style.position = "relative";
-        oDrawing.style.textIndent = "0px";
-        this.renderStyleValues(elem.cssStyle, oDrawing);
-        if (parent) {
-            this.appendChildren(parent, oDrawing);
-        }
-        this.renderChildren(elem, oDrawing);
-        return oDrawing;
-    }
-    renderImage(elem, parent) {
-        let oImage = createElement("img");
-        this.renderStyleValues(elem.cssStyle, oImage);
-        if (this.document) {
-            this.document
-                .loadDocumentImage(elem.src, this.currentPart)
-                .then(src => {
-                oImage.src = src;
-            });
-        }
-        if (parent) {
-            this.appendChildren(parent, oImage);
-        }
-        return oImage;
-    }
-    renderDeletedText(elem, parent) {
-        let oDeletedText;
-        if (this.options.renderEndnotes) {
-            oDeletedText = document.createTextNode(elem.text);
-            if (parent) {
-                this.appendChildren(parent, oDeletedText);
-            }
-        }
-        else {
-            oDeletedText = null;
-        }
-        return oDeletedText;
-    }
-    renderBreak(elem, parent) {
-        if (elem.break == "textWrapping") {
-            let oBr = createElement("br");
-            if (parent) {
-                this.appendChildren(parent, oBr);
-            }
-            return oBr;
-        }
-        return null;
-    }
-    renderInserted(elem) {
-        if (this.options.renderChanges) {
-            return this.renderContainer(elem, "ins");
-        }
-        return this.renderContainer(elem, "span");
-    }
-    renderDeleted(elem) {
-        if (this.options.renderChanges) {
-            return this.renderContainer(elem, "del");
-        }
-        return null;
-    }
-    renderSymbol(elem, parent) {
-        let oSpan = createElement("span");
-        oSpan.style.fontFamily = elem.font;
-        oSpan.innerHTML = `&#x${elem.char};`;
-        if (parent) {
-            this.appendChildren(parent, oSpan);
-        }
-        return oSpan;
-    }
-    renderHeaderFooter(elem, tagName) {
-        let oElement = createElement(tagName);
-        this.renderChildren(elem, oElement);
-        this.renderStyleValues(elem.cssStyle, oElement);
-        return oElement;
-    }
-    renderFootnoteReference(elem) {
-        let oSup = createElement("sup");
-        this.currentFootnoteIds.push(elem.id);
-        oSup.textContent = `${this.currentFootnoteIds.length}`;
-        return oSup;
-    }
-    renderEndnoteReference(elem) {
-        let oSup = createElement("sup");
-        this.currentEndnoteIds.push(elem.id);
-        oSup.textContent = `${this.currentEndnoteIds.length}`;
-        return oSup;
-    }
-    renderTab(elem, parent) {
-        var _a;
-        let tabSpan = createElement("span");
-        tabSpan.innerHTML = "&emsp;";
-        if (this.options.experimental) {
-            tabSpan.className = this.tabStopClass();
-            let stops = (_a = findParent(elem, dom_1.DomType.Paragraph)) === null || _a === void 0 ? void 0 : _a.tabs;
-            this.currentTabs.push({ stops, span: tabSpan });
-        }
-        if (parent) {
-            this.appendChildren(parent, tabSpan);
-        }
-        return tabSpan;
-    }
-    renderBookmarkStart(elem, parent) {
-        let oSpan = createElement("span");
-        oSpan.id = elem.name;
-        if (parent) {
-            this.appendChildren(parent, oSpan);
-        }
-        return oSpan;
-    }
-    renderTable(elem, parent) {
+    async renderTable(elem, parent) {
         let oTable = createElement("table");
         this.tableCellPositions.push(this.currentCellPosition);
         this.tableVerticalMerges.push(this.currentVerticalMerge);
@@ -3458,48 +3395,49 @@ class HtmlRendererSync {
         this.renderClass(elem, oTable);
         this.renderStyleValues(elem.cssStyle, oTable);
         if (parent) {
-            oTable.is_overflow = this.appendChildren(parent, oTable);
-            if (oTable.is_overflow) {
+            let is_overflow = await this.appendChildren(parent, oTable);
+            if (is_overflow === Overflow.TRUE) {
+                oTable.dataset.overflow = Overflow.TRUE;
                 return oTable;
             }
         }
         if (elem.columns) {
-            this.renderTableColumns(elem.columns, oTable);
+            await this.renderTableColumns(elem.columns, oTable);
         }
-        oTable.is_overflow = this.renderChildren(elem, oTable);
+        oTable.dataset.overflow = await this.renderChildren(elem, oTable);
         this.currentVerticalMerge = this.tableVerticalMerges.pop();
         this.currentCellPosition = this.tableCellPositions.pop();
         return oTable;
     }
-    renderTableColumns(columns, parent) {
+    async renderTableColumns(columns, parent) {
         let oColGroup = createElement("colgroup");
         if (parent) {
-            this.appendChildren(parent, oColGroup);
+            appendChildren(parent, oColGroup);
         }
         for (let col of columns) {
             let oCol = createElement("col");
             if (col.width) {
                 oCol.style.width = col.width;
             }
-            this.appendChildren(oColGroup, oCol);
+            appendChildren(oColGroup, oCol);
         }
         return oColGroup;
     }
-    renderTableRow(elem, parent) {
+    async renderTableRow(elem, parent) {
         let oTableRow = createElement("tr");
         this.currentCellPosition.col = 0;
         this.renderClass(elem, oTableRow);
         this.renderStyleValues(elem.cssStyle, oTableRow);
         this.currentCellPosition.row++;
-        this.renderChildren(elem, oTableRow);
+        await this.renderChildren(elem, oTableRow);
         if (parent) {
-            oTableRow.is_overflow = this.appendChildren(parent, oTableRow, elem);
+            oTableRow.dataset.overflow = await this.appendChildren(parent, oTableRow, elem);
         }
         return oTableRow;
     }
-    renderTableCell(elem, parent) {
+    async renderTableCell(elem) {
         let oTableCell = createElement("td");
-        const key = this.currentCellPosition.col;
+        let key = this.currentCellPosition.col;
         if (elem.verticalMerge) {
             if (elem.verticalMerge == "restart") {
                 this.currentVerticalMerge[key] = oTableCell;
@@ -3519,80 +3457,209 @@ class HtmlRendererSync {
             oTableCell.colSpan = elem.span;
         }
         this.currentCellPosition.col += oTableCell.colSpan;
-        if (parent) {
-            appendChildren(parent, oTableCell);
-        }
-        this.renderChildren(elem, oTableCell);
+        await this.renderChildren(elem, oTableCell);
         return oTableCell;
     }
-    renderVmlPicture(elem) {
-        let oPictureContainer = createElement("div");
-        this.renderChildren(elem, oPictureContainer);
-        return oPictureContainer;
+    async renderHyperlink(elem, parent) {
+        let oAnchor = createElement("a");
+        this.renderStyleValues(elem.cssStyle, oAnchor);
+        if (parent) {
+            let is_overflow = await this.appendChildren(parent, oAnchor);
+            if (is_overflow === Overflow.TRUE) {
+                oAnchor.dataset.overflow = Overflow.TRUE;
+                return oAnchor;
+            }
+        }
+        if (elem.href) {
+            oAnchor.href = elem.href;
+        }
+        else if (elem.id) {
+            let rel = this.document.documentPart.rels.find(it => it.id == elem.id && it.targetMode === "External");
+            oAnchor.href = rel === null || rel === void 0 ? void 0 : rel.target;
+        }
+        oAnchor.dataset.overflow = await this.renderChildren(elem, oAnchor);
+        return oAnchor;
     }
-    renderVmlElement(elem) {
+    async renderDrawing(elem, parent) {
+        let oDrawing = createElement("div");
+        oDrawing.style.display = "inline-block";
+        oDrawing.style.position = "relative";
+        oDrawing.style.textIndent = "0px";
+        this.renderStyleValues(elem.cssStyle, oDrawing);
+        if (parent) {
+            let is_overflow = await this.appendChildren(parent, oDrawing);
+            if (is_overflow === Overflow.TRUE) {
+                oDrawing.dataset.overflow = Overflow.TRUE;
+                return oDrawing;
+            }
+        }
+        oDrawing.dataset.overflow = await this.renderChildren(elem, oDrawing);
+        return oDrawing;
+    }
+    async renderImage(elem, parent) {
+        let oImage = createElement("img");
+        this.renderStyleValues(elem.cssStyle, oImage);
+        if (this.document) {
+            oImage.src = await this.document.loadDocumentImage(elem.src, this.currentPart);
+        }
+        if (parent) {
+            oImage.dataset.overflow = await this.appendChildren(parent, oImage);
+        }
+        return oImage;
+    }
+    renderBookmarkStart(elem) {
+        let oSpan = createElement("span");
+        oSpan.id = elem.name;
+        return oSpan;
+    }
+    async renderTab(elem, parent) {
+        var _a;
+        let tabSpan = createElement("span");
+        tabSpan.innerHTML = "&emsp;";
+        if (this.options.experimental) {
+            tabSpan.className = this.tabStopClass();
+            let stops = (_a = findParent(elem, dom_1.DomType.Paragraph)) === null || _a === void 0 ? void 0 : _a.tabs;
+            this.currentTabs.push({ stops, span: tabSpan });
+        }
+        if (parent) {
+            await this.appendChildren(parent, tabSpan);
+        }
+        return tabSpan;
+    }
+    async renderSymbol(elem, parent) {
+        let oSpan = createElement("span");
+        oSpan.style.fontFamily = elem.font;
+        oSpan.innerHTML = `&#x${elem.char};`;
+        if (parent) {
+            await this.appendChildren(parent, oSpan);
+        }
+        return oSpan;
+    }
+    async renderBreak(elem, parent) {
+        if (elem.break == "textWrapping") {
+            let oBr = createElement("br");
+            if (parent) {
+                appendChildren(parent, oBr);
+            }
+            return oBr;
+        }
+        return null;
+    }
+    renderInserted(elem) {
+        if (this.options.renderChanges) {
+            return this.renderContainer(elem, "ins");
+        }
+        return this.renderContainer(elem, "span");
+    }
+    async renderDeleted(elem) {
+        if (this.options.renderChanges) {
+            return await this.renderContainer(elem, "del");
+        }
+        return null;
+    }
+    async renderDeletedText(elem, parent) {
+        let oDeletedText;
+        if (this.options.renderEndnotes) {
+            oDeletedText = document.createTextNode(elem.text);
+            if (parent) {
+                await this.appendChildren(parent, oDeletedText);
+            }
+        }
+        else {
+            oDeletedText = null;
+        }
+        return oDeletedText;
+    }
+    async renderHeaderFooter(elem, tagName) {
+        let oElement = createElement(tagName);
+        await this.renderChildren(elem, oElement);
+        this.renderStyleValues(elem.cssStyle, oElement);
+        return oElement;
+    }
+    renderFootnoteReference(elem) {
+        let oSup = createElement("sup");
+        this.currentFootnoteIds.push(elem.id);
+        oSup.textContent = `${this.currentFootnoteIds.length}`;
+        return oSup;
+    }
+    renderEndnoteReference(elem) {
+        let oSup = createElement("sup");
+        this.currentEndnoteIds.push(elem.id);
+        oSup.textContent = `${this.currentEndnoteIds.length}`;
+        return oSup;
+    }
+    async renderVmlElement(elem, parent) {
         var _a, _b;
         let oSvg = createSvgElement("svg");
         oSvg.setAttribute("style", elem.cssStyleText);
-        const oChildren = this.renderVmlChildElement(elem);
+        let oChildren = await this.renderVmlChildElement(elem);
         if ((_a = elem.imageHref) === null || _a === void 0 ? void 0 : _a.id) {
-            (_b = this.document) === null || _b === void 0 ? void 0 : _b.loadDocumentImage(elem.imageHref.id, this.currentPart).then(x => oChildren.setAttribute("href", x));
+            let source = await ((_b = this.document) === null || _b === void 0 ? void 0 : _b.loadDocumentImage(elem.imageHref.id, this.currentPart));
+            oChildren.setAttribute("href", source);
         }
         appendChildren(oSvg, oChildren);
         requestAnimationFrame(() => {
-            const bb = oSvg.firstElementChild.getBBox();
+            let bb = oSvg.firstElementChild.getBBox();
             oSvg.setAttribute("width", `${Math.ceil(bb.x + bb.width)}`);
             oSvg.setAttribute("height", `${Math.ceil(bb.y + bb.height)}`);
         });
+        if (parent) {
+            oSvg.dataset.overflow = await this.appendChildren(parent, oSvg);
+        }
         return oSvg;
     }
-    renderVmlChildElement(elem) {
-        const oSvgElement = createSvgElement(elem.tagName);
+    async renderVmlPicture(elem) {
+        let oPictureContainer = createElement("div");
+        await this.renderChildren(elem, oPictureContainer);
+        return oPictureContainer;
+    }
+    async renderVmlChildElement(elem) {
+        let oSvgElement = createSvgElement(elem.tagName);
         Object.entries(elem.attrs).forEach(([k, v]) => oSvgElement.setAttribute(k, v));
         for (let child of elem.children) {
             if (child.type == dom_1.DomType.VmlElement) {
-                let oChild = this.renderVmlChildElement(child);
+                let oChild = await this.renderVmlChildElement(child);
                 appendChildren(oSvgElement, oChild);
             }
             else {
-                this.renderElement(child, oSvgElement);
+                await this.renderElement(child, oSvgElement);
             }
         }
         return oSvgElement;
     }
-    renderMmlRadical(elem) {
+    async renderMmlRadical(elem) {
         var _a;
-        const base = elem.children.find(el => el.type == dom_1.DomType.MmlBase);
+        let base = elem.children.find(el => el.type == dom_1.DomType.MmlBase);
         let oParent;
         if ((_a = elem.props) === null || _a === void 0 ? void 0 : _a.hideDegree) {
             oParent = createElementNS(ns.mathML, "msqrt", null);
-            this.renderElements([base], oParent);
+            await this.renderElements([base], oParent);
             return oParent;
         }
-        const degree = elem.children.find(el => el.type == dom_1.DomType.MmlDegree);
+        let degree = elem.children.find(el => el.type == dom_1.DomType.MmlDegree);
         oParent = createElementNS(ns.mathML, "mroot", null);
-        this.renderElements([base, degree], oParent);
+        await this.renderElements([base, degree], oParent);
         return oParent;
     }
-    renderMmlDelimiter(elem) {
+    async renderMmlDelimiter(elem) {
         var _a, _b;
         let oMrow = createElementNS(ns.mathML, "mrow", null);
         let oBegin = createElementNS(ns.mathML, "mo", null, [(_a = elem.props.beginChar) !== null && _a !== void 0 ? _a : '(']);
         appendChildren(oMrow, oBegin);
-        this.renderElements(elem.children, oMrow);
+        await this.renderElements(elem.children, oMrow);
         let oEnd = createElementNS(ns.mathML, "mo", null, [(_b = elem.props.endChar) !== null && _b !== void 0 ? _b : ')']);
         appendChildren(oMrow, oEnd);
         return oMrow;
     }
-    renderMmlNary(elem) {
+    async renderMmlNary(elem) {
         var _a, _b;
-        const children = [];
-        const grouped = (0, utils_1.keyBy)(elem.children, x => x.type);
-        const sup = grouped[dom_1.DomType.MmlSuperArgument];
-        const sub = grouped[dom_1.DomType.MmlSubArgument];
-        const supElem = sup ? createElementNS(ns.mathML, "mo", null, (0, utils_1.asArray)(this.renderElement(sup))) : null;
-        const subElem = sub ? createElementNS(ns.mathML, "mo", null, (0, utils_1.asArray)(this.renderElement(sub))) : null;
-        const charElem = createElementNS(ns.mathML, "mo", null, [(_b = (_a = elem.props) === null || _a === void 0 ? void 0 : _a.char) !== null && _b !== void 0 ? _b : '\u222B']);
+        let children = [];
+        let grouped = (0, utils_1.keyBy)(elem.children, x => x.type);
+        let sup = grouped[dom_1.DomType.MmlSuperArgument];
+        let sub = grouped[dom_1.DomType.MmlSubArgument];
+        let supElem = sup ? createElementNS(ns.mathML, "mo", null, (0, utils_1.asArray)(await this.renderElement(sup))) : null;
+        let subElem = sub ? createElementNS(ns.mathML, "mo", null, (0, utils_1.asArray)(await this.renderElement(sub))) : null;
+        let charElem = createElementNS(ns.mathML, "mo", null, [(_b = (_a = elem.props) === null || _a === void 0 ? void 0 : _a.char) !== null && _b !== void 0 ? _b : '\u222B']);
         if (supElem || subElem) {
             children.push(createElementNS(ns.mathML, "munderover", null, [charElem, subElem, supElem]));
         }
@@ -3607,34 +3674,34 @@ class HtmlRendererSync {
         }
         let oMrow = createElementNS(ns.mathML, "mrow", null);
         appendChildren(oMrow, children);
-        this.renderElements(grouped[dom_1.DomType.MmlBase].children, oMrow);
+        await this.renderElements(grouped[dom_1.DomType.MmlBase].children, oMrow);
         return oMrow;
     }
-    renderMmlPreSubSuper(elem) {
-        const children = [];
-        const grouped = (0, utils_1.keyBy)(elem.children, x => x.type);
-        const sup = grouped[dom_1.DomType.MmlSuperArgument];
-        const sub = grouped[dom_1.DomType.MmlSubArgument];
-        const supElem = sup ? createElementNS(ns.mathML, "mo", null, (0, utils_1.asArray)(this.renderElement(sup))) : null;
-        const subElem = sub ? createElementNS(ns.mathML, "mo", null, (0, utils_1.asArray)(this.renderElement(sub))) : null;
-        const stubElem = createElementNS(ns.mathML, "mo", null);
+    async renderMmlPreSubSuper(elem) {
+        let children = [];
+        let grouped = (0, utils_1.keyBy)(elem.children, x => x.type);
+        let sup = grouped[dom_1.DomType.MmlSuperArgument];
+        let sub = grouped[dom_1.DomType.MmlSubArgument];
+        let supElem = sup ? createElementNS(ns.mathML, "mo", null, (0, utils_1.asArray)(await this.renderElement(sup))) : null;
+        let subElem = sub ? createElementNS(ns.mathML, "mo", null, (0, utils_1.asArray)(await this.renderElement(sub))) : null;
+        let stubElem = createElementNS(ns.mathML, "mo", null);
         children.push(createElementNS(ns.mathML, "msubsup", null, [stubElem, subElem, supElem]));
         let oMrow = createElementNS(ns.mathML, "mrow", null);
         appendChildren(oMrow, children);
-        this.renderElements(grouped[dom_1.DomType.MmlBase].children, oMrow);
+        await this.renderElements(grouped[dom_1.DomType.MmlBase].children, oMrow);
         return oMrow;
     }
-    renderMmlGroupChar(elem) {
-        const tagName = elem.props.verticalJustification === "bot" ? "mover" : "munder";
-        const oGroupChar = this.renderContainerNS(elem, ns.mathML, tagName);
+    async renderMmlGroupChar(elem) {
+        let tagName = elem.props.verticalJustification === "bot" ? "mover" : "munder";
+        let oGroupChar = await this.renderContainerNS(elem, ns.mathML, tagName);
         if (elem.props.char) {
             let oMo = createElementNS(ns.mathML, "mo", null, [elem.props.char]);
             appendChildren(oGroupChar, oMo);
         }
         return oGroupChar;
     }
-    renderMmlBar(elem) {
-        const oMrow = this.renderContainerNS(elem, ns.mathML, "mrow");
+    async renderMmlBar(elem) {
+        let oMrow = await this.renderContainerNS(elem, ns.mathML, "mrow");
         switch (elem.props.position) {
             case "top":
                 oMrow.style.textDecoration = "overline";
@@ -3645,19 +3712,19 @@ class HtmlRendererSync {
         }
         return oMrow;
     }
-    renderMmlRun(elem) {
-        const oMs = createElementNS(ns.mathML, "ms");
+    async renderMmlRun(elem) {
+        let oMs = createElementNS(ns.mathML, "ms");
         this.renderClass(elem, oMs);
         this.renderStyleValues(elem.cssStyle, oMs);
-        this.renderChildren(elem, oMs);
+        await this.renderChildren(elem, oMs);
         return oMs;
     }
-    renderMllList(elem) {
-        const oMtable = createElementNS(ns.mathML, "mtable");
+    async renderMllList(elem) {
+        let oMtable = createElementNS(ns.mathML, "mtable");
         this.renderClass(elem, oMtable);
         this.renderStyleValues(elem.cssStyle, oMtable);
         for (let child of elem.children) {
-            let oChild = this.renderElement(child);
+            let oChild = await this.renderElement(child);
             let oMtd = createElementNS(ns.mathML, "mtd", null, [oChild]);
             let oMtr = createElementNS(ns.mathML, "mtr", null, [oMtd]);
             appendChildren(oMtable, oMtr);
@@ -3708,7 +3775,7 @@ class HtmlRendererSync {
         }
         clearTimeout(this.tabsTimeout);
         this.tabsTimeout = setTimeout(() => {
-            const pixelToPoint = (0, javascript_1.computePixelToPoint)();
+            let pixelToPoint = (0, javascript_1.computePixelToPoint)();
             for (let tab of this.currentTabs) {
                 (0, javascript_1.updateTabStop)(tab.span, tab.stops, this.defaultTabSize, pixelToPoint);
             }

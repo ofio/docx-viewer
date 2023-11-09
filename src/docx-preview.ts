@@ -11,39 +11,51 @@ import {HtmlRendererSync} from "./html-renderer-sync";
 export interface Options {
     className: string;                      //class name/prefix for default and document style classes
     inWrapper: boolean;                     //enables rendering of wrapper around document content
+
     ignoreWidth: boolean;                   //disables rendering width of page
     ignoreHeight: boolean;                  //disables rendering height of page
     ignoreFonts: boolean;                   //disables fonts rendering
+	ignoreTableWrap: boolean;               //disables table's text wrap setting
+	ignoreImageWrap: boolean;               //disables image text wrap setting
+	ignoreLastRenderedPageBreak: boolean;   //disables page breaking on lastRenderedPageBreak elements
     breakPages: boolean;                    //enables page breaking on page breaks
-    ignoreLastRenderedPageBreak: boolean;   //disables page breaking on lastRenderedPageBreak elements
-    experimental: boolean;                  //enables experimental features (tab stops calculation)
+
     trimXmlDeclaration: boolean;            //if true, xml declaration will be removed from xml documents before parsing
     useBase64URL: boolean;                  //if true, images, fonts, etc. will be converted to base 64 URL, otherwise URL.createObjectURL is used
-    renderChanges: boolean;                 //enables experimental rendering of document changes (inserions/deletions)
+
     renderHeaders: boolean;                 //enables headers rendering
     renderFooters: boolean;                 //enables footers rendering
     renderFootnotes: boolean;               //enables footnotes rendering
     renderEndnotes: boolean;                //enables endnotes rendering
+	renderChanges: boolean;                 //enables experimental rendering of document changes (inserions/deletions)
+
+	experimental: boolean;                  //enables experimental features (tab stops calculation)
     debug: boolean;                         //enables additional logging
 }
 
 export const defaultOptions: Options = {
+	className: "docx",
+	inWrapper: true,
+
     ignoreHeight: false,
     ignoreWidth: false,
     ignoreFonts: false,
+	ignoreTableWrap: true,
+	ignoreImageWrap: false,
+	ignoreLastRenderedPageBreak: true,
     breakPages: true,
-    debug: false,
-    experimental: false,
-    className: "docx",
-    inWrapper: true,
+
     trimXmlDeclaration: true,
-    ignoreLastRenderedPageBreak: true,
+	useBase64URL: false,
+
     renderHeaders: true,
     renderFooters: true,
     renderFootnotes: true,
     renderEndnotes: true,
-    useBase64URL: false,
-    renderChanges: false
+    renderChanges: false,
+
+	experimental: false,
+	debug: false,
 }
 
 export function parseAsync(data: Blob | any, userOptions: Partial<Options> = null): Promise<any> {
