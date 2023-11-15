@@ -92,7 +92,7 @@ export interface WmlNoteReference extends OpenXmlElement {
 }
 
 export interface WmlBreak extends OpenXmlElement {
-	break: "page" | "lastRenderedPageBreak" | "textWrapping";
+	break: "page" | "lastRenderedPageBreak" | "textWrapping" | "column";
 }
 
 export interface WmlText extends OpenXmlElement {

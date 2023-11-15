@@ -830,8 +830,6 @@ class DocumentParser {
             wrapType: null
         };
         let isAnchor = node.localName === "anchor";
-        result.cssStyle["margin-top"] = xml_parser_1.default.lengthAttr(node, "distT", common_1.LengthUsage.Emu);
-        result.cssStyle["margin-bottom"] = xml_parser_1.default.lengthAttr(node, "distB", common_1.LengthUsage.Emu);
         let simplePos = xml_parser_1.default.boolAttr(node, "simplePos");
         result.cssStyle["z-index"] = xml_parser_1.default.intAttr(node, "relativeHeight", 1);
         let posX = { relative: "page", align: "left", offset: "0" };
@@ -855,10 +853,12 @@ class DocumentParser {
                         let alignNode = xml_parser_1.default.element(n, "align");
                         let offsetNode = xml_parser_1.default.element(n, "posOffset");
                         pos.relative = (_a = xml_parser_1.default.attr(n, "relativeFrom")) !== null && _a !== void 0 ? _a : pos.relative;
-                        if (alignNode)
+                        if (alignNode) {
                             pos.align = alignNode.textContent;
-                        if (offsetNode)
+                        }
+                        if (offsetNode) {
                             pos.offset = xmlUtil.sizeValue(offsetNode, common_1.LengthUsage.Emu);
+                        }
                     }
                     break;
                 case "wrapTopAndBottom":
@@ -909,6 +909,10 @@ class DocumentParser {
             default:
                 if (isAnchor && (posX.align == 'left' || posX.align == 'right')) {
                     result.cssStyle["float"] = posX.align;
+                    result.cssStyle["margin-left"] = xml_parser_1.default.lengthAttr(node, "distL", common_1.LengthUsage.Emu);
+                    result.cssStyle["margin-right"] = xml_parser_1.default.lengthAttr(node, "distR", common_1.LengthUsage.Emu);
+                    result.cssStyle["margin-top"] = xml_parser_1.default.lengthAttr(node, "distT", common_1.LengthUsage.Emu);
+                    result.cssStyle["margin-bottom"] = xml_parser_1.default.lengthAttr(node, "distB", common_1.LengthUsage.Emu);
                 }
         }
         return result;
@@ -3536,14 +3540,30 @@ class HtmlRendererSync {
         return oSpan;
     }
     async renderBreak(elem, parent) {
-        if (elem.break == "textWrapping") {
-            let oBr = createElement("br");
-            if (parent) {
-                appendChildren(parent, oBr);
-            }
-            return oBr;
+        let oBr;
+        switch (elem.break) {
+            case "page":
+                oBr = createElement("br");
+                oBr.classList.add("break", "page");
+                break;
+            case "textWrapping":
+                oBr = createElement("br");
+                oBr.classList.add("break", "textWrap");
+                break;
+            case "column":
+                oBr = createElement("br");
+                oBr.classList.add("break", "column");
+                break;
+            case "lastRenderedPageBreak":
+                oBr = createElement("wbr");
+                oBr.classList.add("break", "lastRenderedPageBreak");
+                break;
+            default:
         }
-        return null;
+        if (parent) {
+            appendChildren(parent, oBr);
+        }
+        return oBr;
     }
     renderInserted(elem) {
         if (this.options.renderChanges) {

@@ -1,4 +1,20 @@
-import {DomType, WmlDrawing, IDomImage, IDomNumbering, NumberingPicBullet, OpenXmlElement, WmlBreak, WmlHyperlink, WmlNoteReference, WmlSymbol, WmlTable, WmlTableCell, WmlTableColumn, WmlTableRow, WmlText} from './document/dom';
+import {
+	DomType,
+	WmlDrawing,
+	IDomImage,
+	IDomNumbering,
+	NumberingPicBullet,
+	OpenXmlElement,
+	WmlBreak,
+	WmlHyperlink,
+	WmlNoteReference,
+	WmlSymbol,
+	WmlTable,
+	WmlTableCell,
+	WmlTableColumn,
+	WmlTableRow,
+	WmlText
+} from './document/dom';
 import {DocumentElement} from './document/document';
 import {parseParagraphProperties, parseParagraphProperty, WmlParagraph} from './document/paragraph';
 import {parseSectionProperties, SectionProperties} from './document/section';
@@ -830,12 +846,6 @@ export class DocumentParser {
 		// DrawingML对象有两种状态：内联（inline）-- 对象与文本对齐，浮动（anchor）--对象在文本中浮动，但可以相对于页面进行绝对定位
 		let isAnchor = node.localName === "anchor";
 
-		//TODO 计算DrawML对象相对于文字的上下左右间距；
-		// result.cssStyle["margin-left"] = xml.lengthAttr(node, "distL", LengthUsage.Emu);
-		// result.cssStyle["margin-right"] = xml.lengthAttr(node, "distR", LengthUsage.Emu);
-		result.cssStyle["margin-top"] = xml.lengthAttr(node, "distT", LengthUsage.Emu);
-		result.cssStyle["margin-bottom"] = xml.lengthAttr(node, "distB", LengthUsage.Emu);
-
 		// 是否简单定位
 		let simplePos = xml.boolAttr(node, "simplePos");
 
@@ -848,6 +858,7 @@ export class DocumentParser {
 		for (let n of xml.elements(node)) {
 			switch (n.localName) {
 				case "simplePos":
+					// 简单定位
 					if (simplePos) {
 						posX.offset = xml.lengthAttr(n, "x", LengthUsage.Emu);
 						posY.offset = xml.lengthAttr(n, "y", LengthUsage.Emu);
@@ -868,11 +879,14 @@ export class DocumentParser {
 
 						pos.relative = xml.attr(n, "relativeFrom") ?? pos.relative;
 
-						if (alignNode)
+						if (alignNode) {
 							pos.align = alignNode.textContent;
+						}
 
-						if (offsetNode)
+						if (offsetNode) {
 							pos.offset = xmlUtil.sizeValue(offsetNode, LengthUsage.Emu);
+						}
+
 					}
 					break;
 
@@ -936,9 +950,14 @@ export class DocumentParser {
 				// TODO 多边形环绕
 				break;
 			default:
-				// 默认四周文字环绕
+				// 处理浮动（anchor）
 				if (isAnchor && (posX.align == 'left' || posX.align == 'right')) {
 					result.cssStyle["float"] = posX.align;
+					// 计算DrawML对象相对于文字的上下左右间距；仅在浮动、文字环绕模式下有效；
+					result.cssStyle["margin-left"] = xml.lengthAttr(node, "distL", LengthUsage.Emu);
+					result.cssStyle["margin-right"] = xml.lengthAttr(node, "distR", LengthUsage.Emu);
+					result.cssStyle["margin-top"] = xml.lengthAttr(node, "distT", LengthUsage.Emu);
+					result.cssStyle["margin-bottom"] = xml.lengthAttr(node, "distB", LengthUsage.Emu);
 				}
 		}
 
