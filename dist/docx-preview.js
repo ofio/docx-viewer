@@ -143,7 +143,7 @@ exports.parseRelationships = parseRelationships;
 
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.DocumentParser = exports.autos = void 0;
+exports.DocumentParser = exports.defaultDocumentParserOptions = exports.autos = void 0;
 const dom_1 = __webpack_require__(/*! ./document/dom */ "./src/document/dom.ts");
 const paragraph_1 = __webpack_require__(/*! ./document/paragraph */ "./src/document/paragraph.ts");
 const section_1 = __webpack_require__(/*! ./document/section */ "./src/document/section.ts");
@@ -186,12 +186,18 @@ const mmlTagMap = {
     "bar": dom_1.DomType.MmlBar,
     "groupChr": dom_1.DomType.MmlGroupChar
 };
+exports.defaultDocumentParserOptions = {
+    ignoreWidth: false,
+    debug: false,
+    ignoreTableWrap: true,
+    ignoreImageWrap: true,
+};
 class DocumentParser {
     constructor(options) {
-        this.options = Object.assign({ ignoreWidth: false, debug: false }, options);
+        this.options = Object.assign(Object.assign({}, exports.defaultDocumentParserOptions), options);
     }
     parseNotes(xmlDoc, elemName, elemClass) {
-        var result = [];
+        let result = [];
         for (let el of xml_parser_1.default.elements(xmlDoc, elemName)) {
             const node = new elemClass();
             node.id = xml_parser_1.default.attr(el, "id");
@@ -202,9 +208,9 @@ class DocumentParser {
         return result;
     }
     parseDocumentFile(xmlDoc) {
-        var xbody = xml_parser_1.default.element(xmlDoc, "body");
-        var background = xml_parser_1.default.element(xmlDoc, "background");
-        var sectPr = xml_parser_1.default.element(xbody, "sectPr");
+        let xbody = xml_parser_1.default.element(xmlDoc, "body");
+        let background = xml_parser_1.default.element(xmlDoc, "background");
+        let sectPr = xml_parser_1.default.element(xbody, "sectPr");
         return {
             type: dom_1.DomType.Document,
             children: this.parseBodyElements(xbody),
@@ -213,15 +219,15 @@ class DocumentParser {
         };
     }
     parseBackground(elem) {
-        var result = {};
-        var color = xmlUtil.colorAttr(elem, "color");
+        let result = {};
+        let color = xmlUtil.colorAttr(elem, "color");
         if (color) {
             result["background-color"] = color;
         }
         return result;
     }
     parseBodyElements(element) {
-        var children = [];
+        let children = [];
         for (let elem of xml_parser_1.default.elements(element)) {
             switch (elem.localName) {
                 case "p":
@@ -231,14 +237,14 @@ class DocumentParser {
                     children.push(this.parseTable(elem));
                     break;
                 case "sdt":
-                    children.push(...this.parseSdt(elem, e => this.parseBodyElements(e)));
+                    children.push(...this.parseSdt(elem, (e) => this.parseBodyElements(e)));
                     break;
             }
         }
         return children;
     }
     parseStylesFile(xstyles) {
-        var result = [];
+        let result = [];
         xmlUtil.foreach(xstyles, n => {
             switch (n.localName) {
                 case "style":
@@ -252,7 +258,7 @@ class DocumentParser {
         return result;
     }
     parseDefaultStyles(node) {
-        var result = {
+        let result = {
             id: null,
             name: null,
             target: null,
@@ -262,7 +268,7 @@ class DocumentParser {
         xmlUtil.foreach(node, c => {
             switch (c.localName) {
                 case "rPrDefault":
-                    var rPr = xml_parser_1.default.element(c, "rPr");
+                    let rPr = xml_parser_1.default.element(c, "rPr");
                     if (rPr)
                         result.styles.push({
                             target: "span",
@@ -270,7 +276,7 @@ class DocumentParser {
                         });
                     break;
                 case "pPrDefault":
-                    var pPr = xml_parser_1.default.element(c, "pPr");
+                    let pPr = xml_parser_1.default.element(c, "pPr");
                     if (pPr)
                         result.styles.push({
                             target: "p",
@@ -282,7 +288,7 @@ class DocumentParser {
         return result;
     }
     parseStyle(node) {
-        var result = {
+        let result = {
             id: xml_parser_1.default.attr(node, "styleId"),
             isDefault: xml_parser_1.default.boolAttr(node, "default"),
             name: null,
@@ -359,10 +365,10 @@ class DocumentParser {
         return result;
     }
     parseTableStyle(node) {
-        var result = [];
-        var type = xml_parser_1.default.attr(node, "type");
-        var selector = "";
-        var modificator = "";
+        let result = [];
+        let type = xml_parser_1.default.attr(node, "type");
+        let selector = "";
+        let modificator = "";
         switch (type) {
             case "firstRow":
                 modificator = ".first-row";
@@ -396,7 +402,8 @@ class DocumentParser {
                 modificator = ":not(.no-hband)";
                 selector = "tr.even-row";
                 break;
-            default: return [];
+            default:
+                return [];
         }
         xmlUtil.foreach(node, n => {
             switch (n.localName) {
@@ -427,9 +434,9 @@ class DocumentParser {
         return result;
     }
     parseNumberingFile(xnums) {
-        var result = [];
-        var mapping = {};
-        var bullets = [];
+        let result = [];
+        const mapping = {};
+        let bullets = [];
         xmlUtil.foreach(xnums, n => {
             switch (n.localName) {
                 case "abstractNum":
@@ -440,8 +447,8 @@ class DocumentParser {
                     bullets.push(this.parseNumberingPicBullet(n));
                     break;
                 case "num":
-                    var numId = xml_parser_1.default.attr(n, "numId");
-                    var abstractNumId = xml_parser_1.default.elementAttr(n, "abstractNumId", "val");
+                    let numId = xml_parser_1.default.attr(n, "numId");
+                    let abstractNumId = xml_parser_1.default.elementAttr(n, "abstractNumId", "val");
                     mapping[abstractNumId] = numId;
                     break;
             }
@@ -450,9 +457,9 @@ class DocumentParser {
         return result;
     }
     parseNumberingPicBullet(elem) {
-        var pict = xml_parser_1.default.element(elem, "pict");
-        var shape = pict && xml_parser_1.default.element(pict, "shape");
-        var imagedata = shape && xml_parser_1.default.element(shape, "imagedata");
+        let pict = xml_parser_1.default.element(elem, "pict");
+        let shape = pict && xml_parser_1.default.element(pict, "shape");
+        let imagedata = shape && xml_parser_1.default.element(shape, "imagedata");
         return imagedata ? {
             id: xml_parser_1.default.intAttr(elem, "numPicBulletId"),
             src: xml_parser_1.default.attr(imagedata, "id"),
@@ -460,8 +467,8 @@ class DocumentParser {
         } : null;
     }
     parseAbstractNumbering(node, bullets) {
-        var result = [];
-        var id = xml_parser_1.default.attr(node, "abstractNumId");
+        let result = [];
+        let id = xml_parser_1.default.attr(node, "abstractNumId");
         xmlUtil.foreach(node, n => {
             switch (n.localName) {
                 case "lvl":
@@ -472,7 +479,7 @@ class DocumentParser {
         return result;
     }
     parseNumberingLevel(id, node, bullets) {
-        var result = {
+        let result = {
             id: id,
             level: xml_parser_1.default.intAttr(node, "ilvl"),
             start: 1,
@@ -493,7 +500,7 @@ class DocumentParser {
                     this.parseDefaultProperties(n, result.rStyle);
                     break;
                 case "lvlPicBulletId":
-                    var id = xml_parser_1.default.intAttr(n, "val");
+                    let id = xml_parser_1.default.intAttr(n, "val");
                     result.bullet = bullets.find(x => x.id == id);
                     break;
                 case "lvlText":
@@ -531,7 +538,7 @@ class DocumentParser {
         };
     }
     parseParagraph(node) {
-        var result = { type: dom_1.DomType.Paragraph, children: [] };
+        let result = { type: dom_1.DomType.Paragraph, children: [] };
         for (let el of xml_parser_1.default.elements(node)) {
             switch (el.localName) {
                 case "pPr":
@@ -554,15 +561,19 @@ class DocumentParser {
                     result.children.push(this.parseMathElement(el));
                     break;
                 case "sdt":
-                    result.children.push(...this.parseSdt(el, e => this.parseParagraph(e).children));
+                    result.children.push(...this.parseSdt(el, (e) => this.parseParagraph(e).children));
                     break;
                 case "ins":
-                    result.children.push(this.parseInserted(el, e => this.parseParagraph(e)));
+                    result.children.push(this.parseInserted(el, (e) => this.parseParagraph(e)));
                     break;
                 case "del":
-                    result.children.push(this.parseDeleted(el, e => this.parseParagraph(e)));
+                    result.children.push(this.parseDeleted(el, (e) => this.parseParagraph(e)));
                     break;
             }
+        }
+        if (result.children.length === 0) {
+            let br = { type: dom_1.DomType.Break, "break": "textWrapping" };
+            result.children = [br];
         }
         return result;
     }
@@ -589,14 +600,14 @@ class DocumentParser {
         });
     }
     parseFrame(node, paragraph) {
-        var dropCap = xml_parser_1.default.attr(node, "dropCap");
+        let dropCap = xml_parser_1.default.attr(node, "dropCap");
         if (dropCap == "drop")
             paragraph.cssStyle["float"] = "left";
     }
     parseHyperlink(node, parent) {
-        var result = { type: dom_1.DomType.Hyperlink, parent: parent, children: [] };
-        var anchor = xml_parser_1.default.attr(node, "anchor");
-        var relId = xml_parser_1.default.attr(node, "id");
+        let result = { type: dom_1.DomType.Hyperlink, parent: parent, children: [] };
+        let anchor = xml_parser_1.default.attr(node, "anchor");
+        let relId = xml_parser_1.default.attr(node, "id");
         if (anchor)
             result.href = "#" + anchor;
         if (relId)
@@ -611,7 +622,7 @@ class DocumentParser {
         return result;
     }
     parseRun(node, parent) {
-        var result = { type: dom_1.DomType.Run, parent: parent, children: [] };
+        let result = { type: dom_1.DomType.Run, parent: parent, children: [] };
         xmlUtil.foreach(node, c => {
             c = this.checkAlternateContent(c);
             switch (c.localName) {
@@ -717,7 +728,7 @@ class DocumentParser {
                 result.children.push(this.parseMathElement(el));
             }
             else if (el.localName == "r") {
-                var run = this.parseRun(el);
+                let run = this.parseRun(el);
                 run.type = dom_1.DomType.MmlRun;
                 result.children.push(run);
             }
@@ -780,17 +791,17 @@ class DocumentParser {
         var _a;
         if (elem.localName != 'AlternateContent')
             return elem;
-        var choice = xml_parser_1.default.element(elem, "Choice");
+        let choice = xml_parser_1.default.element(elem, "Choice");
         if (choice) {
-            var requires = xml_parser_1.default.attr(choice, "Requires");
-            var namespaceURI = elem.lookupNamespaceURI(requires);
+            let requires = xml_parser_1.default.attr(choice, "Requires");
+            let namespaceURI = elem.lookupNamespaceURI(requires);
             if (supportedNamespaceURIs.includes(namespaceURI))
                 return choice.firstElementChild;
         }
         return (_a = xml_parser_1.default.element(elem, "Fallback")) === null || _a === void 0 ? void 0 : _a.firstElementChild;
     }
     parseDrawing(node) {
-        for (var n of xml_parser_1.default.elements(node)) {
+        for (let n of xml_parser_1.default.elements(node)) {
             switch (n.localName) {
                 case "inline":
                 case "anchor":
@@ -800,13 +811,19 @@ class DocumentParser {
     }
     parseDrawingWrapper(node) {
         var _a;
-        var result = { type: dom_1.DomType.Drawing, children: [], cssStyle: {} };
-        var isAnchor = node.localName == "anchor";
-        let wrapType = null;
+        let result = {
+            type: dom_1.DomType.Drawing,
+            children: [],
+            cssStyle: {},
+            localName: node.localName,
+            wrapType: null
+        };
+        let isAnchor = node.localName === "anchor";
         let simplePos = xml_parser_1.default.boolAttr(node, "simplePos");
+        result.cssStyle["z-index"] = xml_parser_1.default.intAttr(node, "relativeHeight", 1);
         let posX = { relative: "page", align: "left", offset: "0" };
         let posY = { relative: "page", align: "top", offset: "0" };
-        for (var n of xml_parser_1.default.elements(node)) {
+        for (let n of xml_parser_1.default.elements(node)) {
             switch (n.localName) {
                 case "simplePos":
                     if (simplePos) {
@@ -822,52 +839,75 @@ class DocumentParser {
                 case "positionV":
                     if (!simplePos) {
                         let pos = n.localName == "positionH" ? posX : posY;
-                        var alignNode = xml_parser_1.default.element(n, "align");
-                        var offsetNode = xml_parser_1.default.element(n, "posOffset");
+                        let alignNode = xml_parser_1.default.element(n, "align");
+                        let offsetNode = xml_parser_1.default.element(n, "posOffset");
                         pos.relative = (_a = xml_parser_1.default.attr(n, "relativeFrom")) !== null && _a !== void 0 ? _a : pos.relative;
-                        if (alignNode)
+                        if (alignNode) {
                             pos.align = alignNode.textContent;
-                        if (offsetNode)
+                        }
+                        if (offsetNode) {
                             pos.offset = xmlUtil.sizeValue(offsetNode, common_1.LengthUsage.Emu);
+                        }
                     }
                     break;
                 case "wrapTopAndBottom":
-                    wrapType = "wrapTopAndBottom";
+                    result.wrapType = "wrapTopAndBottom";
                     break;
                 case "wrapNone":
-                    wrapType = "wrapNone";
+                    result.wrapType = "wrapNone";
                     break;
                 case "graphic":
-                    var g = this.parseGraphic(n);
-                    if (g)
+                    let g = this.parseGraphic(n);
+                    if (g) {
                         result.children.push(g);
+                    }
                     break;
             }
         }
-        if (wrapType == "wrapTopAndBottom") {
-            result.cssStyle['display'] = 'block';
-            if (posX.align) {
-                result.cssStyle['text-align'] = posX.align;
-                result.cssStyle['width'] = "100%";
-            }
+        if (this.options.ignoreImageWrap) {
+            result.wrapType = "wrapTopAndBottom";
         }
-        else if (wrapType == "wrapNone") {
-            result.cssStyle['display'] = 'block';
-            result.cssStyle['position'] = 'relative';
-            result.cssStyle["width"] = "0px";
-            result.cssStyle["height"] = "0px";
-            if (posX.offset)
-                result.cssStyle["left"] = posX.offset;
-            if (posY.offset)
-                result.cssStyle["top"] = posY.offset;
-        }
-        else if (isAnchor && (posX.align == 'left' || posX.align == 'right')) {
-            result.cssStyle["float"] = posX.align;
+        switch (result.wrapType) {
+            case "wrapTopAndBottom":
+                result.cssStyle['display'] = 'block';
+                if (posX.align) {
+                    result.cssStyle['text-align'] = posX.align;
+                    result.cssStyle['width'] = "100%";
+                }
+                break;
+            case "wrapNone":
+                result.cssStyle['display'] = 'block';
+                result.cssStyle['position'] = 'relative';
+                result.cssStyle["width"] = "0px";
+                result.cssStyle["height"] = "0px";
+                if (posX.offset) {
+                    result.cssStyle["left"] = posX.offset;
+                }
+                if (posY.offset) {
+                    result.cssStyle["top"] = posY.offset;
+                }
+                break;
+            case "wrapTight":
+                break;
+            case "wrapThrough":
+                break;
+            case "wrapSquare":
+                break;
+            case "wrapPolygon":
+                break;
+            default:
+                if (isAnchor && (posX.align == 'left' || posX.align == 'right')) {
+                    result.cssStyle["float"] = posX.align;
+                    result.cssStyle["margin-left"] = xml_parser_1.default.lengthAttr(node, "distL", common_1.LengthUsage.Emu);
+                    result.cssStyle["margin-right"] = xml_parser_1.default.lengthAttr(node, "distR", common_1.LengthUsage.Emu);
+                    result.cssStyle["margin-top"] = xml_parser_1.default.lengthAttr(node, "distT", common_1.LengthUsage.Emu);
+                    result.cssStyle["margin-bottom"] = xml_parser_1.default.lengthAttr(node, "distB", common_1.LengthUsage.Emu);
+                }
         }
         return result;
     }
     parseGraphic(elem) {
-        var graphicData = xml_parser_1.default.element(elem, "graphicData");
+        let graphicData = xml_parser_1.default.element(elem, "graphicData");
         for (let n of xml_parser_1.default.elements(graphicData)) {
             switch (n.localName) {
                 case "pic":
@@ -877,14 +917,18 @@ class DocumentParser {
         return null;
     }
     parsePicture(elem) {
-        var result = { type: dom_1.DomType.Image, src: "", cssStyle: {} };
-        var blipFill = xml_parser_1.default.element(elem, "blipFill");
-        var blip = xml_parser_1.default.element(blipFill, "blip");
+        let result = { type: dom_1.DomType.Image, src: "", cssStyle: {} };
+        let blipFill = xml_parser_1.default.element(elem, "blipFill");
+        let blip = xml_parser_1.default.element(blipFill, "blip");
         result.src = xml_parser_1.default.attr(blip, "embed");
-        var spPr = xml_parser_1.default.element(elem, "spPr");
-        var xfrm = xml_parser_1.default.element(spPr, "xfrm");
+        let spPr = xml_parser_1.default.element(elem, "spPr");
+        let xfrm = xml_parser_1.default.element(spPr, "xfrm");
+        let degree = xml_parser_1.default.lengthAttr(xfrm, "rot", common_1.LengthUsage.degree);
+        if (degree) {
+            result.cssStyle["transform"] = `rotate(${degree})`;
+        }
         result.cssStyle["position"] = "relative";
-        for (var n of xml_parser_1.default.elements(xfrm)) {
+        for (let n of xml_parser_1.default.elements(xfrm)) {
             switch (n.localName) {
                 case "ext":
                     result.cssStyle["width"] = xml_parser_1.default.lengthAttr(n, "cx", common_1.LengthUsage.Emu);
@@ -899,7 +943,7 @@ class DocumentParser {
         return result;
     }
     parseTable(node) {
-        var result = { type: dom_1.DomType.Table, children: [] };
+        let result = { type: dom_1.DomType.Table, children: [] };
         xmlUtil.foreach(node, c => {
             switch (c.localName) {
                 case "tr":
@@ -916,7 +960,7 @@ class DocumentParser {
         return result;
     }
     parseTableColumns(node) {
-        var result = [];
+        let result = [];
         xmlUtil.foreach(node, n => {
             switch (n.localName) {
                 case "gridCol":
@@ -964,10 +1008,13 @@ class DocumentParser {
         }
     }
     parseTablePosition(node, table) {
-        var topFromText = xml_parser_1.default.lengthAttr(node, "topFromText");
-        var bottomFromText = xml_parser_1.default.lengthAttr(node, "bottomFromText");
-        var rightFromText = xml_parser_1.default.lengthAttr(node, "rightFromText");
-        var leftFromText = xml_parser_1.default.lengthAttr(node, "leftFromText");
+        if (this.options.ignoreTableWrap) {
+            return false;
+        }
+        let topFromText = xml_parser_1.default.lengthAttr(node, "topFromText");
+        let bottomFromText = xml_parser_1.default.lengthAttr(node, "bottomFromText");
+        let rightFromText = xml_parser_1.default.lengthAttr(node, "rightFromText");
+        let leftFromText = xml_parser_1.default.lengthAttr(node, "leftFromText");
         table.cssStyle["float"] = 'left';
         table.cssStyle["margin-bottom"] = values.addSize(table.cssStyle["margin-bottom"], bottomFromText);
         table.cssStyle["margin-left"] = values.addSize(table.cssStyle["margin-left"], leftFromText);
@@ -975,7 +1022,7 @@ class DocumentParser {
         table.cssStyle["margin-top"] = values.addSize(table.cssStyle["margin-top"], topFromText);
     }
     parseTableRow(node) {
-        var result = { type: dom_1.DomType.Row, children: [] };
+        let result = { type: dom_1.DomType.Row, children: [] };
         xmlUtil.foreach(node, c => {
             switch (c.localName) {
                 case "tc":
@@ -995,7 +1042,7 @@ class DocumentParser {
                     row.className = values.classNameOfCnfStyle(c);
                     break;
                 case "tblHeader":
-                    row.isHeader = xml_parser_1.default.boolAttr(c, "val");
+                    row.isHeader = xml_parser_1.default.boolAttr(c, "val", true);
                     break;
                 default:
                     return false;
@@ -1004,7 +1051,7 @@ class DocumentParser {
         });
     }
     parseTableCell(node) {
-        var result = { type: dom_1.DomType.Cell, children: [] };
+        let result = { type: dom_1.DomType.Cell, children: [] };
         xmlUtil.foreach(node, c => {
             switch (c.localName) {
                 case "tbl":
@@ -1069,8 +1116,9 @@ class DocumentParser {
                     style.verticalAlign = xml_parser_1.default.lengthAttr(c, "val", common_1.LengthUsage.FontSize);
                     break;
                 case "tcW":
-                    if (this.options.ignoreWidth)
-                        break;
+                    if (this.options.ignoreWidth) {
+                    }
+                    break;
                 case "tblW":
                     style["width"] = values.valueOfSize(c, "w");
                     break;
@@ -1177,7 +1225,7 @@ class DocumentParser {
         return style;
     }
     parseUnderline(node, style) {
-        var val = xml_parser_1.default.attr(node, "val");
+        let val = xml_parser_1.default.attr(node, "val");
         if (val == null)
             return;
         switch (val) {
@@ -1214,7 +1262,7 @@ class DocumentParser {
                 style["text-decoration"] = "none";
                 break;
         }
-        var col = xmlUtil.colorAttr(node, "color");
+        let col = xmlUtil.colorAttr(node, "color");
         if (col)
             style["text-decoration-color"] = col;
     }
@@ -1236,14 +1284,15 @@ class DocumentParser {
         if (fonts.length > 0) {
             style["font-family"] = fonts_value;
         }
+        style["_hint"] = xml_parser_1.default.attr(node, "hint");
     }
     parseIndentation(node, style) {
-        var firstLine = xml_parser_1.default.lengthAttr(node, "firstLine");
-        var hanging = xml_parser_1.default.lengthAttr(node, "hanging");
-        var left = xml_parser_1.default.lengthAttr(node, "left");
-        var start = xml_parser_1.default.lengthAttr(node, "start");
-        var right = xml_parser_1.default.lengthAttr(node, "right");
-        var end = xml_parser_1.default.lengthAttr(node, "end");
+        let firstLine = xml_parser_1.default.lengthAttr(node, "firstLine");
+        let hanging = xml_parser_1.default.lengthAttr(node, "hanging");
+        let left = xml_parser_1.default.lengthAttr(node, "left");
+        let start = xml_parser_1.default.lengthAttr(node, "start");
+        let right = xml_parser_1.default.lengthAttr(node, "right");
+        let end = xml_parser_1.default.lengthAttr(node, "end");
         if (firstLine)
             style["text-indent"] = firstLine;
         if (hanging)
@@ -1254,10 +1303,10 @@ class DocumentParser {
             style["margin-right"] = right || end;
     }
     parseSpacing(node, style) {
-        var before = xml_parser_1.default.lengthAttr(node, "before");
-        var after = xml_parser_1.default.lengthAttr(node, "after");
-        var line = xml_parser_1.default.intAttr(node, "line", null);
-        var lineRule = xml_parser_1.default.attr(node, "lineRule");
+        let before = xml_parser_1.default.lengthAttr(node, "before");
+        let after = xml_parser_1.default.lengthAttr(node, "after");
+        let line = xml_parser_1.default.intAttr(node, "line", null);
+        let lineRule = xml_parser_1.default.attr(node, "lineRule");
         if (before)
             style["margin-top"] = before;
         if (after)
@@ -1269,6 +1318,9 @@ class DocumentParser {
                     break;
                 case "atLeast":
                     style["line-height"] = `calc(100% + ${line / 20}pt)`;
+                    break;
+                case "Exact":
+                    style["line-height"] = `${line / 20}pt`;
                     break;
                 default:
                     style["line-height"] = style["min-height"] = `${line / 20}pt`;
@@ -1330,7 +1382,7 @@ exports.DocumentParser = DocumentParser;
 const knownColors = ['black', 'blue', 'cyan', 'darkBlue', 'darkCyan', 'darkGray', 'darkGreen', 'darkMagenta', 'darkRed', 'darkYellow', 'green', 'lightGray', 'magenta', 'none', 'red', 'white', 'yellow'];
 class xmlUtil {
     static foreach(node, cb) {
-        for (var i = 0; i < node.childNodes.length; i++) {
+        for (let i = 0; i < node.childNodes.length; i++) {
             let n = node.childNodes[i];
             if (n.nodeType == Node.ELEMENT_NODE) {
                 cb(n);
@@ -1338,7 +1390,7 @@ class xmlUtil {
         }
     }
     static colorAttr(node, attrName, defValue = null, autoColor = 'black') {
-        var v = xml_parser_1.default.attr(node, attrName);
+        let v = xml_parser_1.default.attr(node, attrName);
         if (v) {
             if (v == "auto") {
                 return autoColor;
@@ -1348,7 +1400,7 @@ class xmlUtil {
             }
             return `#${v}`;
         }
-        var themeColor = xml_parser_1.default.attr(node, "themeColor");
+        let themeColor = xml_parser_1.default.attr(node, "themeColor");
         return themeColor ? `var(--docx-${themeColor}-color)` : defValue;
     }
     static sizeValue(node, type = common_1.LengthUsage.Dxa) {
@@ -1357,17 +1409,19 @@ class xmlUtil {
 }
 class values {
     static themeValue(c, attr) {
-        var val = xml_parser_1.default.attr(c, attr);
+        let val = xml_parser_1.default.attr(c, attr);
         return val ? `var(--docx-${val}-font)` : null;
     }
     static valueOfSize(c, attr) {
-        var type = common_1.LengthUsage.Dxa;
+        let type = common_1.LengthUsage.Dxa;
         switch (xml_parser_1.default.attr(c, "type")) {
-            case "dxa": break;
+            case "dxa":
+                break;
             case "pct":
                 type = common_1.LengthUsage.Percent;
                 break;
-            case "auto": return "auto";
+            case "auto":
+                return "auto";
         }
         return xml_parser_1.default.lengthAttr(c, attr, type);
     }
@@ -1375,15 +1429,15 @@ class values {
         return xml_parser_1.default.lengthAttr(c, "w");
     }
     static valueOfBorder(c) {
-        var type = xml_parser_1.default.attr(c, "val");
+        let type = xml_parser_1.default.attr(c, "val");
         if (type == "nil")
             return "none";
-        var color = xmlUtil.colorAttr(c, "color");
-        var size = xml_parser_1.default.lengthAttr(c, "sz", common_1.LengthUsage.Border);
+        let color = xmlUtil.colorAttr(c, "color");
+        let size = xml_parser_1.default.lengthAttr(c, "sz", common_1.LengthUsage.Border);
         return `${size} solid ${color == "auto" ? exports.autos.borderColor : color}`;
     }
     static valueOfTblLayout(c) {
-        var type = xml_parser_1.default.attr(c, "val");
+        let type = xml_parser_1.default.attr(c, "val");
         return type == "fixed" ? "fixed" : "auto";
     }
     static classNameOfCnfStyle(c) {
@@ -1396,33 +1450,43 @@ class values {
         return classes.filter((_, i) => val[i] == '1').join(' ');
     }
     static valueOfJc(c) {
-        var type = xml_parser_1.default.attr(c, "val");
+        let type = xml_parser_1.default.attr(c, "val");
         switch (type) {
             case "start":
-            case "left": return "left";
-            case "center": return "center";
+            case "left":
+                return "left";
+            case "center":
+                return "center";
             case "end":
-            case "right": return "right";
-            case "both": return "justify";
+            case "right":
+                return "right";
+            case "both":
+                return "justify";
         }
         return type;
     }
     static valueOfVertAlign(c, asTagName = false) {
-        var type = xml_parser_1.default.attr(c, "val");
+        let type = xml_parser_1.default.attr(c, "val");
         switch (type) {
-            case "subscript": return "sub";
-            case "superscript": return asTagName ? "sup" : "super";
+            case "subscript":
+                return "sub";
+            case "superscript":
+                return asTagName ? "sup" : "super";
         }
         return asTagName ? null : type;
     }
     static valueOfTextAlignment(c) {
-        var type = xml_parser_1.default.attr(c, "val");
+        let type = xml_parser_1.default.attr(c, "val");
         switch (type) {
             case "auto":
-            case "baseline": return "baseline";
-            case "top": return "top";
-            case "center": return "middle";
-            case "bottom": return "bottom";
+            case "baseline":
+                return "baseline";
+            case "top":
+                return "top";
+            case "center":
+                return "middle";
+            case "bottom":
+                return "bottom";
         }
         return type;
     }
@@ -1746,6 +1810,7 @@ exports.LengthUsage = {
     Percent: { mul: 0.02, unit: "%" },
     LineHeight: { mul: 1 / 240, unit: "" },
     VmlEmu: { mul: 1 / 12700, unit: "" },
+    degree: { mul: 1 / 60000, unit: "deg" },
 };
 function convertLength(val, usage = exports.LengthUsage.Dxa) {
     if (!val) {
@@ -1762,13 +1827,20 @@ function convertLength(val, usage = exports.LengthUsage.Dxa) {
 exports.convertLength = convertLength;
 function convertBoolean(v, defaultValue = false) {
     switch (v) {
-        case "1": return true;
-        case "0": return false;
-        case "on": return true;
-        case "off": return false;
-        case "true": return true;
-        case "false": return false;
-        default: return defaultValue;
+        case "1":
+            return true;
+        case "0":
+            return false;
+        case "on":
+            return true;
+        case "off":
+            return false;
+        case "true":
+            return true;
+        case "false":
+            return false;
+        default:
+            return defaultValue;
     }
 }
 exports.convertBoolean = convertBoolean;
@@ -2179,22 +2251,24 @@ const document_parser_1 = __webpack_require__(/*! ./document-parser */ "./src/do
 const html_renderer_1 = __webpack_require__(/*! ./html-renderer */ "./src/html-renderer.ts");
 const html_renderer_sync_1 = __webpack_require__(/*! ./html-renderer-sync */ "./src/html-renderer-sync.ts");
 exports.defaultOptions = {
+    className: "docx",
+    inWrapper: true,
     ignoreHeight: false,
     ignoreWidth: false,
     ignoreFonts: false,
-    breakPages: true,
-    debug: false,
-    experimental: false,
-    className: "docx",
-    inWrapper: true,
-    trimXmlDeclaration: true,
+    ignoreTableWrap: true,
+    ignoreImageWrap: false,
     ignoreLastRenderedPageBreak: true,
+    breakPages: true,
+    trimXmlDeclaration: true,
+    useBase64URL: false,
     renderHeaders: true,
     renderFooters: true,
     renderFootnotes: true,
     renderEndnotes: true,
-    useBase64URL: false,
-    renderChanges: false
+    renderChanges: false,
+    experimental: false,
+    debug: false,
 };
 function parseAsync(data, userOptions = null) {
     const ops = Object.assign(Object.assign({}, exports.defaultOptions), userOptions);
@@ -2375,17 +2449,22 @@ exports.HtmlRendererSync = void 0;
 const dom_1 = __webpack_require__(/*! ./document/dom */ "./src/document/dom.ts");
 const utils_1 = __webpack_require__(/*! ./utils */ "./src/utils.ts");
 const javascript_1 = __webpack_require__(/*! ./javascript */ "./src/javascript.ts");
-const ns = {
+let ns = {
     html: "http://www.w3.org/1999/xhtml",
     svg: "http://www.w3.org/2000/svg",
     mathML: "http://www.w3.org/1998/Math/MathML"
 };
+var Overflow;
+(function (Overflow) {
+    Overflow["TRUE"] = "true";
+    Overflow["FALSE"] = "false";
+    Overflow["UNKNOWN"] = "undetected";
+})(Overflow || (Overflow = {}));
 class HtmlRendererSync {
     constructor() {
         this.className = "docx";
         this.styleMap = {};
         this.currentPart = null;
-        this.current_element = { parent: null };
         this.tableVerticalMerges = [];
         this.currentVerticalMerge = null;
         this.tableCellPositions = [];
@@ -2397,7 +2476,7 @@ class HtmlRendererSync {
         this.currentTabs = [];
         this.tabsTimeout = 0;
     }
-    render(document, bodyContainer, styleContainer = null, options) {
+    async render(document, bodyContainer, styleContainer = null, options) {
         var _a;
         this.document = document;
         this.options = options;
@@ -2443,7 +2522,7 @@ class HtmlRendererSync {
         else {
             this.wrapper = bodyContainer;
         }
-        this.renderSections(document.documentPart.body);
+        await this.renderSections(document.documentPart.body);
         this.refreshTabStops();
     }
     renderDefaultStyle() {
@@ -2454,7 +2533,1448 @@ class HtmlRendererSync {
 			.${c} { color: black; hyphens: auto; }
 			section.${c} { box-sizing: border-box; display: flex; flex-flow: column nowrap; position: relative; overflow: hidden; }
             section.${c}>header { position: absolute; top: 0; z-index: 1; display: flex; align-items: flex-end; }
-			section.${c}>article { overflow: hidden; z-index: 1; }
+			section.${c}>article { z-index: 1; }
+			section.${c}>footer { position: absolute; bottom: 0; z-index: 1; }
+			.${c} table { border-collapse: collapse; }
+			.${c} table td, .${c} table th { vertical-align: top; }
+			.${c} p { margin: 0pt; min-height: 1em; }
+			.${c} span { white-space: pre-wrap; overflow-wrap: break-word; }
+			.${c} a { color: inherit; text-decoration: inherit; }
+		`;
+        return createStyleElement(styleText);
+    }
+    renderTheme(themePart, styleContainer) {
+        var _a, _b;
+        let variables = {};
+        let fontScheme = (_a = themePart.theme) === null || _a === void 0 ? void 0 : _a.fontScheme;
+        if (fontScheme) {
+            if (fontScheme.majorFont) {
+                variables['--docx-majorHAnsi-font'] = fontScheme.majorFont.latinTypeface;
+            }
+            if (fontScheme.minorFont) {
+                variables['--docx-minorHAnsi-font'] = fontScheme.minorFont.latinTypeface;
+            }
+        }
+        let colorScheme = (_b = themePart.theme) === null || _b === void 0 ? void 0 : _b.colorScheme;
+        if (colorScheme) {
+            for (let [k, v] of Object.entries(colorScheme.colors)) {
+                variables[`--docx-${k}-color`] = `#${v}`;
+            }
+        }
+        let cssText = this.styleToString(`.${this.className}`, variables);
+        styleContainer.appendChild(createStyleElement(cssText));
+    }
+    processStyleName(className) {
+        return className ? `${this.className}_${(0, utils_1.escapeClassName)(className)}` : this.className;
+    }
+    processStyles(styles) {
+        let stylesMap = (0, utils_1.keyBy)(styles.filter(x => x.id != null), x => x.id);
+        for (let style of styles.filter(x => x.basedOn)) {
+            let baseStyle = stylesMap[style.basedOn];
+            if (baseStyle) {
+                style.paragraphProps = (0, utils_1.mergeDeep)(style.paragraphProps, baseStyle.paragraphProps);
+                style.runProps = (0, utils_1.mergeDeep)(style.runProps, baseStyle.runProps);
+                for (let baseValues of baseStyle.styles) {
+                    let styleValues = style.styles.find(x => x.target == baseValues.target);
+                    if (styleValues) {
+                        this.copyStyleProperties(baseValues.values, styleValues.values);
+                    }
+                    else {
+                        style.styles.push(Object.assign(Object.assign({}, baseValues), { values: Object.assign({}, baseValues.values) }));
+                    }
+                }
+            }
+            else if (this.options.debug) {
+                console.warn(`Can't find base style ${style.basedOn}`);
+            }
+        }
+        for (let style of styles) {
+            style.cssName = this.processStyleName(style.id);
+        }
+        return stylesMap;
+    }
+    renderStyles(styles) {
+        var _a;
+        let styleText = "";
+        let stylesMap = this.styleMap;
+        let defaultStyles = (0, utils_1.keyBy)(styles.filter(s => s.isDefault), s => s.target);
+        for (let style of styles) {
+            let subStyles = style.styles;
+            if (style.linked) {
+                let linkedStyle = style.linked && stylesMap[style.linked];
+                if (linkedStyle)
+                    subStyles = subStyles.concat(linkedStyle.styles);
+                else if (this.options.debug)
+                    console.warn(`Can't find linked style ${style.linked}`);
+            }
+            for (let subStyle of subStyles) {
+                let selector = `${(_a = style.target) !== null && _a !== void 0 ? _a : ''}.${style.cssName}`;
+                if (style.target != subStyle.target)
+                    selector += ` ${subStyle.target}`;
+                if (defaultStyles[style.target] == style)
+                    selector = `.${this.className} ${style.target}, ` + selector;
+                styleText += this.styleToString(selector, subStyle.values);
+            }
+        }
+        return createStyleElement(styleText);
+    }
+    processNumberings(numberings) {
+        var _a;
+        for (let num of numberings.filter(n => n.pStyleName)) {
+            let style = this.findStyle(num.pStyleName);
+            if ((_a = style === null || style === void 0 ? void 0 : style.paragraphProps) === null || _a === void 0 ? void 0 : _a.numbering) {
+                style.paragraphProps.numbering.level = num.level;
+            }
+        }
+    }
+    renderNumbering(numberings, styleContainer) {
+        let styleText = "";
+        let resetCounters = [];
+        for (let num of numberings) {
+            let selector = `p.${this.numberingClass(num.id, num.level)}`;
+            let listStyleType = "none";
+            if (num.bullet) {
+                let valiable = `--${this.className}-${num.bullet.src}`.toLowerCase();
+                styleText += this.styleToString(`${selector}:before`, {
+                    "content": "' '",
+                    "display": "inline-block",
+                    "background": `var(${valiable})`
+                }, num.bullet.style);
+                this.document.loadNumberingImage(num.bullet.src).then(data => {
+                    let text = `${this.rootSelector} { ${valiable}: url(${data}) }`;
+                    styleContainer.appendChild(createStyleElement(text));
+                });
+            }
+            else if (num.levelText) {
+                let counter = this.numberingCounter(num.id, num.level);
+                let counterReset = counter + " " + (num.start - 1);
+                if (num.level > 0) {
+                    styleText += this.styleToString(`p.${this.numberingClass(num.id, num.level - 1)}`, {
+                        "counter-reset": counterReset
+                    });
+                }
+                resetCounters.push(counterReset);
+                styleText += this.styleToString(`${selector}:before`, Object.assign({ "content": this.levelTextToContent(num.levelText, num.suff, num.id, this.numFormatToCssValue(num.format)), "counter-increment": counter }, num.rStyle));
+            }
+            else {
+                listStyleType = this.numFormatToCssValue(num.format);
+            }
+            styleText += this.styleToString(selector, Object.assign({ "display": "list-item", "list-style-position": "inside", "list-style-type": listStyleType }, num.pStyle));
+        }
+        if (resetCounters.length > 0) {
+            styleText += this.styleToString(this.rootSelector, {
+                "counter-reset": resetCounters.join(" ")
+            });
+        }
+        return createStyleElement(styleText);
+    }
+    numberingClass(id, lvl) {
+        return `${this.className}-num-${id}-${lvl}`;
+    }
+    styleToString(selectors, values, cssText = null) {
+        let result = `${selectors} {\r\n`;
+        for (let key in values) {
+            if (key.startsWith('$'))
+                continue;
+            result += `  ${key}: ${values[key]};\r\n`;
+        }
+        if (cssText)
+            result += cssText;
+        return result + "}\r\n";
+    }
+    numberingCounter(id, lvl) {
+        return `${this.className}-num-${id}-${lvl}`;
+    }
+    levelTextToContent(text, suff, id, numformat) {
+        var _a;
+        let suffMap = {
+            "tab": "\\9",
+            "space": "\\a0",
+        };
+        let result = text.replace(/%\d*/g, s => {
+            let lvl = parseInt(s.substring(1), 10) - 1;
+            return `"counter(${this.numberingCounter(id, lvl)}, ${numformat})"`;
+        });
+        return `"${result}${(_a = suffMap[suff]) !== null && _a !== void 0 ? _a : ""}"`;
+    }
+    numFormatToCssValue(format) {
+        var _a;
+        let mapping = {
+            none: "none",
+            bullet: "disc",
+            decimal: "decimal",
+            lowerLetter: "lower-alpha",
+            upperLetter: "upper-alpha",
+            lowerRoman: "lower-roman",
+            upperRoman: "upper-roman",
+            decimalZero: "decimal-leading-zero",
+            aiueo: "katakana",
+            aiueoFullWidth: "katakana",
+            chineseCounting: "simp-chinese-informal",
+            chineseCountingThousand: "simp-chinese-informal",
+            chineseLegalSimplified: "simp-chinese-formal",
+            chosung: "hangul-consonant",
+            ideographDigital: "cjk-ideographic",
+            ideographTraditional: "cjk-heavenly-stem",
+            ideographLegalTraditional: "trad-chinese-formal",
+            ideographZodiac: "cjk-earthly-branch",
+            iroha: "katakana-iroha",
+            irohaFullWidth: "katakana-iroha",
+            japaneseCounting: "japanese-informal",
+            japaneseDigitalTenThousand: "cjk-decimal",
+            japaneseLegal: "japanese-formal",
+            thaiNumbers: "thai",
+            koreanCounting: "korean-hangul-formal",
+            koreanDigital: "korean-hangul-formal",
+            koreanDigital2: "korean-hanja-informal",
+            hebrew1: "hebrew",
+            hebrew2: "hebrew",
+            hindiNumbers: "devanagari",
+            ganada: "hangul",
+            taiwaneseCounting: "cjk-ideographic",
+            taiwaneseCountingThousand: "cjk-ideographic",
+            taiwaneseDigital: "cjk-decimal",
+        };
+        return (_a = mapping[format]) !== null && _a !== void 0 ? _a : format;
+    }
+    renderFontTable(fontsPart, styleContainer) {
+        for (let f of fontsPart.fonts) {
+            for (let ref of f.embedFontRefs) {
+                this.document.loadFont(ref.id, ref.key).then(fontData => {
+                    let cssValues = {
+                        'font-family': f.name,
+                        'src': `url(${fontData})`
+                    };
+                    if (ref.type == "bold" || ref.type == "boldItalic") {
+                        cssValues['font-weight'] = 'bold';
+                    }
+                    if (ref.type == "italic" || ref.type == "boldItalic") {
+                        cssValues['font-style'] = 'italic';
+                    }
+                    appendComment(styleContainer, `docxjs ${f.name} font`);
+                    let cssText = this.styleToString("@font-face", cssValues);
+                    styleContainer.appendChild(createStyleElement(cssText));
+                    this.refreshTabStops();
+                });
+            }
+        }
+    }
+    renderWrapper() {
+        return createElement("div", { className: `${this.className}-wrapper` });
+    }
+    copyStyleProperties(input, output, attrs = null) {
+        if (!input) {
+            return output;
+        }
+        if (output == null) {
+            output = {};
+        }
+        if (attrs == null) {
+            attrs = Object.getOwnPropertyNames(input);
+        }
+        for (let key of attrs) {
+            if (input.hasOwnProperty(key) && !output.hasOwnProperty(key))
+                output[key] = input[key];
+        }
+        return output;
+    }
+    processElement(element) {
+        if (element.children) {
+            for (let e of element.children) {
+                e.parent = element;
+                if (e.type == dom_1.DomType.Table) {
+                    this.processTable(e);
+                    this.processElement(e);
+                }
+                else {
+                    this.processElement(e);
+                }
+            }
+        }
+    }
+    processTable(table) {
+        for (let r of table.children) {
+            for (let c of r.children) {
+                c.cssStyle = this.copyStyleProperties(table.cellStyle, c.cssStyle, [
+                    "border-left", "border-right", "border-top", "border-bottom",
+                    "padding-left", "padding-right", "padding-top", "padding-bottom"
+                ]);
+            }
+        }
+    }
+    splitBySection(elements) {
+        var _a;
+        let current_section = { sectProps: null, elements: [], is_split: false, };
+        let sections = [current_section];
+        for (let elem of elements) {
+            elem.level = 1;
+            current_section.elements.push(elem);
+            if (elem.type == dom_1.DomType.Paragraph) {
+                let p = elem;
+                let sectProps = p.sectionProps;
+                let default_paragraph_style = this.findStyle(p.styleName);
+                if ((_a = default_paragraph_style === null || default_paragraph_style === void 0 ? void 0 : default_paragraph_style.paragraphProps) === null || _a === void 0 ? void 0 : _a.pageBreakBefore) {
+                    current_section.is_split = true;
+                    current_section.sectProps = sectProps;
+                    current_section = { sectProps: null, elements: [], is_split: false };
+                    sections.push(current_section);
+                }
+                let pBreakIndex = -1;
+                let rBreakIndex = -1;
+                if (p.children) {
+                    pBreakIndex = p.children.findIndex(r => {
+                        var _a;
+                        rBreakIndex = (_a = r.children) === null || _a === void 0 ? void 0 : _a.findIndex((t) => {
+                            if (t.type != dom_1.DomType.Break) {
+                                return false;
+                            }
+                            if (t.break == "lastRenderedPageBreak") {
+                                return current_section.elements.length > 2 || !this.options.ignoreLastRenderedPageBreak;
+                            }
+                            if (t.break === "page") {
+                                return true;
+                            }
+                        });
+                        rBreakIndex = rBreakIndex !== null && rBreakIndex !== void 0 ? rBreakIndex : -1;
+                        return rBreakIndex != -1;
+                    });
+                }
+                if (pBreakIndex != -1) {
+                    current_section.is_split = true;
+                    let exist_table = current_section.elements.some((elem) => elem.type === dom_1.DomType.Table);
+                    if (exist_table) {
+                        current_section.is_split = false;
+                    }
+                    let exist_TOC = current_section.elements.some((paragraph) => {
+                        return paragraph.children.some((elem) => { var _a; return elem.type === dom_1.DomType.Hyperlink && ((_a = elem === null || elem === void 0 ? void 0 : elem.href) === null || _a === void 0 ? void 0 : _a.includes('Toc')); });
+                    });
+                    if (exist_TOC) {
+                        current_section.is_split = false;
+                    }
+                }
+                if (sectProps || pBreakIndex != -1) {
+                    current_section.sectProps = sectProps;
+                    current_section = { sectProps: null, elements: [], is_split: false };
+                    sections.push(current_section);
+                }
+                if (pBreakIndex != -1) {
+                    let breakRun = p.children[pBreakIndex];
+                    let is_split = rBreakIndex < breakRun.children.length - 1;
+                    if (pBreakIndex < p.children.length - 1 || is_split) {
+                        let origin_run = p.children;
+                        let new_paragraph = Object.assign(Object.assign({}, p), { children: origin_run.slice(pBreakIndex) });
+                        p.children = origin_run.slice(0, pBreakIndex);
+                        current_section.elements.push(new_paragraph);
+                        if (is_split) {
+                            let origin_elements = breakRun.children;
+                            let newRun = Object.assign(Object.assign({}, breakRun), { children: origin_elements.slice(0, rBreakIndex) });
+                            p.children.push(newRun);
+                            breakRun.children = origin_elements.slice(rBreakIndex);
+                        }
+                    }
+                }
+            }
+            if (elem.type === dom_1.DomType.Table) {
+                current_section.is_split = false;
+            }
+        }
+        let currentSectProps = null;
+        for (let i = sections.length - 1; i >= 0; i--) {
+            if (sections[i].sectProps == null) {
+                sections[i].sectProps = currentSectProps;
+            }
+            else {
+                currentSectProps = sections[i].sectProps;
+            }
+        }
+        return sections;
+    }
+    async renderSections(document) {
+        this.processElement(document);
+        let sections;
+        if (this.options.breakPages) {
+            sections = this.splitBySection(document.children);
+        }
+        else {
+            sections = [{ sectProps: document.props, elements: document.children, is_split: false }];
+        }
+        let prevProps = null;
+        for (let i = 0, l = sections.length; i < l; i++) {
+            this.currentFootnoteIds = [];
+            let section = sections[i];
+            let { sectProps } = section;
+            section.sectProps = sectProps !== null && sectProps !== void 0 ? sectProps : document.props;
+            section.isFirstSection = prevProps != sectProps;
+            section.isLastSection = i === (l - 1);
+            section.pageIndex = i;
+            section.checking_overflow = false;
+            this.current_section = section;
+            prevProps = sectProps;
+            await this.renderSection();
+        }
+    }
+    async renderSection() {
+        let section = this.current_section;
+        let { is_split, sectProps, isFirstSection, isLastSection, pageIndex } = section;
+        let sectionElement = this.createSection(this.className, sectProps);
+        sectionElement.dataset.splited = String(is_split);
+        this.renderStyleValues(this.document.documentPart.body.cssStyle, sectionElement);
+        if (this.options.renderHeaders) {
+            await this.renderHeaderFooterRef(sectProps.headerRefs, sectProps, pageIndex, isFirstSection, sectionElement);
+        }
+        if (this.options.renderFootnotes) {
+            await this.renderNotes(this.currentFootnoteIds, this.footnoteMap, sectionElement);
+        }
+        if (this.options.renderEndnotes && isLastSection) {
+            await this.renderNotes(this.currentEndnoteIds, this.endnoteMap, sectionElement);
+        }
+        if (this.options.renderFooters) {
+            await this.renderHeaderFooterRef(sectProps.footerRefs, sectProps, pageIndex, isFirstSection, sectionElement);
+        }
+        let contentElement = createElement("article");
+        if (this.options.breakPages) {
+            contentElement.style.height = sectProps.contentSize.height;
+        }
+        else {
+            contentElement.style.minHeight = sectProps.contentSize.height;
+        }
+        this.current_section.contentElement = contentElement;
+        sectionElement.appendChild(contentElement);
+        this.current_section.checking_overflow = true;
+        await this.renderElements(section.elements, contentElement);
+        this.current_section.checking_overflow = false;
+    }
+    createSection(className, props) {
+        let elem = createElement("section", { className });
+        if (props) {
+            if (props.pageMargins) {
+                elem.style.paddingLeft = props.pageMargins.left;
+                elem.style.paddingRight = props.pageMargins.right;
+                elem.style.paddingTop = props.pageMargins.top;
+                elem.style.paddingBottom = props.pageMargins.bottom;
+            }
+            if (props.pageSize) {
+                if (!this.options.ignoreWidth) {
+                    elem.style.width = props.pageSize.width;
+                }
+                if (!this.options.ignoreHeight) {
+                    elem.style.minHeight = props.pageSize.height;
+                }
+            }
+            if (props.columns && props.columns.numberOfColumns) {
+                elem.style.columnCount = `${props.columns.numberOfColumns}`;
+                elem.style.columnGap = props.columns.space;
+                if (props.columns.separator) {
+                    elem.style.columnRule = "1px solid black";
+                }
+            }
+        }
+        this.wrapper.appendChild(elem);
+        return elem;
+    }
+    async renderHeaderFooterRef(refs, props, page, firstOfSection, parent) {
+        var _a, _b, _c, _d, _e, _f, _g, _h;
+        if (!refs)
+            return;
+        let ref = (_b = (_a = (props.titlePage && firstOfSection ? refs.find(x => x.type == "first") : null)) !== null && _a !== void 0 ? _a : (page % 2 == 1 ? refs.find(x => x.type == "even") : null)) !== null && _b !== void 0 ? _b : refs.find(x => x.type == "default");
+        let part = ref && this.document.findPartByRelId(ref.id, this.document.documentPart);
+        if (part) {
+            this.currentPart = part;
+            if (!this.usedHederFooterParts.includes(part.path)) {
+                this.processElement(part.rootElement);
+                this.usedHederFooterParts.push(part.path);
+            }
+            switch (part.rootElement.type) {
+                case dom_1.DomType.Header:
+                    part.rootElement.cssStyle = {
+                        left: (_c = props.pageMargins) === null || _c === void 0 ? void 0 : _c.left,
+                        width: (_d = props.contentSize) === null || _d === void 0 ? void 0 : _d.width,
+                        height: (_e = props.pageMargins) === null || _e === void 0 ? void 0 : _e.top,
+                    };
+                    break;
+                case dom_1.DomType.Footer:
+                    part.rootElement.cssStyle = {
+                        left: (_f = props.pageMargins) === null || _f === void 0 ? void 0 : _f.left,
+                        width: (_g = props.contentSize) === null || _g === void 0 ? void 0 : _g.width,
+                        height: (_h = props.pageMargins) === null || _h === void 0 ? void 0 : _h.bottom,
+                    };
+                    break;
+                default:
+                    console.warn('set header/footer style error', part.rootElement.type);
+                    break;
+            }
+            await this.renderElements([part.rootElement], parent);
+            this.currentPart = null;
+        }
+    }
+    async renderNotes(noteIds, notesMap, parent) {
+        let notes = noteIds.map(id => notesMap[id]).filter(x => x);
+        if (notes.length > 0) {
+            let oList = createElement("ol", null);
+            await this.renderElements(notes, oList);
+            parent.appendChild(oList);
+        }
+    }
+    async renderElements(elems, parent) {
+        var _a;
+        let is_overflow = Overflow.FALSE;
+        for (let i = 0; i < elems.length; i++) {
+            if (elems[i].level === 1) {
+                this.current_section.elementIndex = i;
+            }
+            let element = await this.renderElement(elems[i], parent);
+            if (((_a = element === null || element === void 0 ? void 0 : element.dataset) === null || _a === void 0 ? void 0 : _a.overflow) === Overflow.TRUE) {
+                is_overflow = Overflow.TRUE;
+                break;
+            }
+        }
+        return is_overflow;
+    }
+    async renderElement(elem, parent) {
+        let oNode;
+        switch (elem.type) {
+            case dom_1.DomType.Paragraph:
+                oNode = await this.renderParagraph(elem, parent);
+                break;
+            case dom_1.DomType.Run:
+                oNode = await this.renderRun(elem, parent);
+                break;
+            case dom_1.DomType.Text:
+                oNode = await this.renderText(elem, parent);
+                break;
+            case dom_1.DomType.Table:
+                oNode = await this.renderTable(elem, parent);
+                break;
+            case dom_1.DomType.Row:
+                oNode = await this.renderTableRow(elem, parent);
+                break;
+            case dom_1.DomType.Cell:
+                oNode = await this.renderTableCell(elem);
+                if (parent) {
+                    appendChildren(parent, oNode);
+                }
+                break;
+            case dom_1.DomType.Hyperlink:
+                oNode = await this.renderHyperlink(elem, parent);
+                break;
+            case dom_1.DomType.Drawing:
+                oNode = await this.renderDrawing(elem, parent);
+                break;
+            case dom_1.DomType.Image:
+                oNode = await this.renderImage(elem, parent);
+                break;
+            case dom_1.DomType.BookmarkStart:
+                oNode = this.renderBookmarkStart(elem);
+                if (parent) {
+                    appendChildren(parent, oNode);
+                }
+                break;
+            case dom_1.DomType.BookmarkEnd:
+                oNode = null;
+                break;
+            case dom_1.DomType.Tab:
+                oNode = await this.renderTab(elem, parent);
+                break;
+            case dom_1.DomType.Symbol:
+                oNode = await this.renderSymbol(elem, parent);
+                break;
+            case dom_1.DomType.Break:
+                oNode = await this.renderBreak(elem, parent);
+                break;
+            case dom_1.DomType.Inserted:
+                oNode = await this.renderInserted(elem);
+                if (parent) {
+                    await this.appendChildren(parent, oNode);
+                }
+                break;
+            case dom_1.DomType.Deleted:
+                oNode = await this.renderDeleted(elem);
+                if (parent) {
+                    await this.appendChildren(parent, oNode);
+                }
+                break;
+            case dom_1.DomType.DeletedText:
+                oNode = await this.renderDeletedText(elem, parent);
+                break;
+            case dom_1.DomType.NoBreakHyphen:
+                oNode = createElement("wbr");
+                if (parent) {
+                    await this.appendChildren(parent, oNode);
+                }
+                break;
+            case dom_1.DomType.Footer:
+                oNode = await this.renderHeaderFooter(elem, "footer");
+                if (parent) {
+                    appendChildren(parent, oNode);
+                }
+                break;
+            case dom_1.DomType.Header:
+                oNode = await this.renderHeaderFooter(elem, "header");
+                if (parent) {
+                    appendChildren(parent, oNode);
+                }
+                break;
+            case dom_1.DomType.Footnote:
+            case dom_1.DomType.Endnote:
+                oNode = await this.renderContainer(elem, "li");
+                if (parent) {
+                    appendChildren(parent, oNode);
+                }
+                break;
+            case dom_1.DomType.FootnoteReference:
+                oNode = this.renderFootnoteReference(elem);
+                if (parent) {
+                    appendChildren(parent, oNode);
+                }
+                break;
+            case dom_1.DomType.EndnoteReference:
+                oNode = this.renderEndnoteReference(elem);
+                if (parent) {
+                    appendChildren(parent, oNode);
+                }
+                break;
+            case dom_1.DomType.VmlElement:
+                oNode = await this.renderVmlElement(elem, parent);
+                break;
+            case dom_1.DomType.VmlPicture:
+                oNode = await this.renderVmlPicture(elem);
+                if (parent) {
+                    appendChildren(parent, oNode);
+                }
+                break;
+            case dom_1.DomType.MmlMath:
+                oNode = await this.renderContainerNS(elem, ns.mathML, "math", { xmlns: ns.mathML });
+                if (parent) {
+                    oNode.dataset.overflow = await this.appendChildren(parent, oNode);
+                }
+                break;
+            case dom_1.DomType.MmlMathParagraph:
+                oNode = await this.renderContainer(elem, "span");
+                if (parent) {
+                    appendChildren(parent, oNode);
+                }
+                break;
+            case dom_1.DomType.MmlFraction:
+                oNode = await this.renderContainerNS(elem, ns.mathML, "mfrac");
+                if (parent) {
+                    appendChildren(parent, oNode);
+                }
+                break;
+            case dom_1.DomType.MmlBase:
+                oNode = await this.renderContainerNS(elem, ns.mathML, elem.parent.type == dom_1.DomType.MmlMatrixRow ? "mtd" : "mrow");
+                if (parent) {
+                    appendChildren(parent, oNode);
+                }
+                break;
+            case dom_1.DomType.MmlNumerator:
+            case dom_1.DomType.MmlDenominator:
+            case dom_1.DomType.MmlFunction:
+            case dom_1.DomType.MmlLimit:
+            case dom_1.DomType.MmlBox:
+                oNode = await this.renderContainerNS(elem, ns.mathML, "mrow");
+                if (parent) {
+                    appendChildren(parent, oNode);
+                }
+                break;
+            case dom_1.DomType.MmlGroupChar:
+                oNode = await this.renderMmlGroupChar(elem);
+                if (parent) {
+                    appendChildren(parent, oNode);
+                }
+                break;
+            case dom_1.DomType.MmlLimitLower:
+                oNode = await this.renderContainerNS(elem, ns.mathML, "munder");
+                if (parent) {
+                    appendChildren(parent, oNode);
+                }
+                break;
+            case dom_1.DomType.MmlMatrix:
+                oNode = await this.renderContainerNS(elem, ns.mathML, "mtable");
+                if (parent) {
+                    appendChildren(parent, oNode);
+                }
+                break;
+            case dom_1.DomType.MmlMatrixRow:
+                oNode = await this.renderContainerNS(elem, ns.mathML, "mtr");
+                if (parent) {
+                    appendChildren(parent, oNode);
+                }
+                break;
+            case dom_1.DomType.MmlRadical:
+                oNode = await this.renderMmlRadical(elem);
+                if (parent) {
+                    appendChildren(parent, oNode);
+                }
+                break;
+            case dom_1.DomType.MmlSuperscript:
+                oNode = await this.renderContainerNS(elem, ns.mathML, "msup");
+                if (parent) {
+                    appendChildren(parent, oNode);
+                }
+                break;
+            case dom_1.DomType.MmlSubscript:
+                oNode = await this.renderContainerNS(elem, ns.mathML, "msub");
+                if (parent) {
+                    appendChildren(parent, oNode);
+                }
+                break;
+            case dom_1.DomType.MmlDegree:
+            case dom_1.DomType.MmlSuperArgument:
+            case dom_1.DomType.MmlSubArgument:
+                oNode = await this.renderContainerNS(elem, ns.mathML, "mn");
+                if (parent) {
+                    appendChildren(parent, oNode);
+                }
+                break;
+            case dom_1.DomType.MmlFunctionName:
+                oNode = await this.renderContainerNS(elem, ns.mathML, "ms");
+                if (parent) {
+                    appendChildren(parent, oNode);
+                }
+                break;
+            case dom_1.DomType.MmlDelimiter:
+                oNode = await this.renderMmlDelimiter(elem);
+                if (parent) {
+                    appendChildren(parent, oNode);
+                }
+                break;
+            case dom_1.DomType.MmlRun:
+                oNode = await this.renderMmlRun(elem);
+                if (parent) {
+                    appendChildren(parent, oNode);
+                }
+                break;
+            case dom_1.DomType.MmlNary:
+                oNode = await this.renderMmlNary(elem);
+                if (parent) {
+                    appendChildren(parent, oNode);
+                }
+                break;
+            case dom_1.DomType.MmlPreSubSuper:
+                oNode = await this.renderMmlPreSubSuper(elem);
+                if (parent) {
+                    appendChildren(parent, oNode);
+                }
+                break;
+            case dom_1.DomType.MmlBar:
+                oNode = await this.renderMmlBar(elem);
+                if (parent) {
+                    appendChildren(parent, oNode);
+                }
+                break;
+            case dom_1.DomType.MmlEquationArray:
+                oNode = await this.renderMllList(elem);
+                if (parent) {
+                    appendChildren(parent, oNode);
+                }
+                break;
+        }
+        return oNode;
+    }
+    isPageBreakElement(elem) {
+        if (elem.type != dom_1.DomType.Break) {
+            return false;
+        }
+        if (elem.break == "lastRenderedPageBreak") {
+            return !this.options.ignoreLastRenderedPageBreak;
+        }
+        if (elem.break === "page") {
+            return true;
+        }
+    }
+    async renderChildren(elem, parent) {
+        return await this.renderElements(elem.children, parent);
+    }
+    async appendChildren(parent, children, xml_element) {
+        appendChildren(parent, children);
+        let is_overflow = false;
+        let { is_split, contentElement, pageIndex, elementIndex, checking_overflow, elements } = this.current_section;
+        if (is_split) {
+            return Overflow.UNKNOWN;
+        }
+        if (checking_overflow) {
+            is_overflow = checkOverflow(contentElement);
+            if (is_overflow) {
+                if ((xml_element === null || xml_element === void 0 ? void 0 : xml_element.type) === dom_1.DomType.Row) {
+                    let table = elements[elementIndex];
+                    let row_index = table.children.findIndex((elem) => elem === xml_element);
+                    let table_headers = table.children.filter((row) => row.isHeader);
+                    table.children.splice(0, row_index);
+                    table.children = [...table_headers, ...table.children];
+                }
+                elements.splice(0, elementIndex);
+                elementIndex = 0;
+                removeElements(children, parent);
+                pageIndex += 1;
+                checking_overflow = false;
+                this.current_section = Object.assign(Object.assign({}, this.current_section), { pageIndex, checking_overflow, elements, elementIndex });
+                await this.renderSection();
+            }
+        }
+        return is_overflow ? Overflow.TRUE : Overflow.FALSE;
+    }
+    async renderContainer(elem, tagName, props) {
+        let parent = createElement(tagName, props);
+        await this.renderChildren(elem, parent);
+        return parent;
+    }
+    async renderContainerNS(elem, ns, tagName, props) {
+        let parent = createElementNS(ns, tagName, props);
+        await this.renderChildren(elem, parent);
+        return parent;
+    }
+    async renderParagraph(elem, parent) {
+        var _a, _b, _c, _d;
+        let oParagraph = createElement("p");
+        let style = this.findStyle(elem.styleName);
+        (_a = elem.tabs) !== null && _a !== void 0 ? _a : (elem.tabs = (_b = style === null || style === void 0 ? void 0 : style.paragraphProps) === null || _b === void 0 ? void 0 : _b.tabs);
+        this.renderClass(elem, oParagraph);
+        this.renderStyleValues(elem.cssStyle, oParagraph);
+        this.renderCommonProperties(oParagraph.style, elem);
+        if (parent) {
+            let is_overflow = await this.appendChildren(parent, oParagraph);
+            if (is_overflow === Overflow.TRUE) {
+                oParagraph.dataset.overflow = Overflow.TRUE;
+                return oParagraph;
+            }
+        }
+        let numbering = (_c = elem.numbering) !== null && _c !== void 0 ? _c : (_d = style === null || style === void 0 ? void 0 : style.paragraphProps) === null || _d === void 0 ? void 0 : _d.numbering;
+        if (numbering) {
+            oParagraph.classList.add(this.numberingClass(numbering.id, numbering.level));
+        }
+        oParagraph.dataset.overflow = await this.renderChildren(elem, oParagraph);
+        return oParagraph;
+    }
+    async renderRun(elem, parent) {
+        if (elem.fieldRun) {
+            return null;
+        }
+        let oSpan = createElement("span");
+        if (elem.id) {
+            oSpan.id = elem.id;
+        }
+        this.renderClass(elem, oSpan);
+        this.renderStyleValues(elem.cssStyle, oSpan);
+        if (parent) {
+            let is_overflow = await this.appendChildren(parent, oSpan);
+            if (is_overflow === Overflow.TRUE) {
+                oSpan.dataset.overflow = Overflow.TRUE;
+                return oSpan;
+            }
+        }
+        if (elem.verticalAlign) {
+            let wrapper = createElement(elem.verticalAlign);
+            oSpan.dataset.overflow = await this.renderChildren(elem, wrapper);
+            oSpan.dataset.overflow = await this.appendChildren(oSpan, wrapper);
+        }
+        else {
+            oSpan.dataset.overflow = await this.renderChildren(elem, oSpan);
+        }
+        return oSpan;
+    }
+    async renderText(elem, parent) {
+        let oText = document.createTextNode(elem.text);
+        if (parent) {
+            appendChildren(parent, oText);
+        }
+        return oText;
+    }
+    async renderTable(elem, parent) {
+        let oTable = createElement("table");
+        this.tableCellPositions.push(this.currentCellPosition);
+        this.tableVerticalMerges.push(this.currentVerticalMerge);
+        this.currentVerticalMerge = {};
+        this.currentCellPosition = { col: 0, row: 0 };
+        this.renderClass(elem, oTable);
+        this.renderStyleValues(elem.cssStyle, oTable);
+        if (parent) {
+            let is_overflow = await this.appendChildren(parent, oTable);
+            if (is_overflow === Overflow.TRUE) {
+                oTable.dataset.overflow = Overflow.TRUE;
+                return oTable;
+            }
+        }
+        if (elem.columns) {
+            await this.renderTableColumns(elem.columns, oTable);
+        }
+        oTable.dataset.overflow = await this.renderChildren(elem, oTable);
+        this.currentVerticalMerge = this.tableVerticalMerges.pop();
+        this.currentCellPosition = this.tableCellPositions.pop();
+        return oTable;
+    }
+    async renderTableColumns(columns, parent) {
+        let oColGroup = createElement("colgroup");
+        if (parent) {
+            appendChildren(parent, oColGroup);
+        }
+        for (let col of columns) {
+            let oCol = createElement("col");
+            if (col.width) {
+                oCol.style.width = col.width;
+            }
+            appendChildren(oColGroup, oCol);
+        }
+        return oColGroup;
+    }
+    async renderTableRow(elem, parent) {
+        let oTableRow = createElement("tr");
+        this.currentCellPosition.col = 0;
+        this.renderClass(elem, oTableRow);
+        this.renderStyleValues(elem.cssStyle, oTableRow);
+        this.currentCellPosition.row++;
+        await this.renderChildren(elem, oTableRow);
+        if (parent) {
+            oTableRow.dataset.overflow = await this.appendChildren(parent, oTableRow, elem);
+        }
+        return oTableRow;
+    }
+    async renderTableCell(elem) {
+        let oTableCell = createElement("td");
+        let key = this.currentCellPosition.col;
+        if (elem.verticalMerge) {
+            if (elem.verticalMerge == "restart") {
+                this.currentVerticalMerge[key] = oTableCell;
+                oTableCell.rowSpan = 1;
+            }
+            else if (this.currentVerticalMerge[key]) {
+                this.currentVerticalMerge[key].rowSpan += 1;
+                oTableCell.style.display = "none";
+            }
+        }
+        else {
+            this.currentVerticalMerge[key] = null;
+        }
+        this.renderClass(elem, oTableCell);
+        this.renderStyleValues(elem.cssStyle, oTableCell);
+        if (elem.span) {
+            oTableCell.colSpan = elem.span;
+        }
+        this.currentCellPosition.col += oTableCell.colSpan;
+        await this.renderChildren(elem, oTableCell);
+        return oTableCell;
+    }
+    async renderHyperlink(elem, parent) {
+        let oAnchor = createElement("a");
+        this.renderStyleValues(elem.cssStyle, oAnchor);
+        if (parent) {
+            let is_overflow = await this.appendChildren(parent, oAnchor);
+            if (is_overflow === Overflow.TRUE) {
+                oAnchor.dataset.overflow = Overflow.TRUE;
+                return oAnchor;
+            }
+        }
+        if (elem.href) {
+            oAnchor.href = elem.href;
+        }
+        else if (elem.id) {
+            let rel = this.document.documentPart.rels.find(it => it.id == elem.id && it.targetMode === "External");
+            oAnchor.href = rel === null || rel === void 0 ? void 0 : rel.target;
+        }
+        oAnchor.dataset.overflow = await this.renderChildren(elem, oAnchor);
+        return oAnchor;
+    }
+    async renderDrawing(elem, parent) {
+        let oDrawing = createElement("div");
+        oDrawing.style.display = "inline-block";
+        oDrawing.style.position = "relative";
+        oDrawing.style.textIndent = "0px";
+        this.renderStyleValues(elem.cssStyle, oDrawing);
+        if (parent) {
+            let is_overflow = await this.appendChildren(parent, oDrawing);
+            if (is_overflow === Overflow.TRUE) {
+                oDrawing.dataset.overflow = Overflow.TRUE;
+                return oDrawing;
+            }
+        }
+        oDrawing.dataset.overflow = await this.renderChildren(elem, oDrawing);
+        return oDrawing;
+    }
+    async renderImage(elem, parent) {
+        let oImage = createElement("img");
+        this.renderStyleValues(elem.cssStyle, oImage);
+        if (this.document) {
+            oImage.src = await this.document.loadDocumentImage(elem.src, this.currentPart);
+        }
+        if (parent) {
+            oImage.dataset.overflow = await this.appendChildren(parent, oImage);
+        }
+        return oImage;
+    }
+    renderBookmarkStart(elem) {
+        let oSpan = createElement("span");
+        oSpan.id = elem.name;
+        return oSpan;
+    }
+    async renderTab(elem, parent) {
+        var _a;
+        let tabSpan = createElement("span");
+        tabSpan.innerHTML = "&emsp;";
+        if (this.options.experimental) {
+            tabSpan.className = this.tabStopClass();
+            let stops = (_a = findParent(elem, dom_1.DomType.Paragraph)) === null || _a === void 0 ? void 0 : _a.tabs;
+            this.currentTabs.push({ stops, span: tabSpan });
+        }
+        if (parent) {
+            await this.appendChildren(parent, tabSpan);
+        }
+        return tabSpan;
+    }
+    async renderSymbol(elem, parent) {
+        let oSpan = createElement("span");
+        oSpan.style.fontFamily = elem.font;
+        oSpan.innerHTML = `&#x${elem.char};`;
+        if (parent) {
+            await this.appendChildren(parent, oSpan);
+        }
+        return oSpan;
+    }
+    async renderBreak(elem, parent) {
+        let oBr;
+        switch (elem.break) {
+            case "page":
+                oBr = createElement("br");
+                oBr.classList.add("break", "page");
+                break;
+            case "textWrapping":
+                oBr = createElement("br");
+                oBr.classList.add("break", "textWrap");
+                break;
+            case "column":
+                oBr = createElement("br");
+                oBr.classList.add("break", "column");
+                break;
+            case "lastRenderedPageBreak":
+                oBr = createElement("wbr");
+                oBr.classList.add("break", "lastRenderedPageBreak");
+                break;
+            default:
+        }
+        if (parent) {
+            appendChildren(parent, oBr);
+        }
+        return oBr;
+    }
+    renderInserted(elem) {
+        if (this.options.renderChanges) {
+            return this.renderContainer(elem, "ins");
+        }
+        return this.renderContainer(elem, "span");
+    }
+    async renderDeleted(elem) {
+        if (this.options.renderChanges) {
+            return await this.renderContainer(elem, "del");
+        }
+        return null;
+    }
+    async renderDeletedText(elem, parent) {
+        let oDeletedText;
+        if (this.options.renderEndnotes) {
+            oDeletedText = document.createTextNode(elem.text);
+            if (parent) {
+                await this.appendChildren(parent, oDeletedText);
+            }
+        }
+        else {
+            oDeletedText = null;
+        }
+        return oDeletedText;
+    }
+    async renderHeaderFooter(elem, tagName) {
+        let oElement = createElement(tagName);
+        await this.renderChildren(elem, oElement);
+        this.renderStyleValues(elem.cssStyle, oElement);
+        return oElement;
+    }
+    renderFootnoteReference(elem) {
+        let oSup = createElement("sup");
+        this.currentFootnoteIds.push(elem.id);
+        oSup.textContent = `${this.currentFootnoteIds.length}`;
+        return oSup;
+    }
+    renderEndnoteReference(elem) {
+        let oSup = createElement("sup");
+        this.currentEndnoteIds.push(elem.id);
+        oSup.textContent = `${this.currentEndnoteIds.length}`;
+        return oSup;
+    }
+    async renderVmlElement(elem, parent) {
+        var _a, _b;
+        let oSvg = createSvgElement("svg");
+        oSvg.setAttribute("style", elem.cssStyleText);
+        let oChildren = await this.renderVmlChildElement(elem);
+        if ((_a = elem.imageHref) === null || _a === void 0 ? void 0 : _a.id) {
+            let source = await ((_b = this.document) === null || _b === void 0 ? void 0 : _b.loadDocumentImage(elem.imageHref.id, this.currentPart));
+            oChildren.setAttribute("href", source);
+        }
+        appendChildren(oSvg, oChildren);
+        requestAnimationFrame(() => {
+            let bb = oSvg.firstElementChild.getBBox();
+            oSvg.setAttribute("width", `${Math.ceil(bb.x + bb.width)}`);
+            oSvg.setAttribute("height", `${Math.ceil(bb.y + bb.height)}`);
+        });
+        if (parent) {
+            oSvg.dataset.overflow = await this.appendChildren(parent, oSvg);
+        }
+        return oSvg;
+    }
+    async renderVmlPicture(elem) {
+        let oPictureContainer = createElement("div");
+        await this.renderChildren(elem, oPictureContainer);
+        return oPictureContainer;
+    }
+    async renderVmlChildElement(elem) {
+        let oSvgElement = createSvgElement(elem.tagName);
+        Object.entries(elem.attrs).forEach(([k, v]) => oSvgElement.setAttribute(k, v));
+        for (let child of elem.children) {
+            if (child.type == dom_1.DomType.VmlElement) {
+                let oChild = await this.renderVmlChildElement(child);
+                appendChildren(oSvgElement, oChild);
+            }
+            else {
+                await this.renderElement(child, oSvgElement);
+            }
+        }
+        return oSvgElement;
+    }
+    async renderMmlRadical(elem) {
+        var _a;
+        let base = elem.children.find(el => el.type == dom_1.DomType.MmlBase);
+        let oParent;
+        if ((_a = elem.props) === null || _a === void 0 ? void 0 : _a.hideDegree) {
+            oParent = createElementNS(ns.mathML, "msqrt", null);
+            await this.renderElements([base], oParent);
+            return oParent;
+        }
+        let degree = elem.children.find(el => el.type == dom_1.DomType.MmlDegree);
+        oParent = createElementNS(ns.mathML, "mroot", null);
+        await this.renderElements([base, degree], oParent);
+        return oParent;
+    }
+    async renderMmlDelimiter(elem) {
+        var _a, _b;
+        let oMrow = createElementNS(ns.mathML, "mrow", null);
+        let oBegin = createElementNS(ns.mathML, "mo", null, [(_a = elem.props.beginChar) !== null && _a !== void 0 ? _a : '(']);
+        appendChildren(oMrow, oBegin);
+        await this.renderElements(elem.children, oMrow);
+        let oEnd = createElementNS(ns.mathML, "mo", null, [(_b = elem.props.endChar) !== null && _b !== void 0 ? _b : ')']);
+        appendChildren(oMrow, oEnd);
+        return oMrow;
+    }
+    async renderMmlNary(elem) {
+        var _a, _b;
+        let children = [];
+        let grouped = (0, utils_1.keyBy)(elem.children, x => x.type);
+        let sup = grouped[dom_1.DomType.MmlSuperArgument];
+        let sub = grouped[dom_1.DomType.MmlSubArgument];
+        let supElem = sup ? createElementNS(ns.mathML, "mo", null, (0, utils_1.asArray)(await this.renderElement(sup))) : null;
+        let subElem = sub ? createElementNS(ns.mathML, "mo", null, (0, utils_1.asArray)(await this.renderElement(sub))) : null;
+        let charElem = createElementNS(ns.mathML, "mo", null, [(_b = (_a = elem.props) === null || _a === void 0 ? void 0 : _a.char) !== null && _b !== void 0 ? _b : '\u222B']);
+        if (supElem || subElem) {
+            children.push(createElementNS(ns.mathML, "munderover", null, [charElem, subElem, supElem]));
+        }
+        else if (supElem) {
+            children.push(createElementNS(ns.mathML, "mover", null, [charElem, supElem]));
+        }
+        else if (subElem) {
+            children.push(createElementNS(ns.mathML, "munder", null, [charElem, subElem]));
+        }
+        else {
+            children.push(charElem);
+        }
+        let oMrow = createElementNS(ns.mathML, "mrow", null);
+        appendChildren(oMrow, children);
+        await this.renderElements(grouped[dom_1.DomType.MmlBase].children, oMrow);
+        return oMrow;
+    }
+    async renderMmlPreSubSuper(elem) {
+        let children = [];
+        let grouped = (0, utils_1.keyBy)(elem.children, x => x.type);
+        let sup = grouped[dom_1.DomType.MmlSuperArgument];
+        let sub = grouped[dom_1.DomType.MmlSubArgument];
+        let supElem = sup ? createElementNS(ns.mathML, "mo", null, (0, utils_1.asArray)(await this.renderElement(sup))) : null;
+        let subElem = sub ? createElementNS(ns.mathML, "mo", null, (0, utils_1.asArray)(await this.renderElement(sub))) : null;
+        let stubElem = createElementNS(ns.mathML, "mo", null);
+        children.push(createElementNS(ns.mathML, "msubsup", null, [stubElem, subElem, supElem]));
+        let oMrow = createElementNS(ns.mathML, "mrow", null);
+        appendChildren(oMrow, children);
+        await this.renderElements(grouped[dom_1.DomType.MmlBase].children, oMrow);
+        return oMrow;
+    }
+    async renderMmlGroupChar(elem) {
+        let tagName = elem.props.verticalJustification === "bot" ? "mover" : "munder";
+        let oGroupChar = await this.renderContainerNS(elem, ns.mathML, tagName);
+        if (elem.props.char) {
+            let oMo = createElementNS(ns.mathML, "mo", null, [elem.props.char]);
+            appendChildren(oGroupChar, oMo);
+        }
+        return oGroupChar;
+    }
+    async renderMmlBar(elem) {
+        let oMrow = await this.renderContainerNS(elem, ns.mathML, "mrow");
+        switch (elem.props.position) {
+            case "top":
+                oMrow.style.textDecoration = "overline";
+                break;
+            case "bottom":
+                oMrow.style.textDecoration = "underline";
+                break;
+        }
+        return oMrow;
+    }
+    async renderMmlRun(elem) {
+        let oMs = createElementNS(ns.mathML, "ms");
+        this.renderClass(elem, oMs);
+        this.renderStyleValues(elem.cssStyle, oMs);
+        await this.renderChildren(elem, oMs);
+        return oMs;
+    }
+    async renderMllList(elem) {
+        let oMtable = createElementNS(ns.mathML, "mtable");
+        this.renderClass(elem, oMtable);
+        this.renderStyleValues(elem.cssStyle, oMtable);
+        for (let child of elem.children) {
+            let oChild = await this.renderElement(child);
+            let oMtd = createElementNS(ns.mathML, "mtd", null, [oChild]);
+            let oMtr = createElementNS(ns.mathML, "mtr", null, [oMtd]);
+            appendChildren(oMtable, oMtr);
+        }
+        return oMtable;
+    }
+    renderStyleValues(style, output) {
+        for (let k in style) {
+            if (k.startsWith("$")) {
+                output.setAttribute(k.slice(1), style[k]);
+            }
+            else {
+                output.style[k] = style[k];
+            }
+        }
+    }
+    renderRunProperties(style, props) {
+        this.renderCommonProperties(style, props);
+    }
+    renderCommonProperties(style, props) {
+        if (props == null)
+            return;
+        if (props.color) {
+            style["color"] = props.color;
+        }
+        if (props.fontSize) {
+            style["font-size"] = props.fontSize;
+        }
+    }
+    renderClass(input, output) {
+        if (input.className) {
+            output.className = input.className;
+        }
+        if (input.styleName) {
+            output.classList.add(this.processStyleName(input.styleName));
+        }
+    }
+    findStyle(styleName) {
+        var _a;
+        return styleName && ((_a = this.styleMap) === null || _a === void 0 ? void 0 : _a[styleName]);
+    }
+    tabStopClass() {
+        return `${this.className}-tab-stop`;
+    }
+    refreshTabStops() {
+        if (!this.options.experimental) {
+            return;
+        }
+        clearTimeout(this.tabsTimeout);
+        this.tabsTimeout = setTimeout(() => {
+            let pixelToPoint = (0, javascript_1.computePixelToPoint)();
+            for (let tab of this.currentTabs) {
+                (0, javascript_1.updateTabStop)(tab.span, tab.stops, this.defaultTabSize, pixelToPoint);
+            }
+        }, 500);
+    }
+}
+exports.HtmlRendererSync = HtmlRendererSync;
+function createElement(tagName, props) {
+    return createElementNS(null, tagName, props);
+}
+function createSvgElement(tagName, props) {
+    return createElementNS(ns.svg, tagName, props);
+}
+function createElementNS(ns, tagName, props, children) {
+    let oParent;
+    switch (ns) {
+        case "http://www.w3.org/1998/Math/MathML":
+            oParent = document.createElementNS(ns, tagName);
+            break;
+        case "http://www.w3.org/2000/svg":
+            oParent = document.createElementNS(ns, tagName);
+            break;
+        case "http://www.w3.org/1999/xhtml":
+            oParent = document.createElement(tagName);
+            break;
+        default:
+            oParent = document.createElement(tagName);
+    }
+    if (props) {
+        Object.assign(oParent, props);
+    }
+    if (children) {
+        appendChildren(oParent, children);
+    }
+    return oParent;
+}
+function removeAllElements(elem) {
+    elem.innerHTML = '';
+}
+function appendChildren(parent, children) {
+    if (Array.isArray(children)) {
+        parent.append(...children);
+    }
+    else if (children) {
+        if ((0, utils_1.isString)(children)) {
+            parent.append(children);
+        }
+        else {
+            parent.appendChild(children);
+        }
+    }
+}
+function checkOverflow(el) {
+    let current_overflow = getComputedStyle(el).overflow;
+    if (!current_overflow || current_overflow === "visible") {
+        el.style.overflow = "hidden";
+    }
+    let is_overflow = el.clientHeight < el.scrollHeight;
+    el.style.overflow = current_overflow;
+    return is_overflow;
+}
+function removeElements(target, parent) {
+    if (Array.isArray(target)) {
+        target.forEach((elem) => {
+            if (elem instanceof Element) {
+                elem.remove();
+            }
+            else {
+                if (parent) {
+                    parent.removeChild(elem);
+                }
+            }
+        });
+    }
+    else {
+        if (target instanceof Element) {
+            target.remove();
+        }
+        else {
+            if (target) {
+                parent.removeChild(target);
+            }
+        }
+    }
+}
+function createStyleElement(cssText) {
+    return createElement("style", { innerHTML: cssText });
+}
+function appendComment(elem, comment) {
+    elem.appendChild(document.createComment(comment));
+}
+function findParent(elem, type) {
+    let parent = elem.parent;
+    while (parent != null && parent.type != type) {
+        parent = parent.parent;
+    }
+    return parent;
+}
+
+
+/***/ }),
+
+/***/ "./src/html-renderer.ts":
+/*!******************************!*\
+  !*** ./src/html-renderer.ts ***!
+  \******************************/
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.HtmlRenderer = void 0;
+const dom_1 = __webpack_require__(/*! ./document/dom */ "./src/document/dom.ts");
+const utils_1 = __webpack_require__(/*! ./utils */ "./src/utils.ts");
+const javascript_1 = __webpack_require__(/*! ./javascript */ "./src/javascript.ts");
+const ns = {
+    svg: "http://www.w3.org/2000/svg",
+    mathML: "http://www.w3.org/1998/Math/MathML"
+};
+class HtmlRenderer {
+    constructor() {
+        this.className = "docx";
+        this.styleMap = {};
+        this.currentPart = null;
+        this.tableVerticalMerges = [];
+        this.currentVerticalMerge = null;
+        this.tableCellPositions = [];
+        this.currentCellPosition = null;
+        this.footnoteMap = {};
+        this.endnoteMap = {};
+        this.currentEndnoteIds = [];
+        this.usedHederFooterParts = [];
+        this.currentTabs = [];
+        this.tabsTimeout = 0;
+    }
+    render(document, bodyContainer, styleContainer = null, options) {
+        var _a;
+        this.document = document;
+        this.options = options;
+        this.className = options.className;
+        this.rootSelector = options.inWrapper ? `.${this.className}-wrapper` : ':root';
+        this.styleMap = null;
+        styleContainer = styleContainer || bodyContainer;
+        removeAllElements(styleContainer);
+        removeAllElements(bodyContainer);
+        appendComment(styleContainer, "docxjs library predefined styles");
+        styleContainer.appendChild(this.renderDefaultStyle());
+        if (document.themePart) {
+            appendComment(styleContainer, "docxjs document theme values");
+            this.renderTheme(document.themePart, styleContainer);
+        }
+        if (document.stylesPart != null) {
+            this.styleMap = this.processStyles(document.stylesPart.styles);
+            appendComment(styleContainer, "docxjs document styles");
+            styleContainer.appendChild(this.renderStyles(document.stylesPart.styles));
+        }
+        if (document.numberingPart) {
+            this.processNumberings(document.numberingPart.domNumberings);
+            appendComment(styleContainer, "docxjs document numbering styles");
+            styleContainer.appendChild(this.renderNumbering(document.numberingPart.domNumberings, styleContainer));
+        }
+        if (!options.ignoreFonts && document.fontTablePart) {
+            this.renderFontTable(document.fontTablePart, styleContainer);
+        }
+        if (document.footnotesPart) {
+            this.footnoteMap = (0, utils_1.keyBy)(document.footnotesPart.notes, x => x.id);
+        }
+        if (document.endnotesPart) {
+            this.endnoteMap = (0, utils_1.keyBy)(document.endnotesPart.notes, x => x.id);
+        }
+        if (document.settingsPart) {
+            this.defaultTabSize = (_a = document.settingsPart.settings) === null || _a === void 0 ? void 0 : _a.defaultTabStop;
+        }
+        let sectionElements = this.renderSections(document.documentPart.body);
+        if (this.options.inWrapper) {
+            bodyContainer.appendChild(this.renderWrapper(sectionElements));
+        }
+        else {
+            appendChildren(bodyContainer, sectionElements);
+        }
+        this.refreshTabStops();
+    }
+    renderDefaultStyle() {
+        let c = this.className;
+        let styleText = `
+			.${c}-wrapper { background: gray; padding: 30px; padding-bottom: 0px; display: flex; flex-flow: column; align-items: center; } 
+			.${c}-wrapper>section.${c} { background: white; box-shadow: 0 0 10px rgba(0, 0, 0, 0.5); margin-bottom: 30px; }
+			.${c} { color: black; hyphens: auto; }
+			section.${c} { box-sizing: border-box; display: flex; flex-flow: column nowrap; position: relative; overflow: hidden; }
+            section.${c}>header { position: absolute; top: 0; z-index: 1; display: flex; align-items: flex-end; }
+			section.${c}>article { z-index: 1; }
 			section.${c}>footer { position: absolute; bottom: 0; z-index: 1; }
 			.${c} table { border-collapse: collapse; }
 			.${c} table td, .${c} table th { vertical-align: top; }
@@ -2680,8 +4200,8 @@ class HtmlRendererSync {
             }
         }
     }
-    renderWrapper() {
-        return createElement("div", { className: `${this.className}-wrapper` });
+    renderWrapper(children) {
+        return createElement("div", { className: `${this.className}-wrapper` }, children);
     }
     copyStyleProperties(input, output, attrs = null) {
         if (!input) {
@@ -2759,13 +4279,8 @@ class HtmlRendererSync {
                         return rBreakIndex != -1;
                     });
                 }
-                if (sectProps) {
-                    current_section.is_split = false;
-                }
-                if (pBreakIndex != -1) {
-                    current_section.is_split = true;
-                }
                 if (sectProps || pBreakIndex != -1) {
+                    current_section.is_split = true;
                     current_section.sectProps = sectProps;
                     current_section = { sectProps: null, elements: [], is_split: false };
                     sections.push(current_section);
@@ -2788,7 +4303,6 @@ class HtmlRendererSync {
                 }
             }
             if (elem.type === dom_1.DomType.Table) {
-                current_section.is_split = false;
             }
         }
         let currentSectProps = null;
@@ -2801,1171 +4315,6 @@ class HtmlRendererSync {
             }
         }
         return sections;
-    }
-    renderSections(document) {
-        this.processElement(document);
-        let sections;
-        if (this.options.breakPages) {
-            sections = this.splitBySection(document.children);
-        }
-        else {
-            sections = [{ sectProps: document.props, elements: document.children, is_split: false }];
-        }
-        let prevProps = null;
-        for (let i = 0, l = sections.length; i < l; i++) {
-            this.currentFootnoteIds = [];
-            let section = sections[i];
-            let { sectProps } = section;
-            section.sectProps = sectProps !== null && sectProps !== void 0 ? sectProps : document.props;
-            section.isFirstSection = prevProps != sectProps;
-            section.isLastSection = i === (l - 1);
-            section.pageIndex = i;
-            section.checking_overflow = false;
-            this.current_section = section;
-            this.renderSection();
-            prevProps = sectProps;
-        }
-    }
-    renderSection() {
-        let section = this.current_section;
-        let { sectProps, isFirstSection, isLastSection, pageIndex } = section;
-        const sectionElement = this.createSection(this.className, sectProps);
-        this.renderStyleValues(this.document.documentPart.body.cssStyle, sectionElement);
-        if (this.options.renderHeaders) {
-            this.renderHeaderFooterRef(sectProps.headerRefs, sectProps, pageIndex, isFirstSection, sectionElement);
-        }
-        if (this.options.renderFootnotes) {
-            this.renderNotes(this.currentFootnoteIds, this.footnoteMap, sectionElement);
-        }
-        if (this.options.renderEndnotes && isLastSection) {
-            this.renderNotes(this.currentEndnoteIds, this.endnoteMap, sectionElement);
-        }
-        if (this.options.renderFooters) {
-            this.renderHeaderFooterRef(sectProps.footerRefs, sectProps, pageIndex, isFirstSection, sectionElement);
-        }
-        let contentElement = createElement("article");
-        if (this.options.breakPages) {
-            contentElement.style.height = sectProps.contentSize.height;
-        }
-        else {
-            contentElement.style.minHeight = sectProps.contentSize.height;
-        }
-        this.current_section.contentElement = contentElement;
-        sectionElement.appendChild(contentElement);
-        this.current_section.checking_overflow = true;
-        this.renderElements(section.elements, contentElement);
-        this.current_section.checking_overflow = false;
-    }
-    createSection(className, props) {
-        let elem = createElement("section", { className });
-        if (props) {
-            if (props.pageMargins) {
-                elem.style.paddingLeft = props.pageMargins.left;
-                elem.style.paddingRight = props.pageMargins.right;
-                elem.style.paddingTop = props.pageMargins.top;
-                elem.style.paddingBottom = props.pageMargins.bottom;
-            }
-            if (props.pageSize) {
-                if (!this.options.ignoreWidth) {
-                    elem.style.width = props.pageSize.width;
-                }
-                if (!this.options.ignoreHeight) {
-                    elem.style.minHeight = props.pageSize.height;
-                }
-            }
-            if (props.columns && props.columns.numberOfColumns) {
-                elem.style.columnCount = `${props.columns.numberOfColumns}`;
-                elem.style.columnGap = props.columns.space;
-                if (props.columns.separator) {
-                    elem.style.columnRule = "1px solid black";
-                }
-            }
-        }
-        this.wrapper.appendChild(elem);
-        return elem;
-    }
-    renderHeaderFooterRef(refs, props, page, firstOfSection, parent) {
-        var _a, _b, _c, _d, _e, _f, _g, _h;
-        if (!refs)
-            return;
-        let ref = (_b = (_a = (props.titlePage && firstOfSection ? refs.find(x => x.type == "first") : null)) !== null && _a !== void 0 ? _a : (page % 2 == 1 ? refs.find(x => x.type == "even") : null)) !== null && _b !== void 0 ? _b : refs.find(x => x.type == "default");
-        let part = ref && this.document.findPartByRelId(ref.id, this.document.documentPart);
-        if (part) {
-            this.currentPart = part;
-            if (!this.usedHederFooterParts.includes(part.path)) {
-                this.processElement(part.rootElement);
-                this.usedHederFooterParts.push(part.path);
-            }
-            switch (part.rootElement.type) {
-                case dom_1.DomType.Header:
-                    part.rootElement.cssStyle = {
-                        left: (_c = props.pageMargins) === null || _c === void 0 ? void 0 : _c.left,
-                        width: (_d = props.contentSize) === null || _d === void 0 ? void 0 : _d.width,
-                        height: (_e = props.pageMargins) === null || _e === void 0 ? void 0 : _e.top,
-                    };
-                    break;
-                case dom_1.DomType.Footer:
-                    part.rootElement.cssStyle = {
-                        left: (_f = props.pageMargins) === null || _f === void 0 ? void 0 : _f.left,
-                        width: (_g = props.contentSize) === null || _g === void 0 ? void 0 : _g.width,
-                        height: (_h = props.pageMargins) === null || _h === void 0 ? void 0 : _h.bottom,
-                    };
-                    break;
-                default:
-                    console.warn('set header/footer style error', part.rootElement.type);
-                    break;
-            }
-            this.renderElements([part.rootElement], parent);
-            this.currentPart = null;
-        }
-    }
-    renderNotes(noteIds, notesMap, parent) {
-        let notes = noteIds.map(id => notesMap[id]).filter(x => x);
-        if (notes.length > 0) {
-            let oList = createElement("ol", null);
-            this.renderElements(notes, oList);
-            parent.appendChild(oList);
-        }
-    }
-    renderElements(elems, parent) {
-        for (let i = 0; i < elems.length; i++) {
-            this.renderElement(elems[i], parent);
-            this.current_section.elementIndex = i;
-        }
-    }
-    renderElement(elem, parent) {
-        let oNode;
-        switch (elem.type) {
-            case dom_1.DomType.Paragraph:
-                oNode = this.renderParagraph(elem, parent);
-                break;
-            case dom_1.DomType.BookmarkStart:
-                oNode = this.renderBookmarkStart(elem, parent);
-                break;
-            case dom_1.DomType.BookmarkEnd:
-                oNode = null;
-                break;
-            case dom_1.DomType.Run:
-                oNode = this.renderRun(elem, parent);
-                break;
-            case dom_1.DomType.Table:
-                oNode = this.renderTable(elem, parent);
-                break;
-            case dom_1.DomType.Row:
-                oNode = this.renderTableRow(elem, parent);
-                break;
-            case dom_1.DomType.Cell:
-                oNode = this.renderTableCell(elem, parent);
-                break;
-            case dom_1.DomType.Hyperlink:
-                oNode = this.renderHyperlink(elem, parent);
-                break;
-            case dom_1.DomType.Drawing:
-                oNode = this.renderDrawing(elem, parent);
-                break;
-            case dom_1.DomType.Image:
-                oNode = this.renderImage(elem, parent);
-                break;
-            case dom_1.DomType.Text:
-                oNode = this.renderText(elem, parent);
-                break;
-            case dom_1.DomType.DeletedText:
-                oNode = this.renderDeletedText(elem, parent);
-                break;
-            case dom_1.DomType.Tab:
-                oNode = this.renderTab(elem, parent);
-                break;
-            case dom_1.DomType.Symbol:
-                oNode = this.renderSymbol(elem, parent);
-                break;
-            case dom_1.DomType.Break:
-                oNode = this.renderBreak(elem, parent);
-                break;
-            case dom_1.DomType.Footer:
-                oNode = this.renderHeaderFooter(elem, "footer");
-                if (parent) {
-                    this.appendChildren(parent, oNode);
-                }
-                break;
-            case dom_1.DomType.Header:
-                oNode = this.renderHeaderFooter(elem, "header");
-                if (parent) {
-                    this.appendChildren(parent, oNode);
-                }
-                break;
-            case dom_1.DomType.Footnote:
-            case dom_1.DomType.Endnote:
-                oNode = this.renderContainer(elem, "li");
-                if (parent) {
-                    this.appendChildren(parent, oNode);
-                }
-                break;
-            case dom_1.DomType.FootnoteReference:
-                oNode = this.renderFootnoteReference(elem);
-                if (parent) {
-                    this.appendChildren(parent, oNode);
-                }
-                break;
-            case dom_1.DomType.EndnoteReference:
-                oNode = this.renderEndnoteReference(elem);
-                if (parent) {
-                    this.appendChildren(parent, oNode);
-                }
-                break;
-            case dom_1.DomType.NoBreakHyphen:
-                oNode = createElement("wbr");
-                if (parent) {
-                    this.appendChildren(parent, oNode);
-                }
-                break;
-            case dom_1.DomType.VmlPicture:
-                oNode = this.renderVmlPicture(elem);
-                if (parent) {
-                    this.appendChildren(parent, oNode);
-                }
-                break;
-            case dom_1.DomType.VmlElement:
-                oNode = this.renderVmlElement(elem);
-                if (parent) {
-                    this.appendChildren(parent, oNode);
-                }
-                break;
-            case dom_1.DomType.MmlMath:
-                oNode = this.renderContainerNS(elem, ns.mathML, "math", { xmlns: ns.mathML });
-                if (parent) {
-                    this.appendChildren(parent, oNode);
-                }
-                break;
-            case dom_1.DomType.MmlMathParagraph:
-                oNode = this.renderContainer(elem, "span");
-                if (parent) {
-                    this.appendChildren(parent, oNode);
-                }
-                break;
-            case dom_1.DomType.MmlFraction:
-                oNode = this.renderContainerNS(elem, ns.mathML, "mfrac");
-                if (parent) {
-                    this.appendChildren(parent, oNode);
-                }
-                break;
-            case dom_1.DomType.MmlBase:
-                oNode = this.renderContainerNS(elem, ns.mathML, elem.parent.type == dom_1.DomType.MmlMatrixRow ? "mtd" : "mrow");
-                if (parent) {
-                    this.appendChildren(parent, oNode);
-                }
-                break;
-            case dom_1.DomType.MmlNumerator:
-            case dom_1.DomType.MmlDenominator:
-            case dom_1.DomType.MmlFunction:
-            case dom_1.DomType.MmlLimit:
-            case dom_1.DomType.MmlBox:
-                oNode = this.renderContainerNS(elem, ns.mathML, "mrow");
-                if (parent) {
-                    this.appendChildren(parent, oNode);
-                }
-                break;
-            case dom_1.DomType.MmlGroupChar:
-                oNode = this.renderMmlGroupChar(elem);
-                if (parent) {
-                    this.appendChildren(parent, oNode);
-                }
-                break;
-            case dom_1.DomType.MmlLimitLower:
-                oNode = this.renderContainerNS(elem, ns.mathML, "munder");
-                if (parent) {
-                    this.appendChildren(parent, oNode);
-                }
-                break;
-            case dom_1.DomType.MmlMatrix:
-                oNode = this.renderContainerNS(elem, ns.mathML, "mtable");
-                if (parent) {
-                    this.appendChildren(parent, oNode);
-                }
-                break;
-            case dom_1.DomType.MmlMatrixRow:
-                oNode = this.renderContainerNS(elem, ns.mathML, "mtr");
-                if (parent) {
-                    this.appendChildren(parent, oNode);
-                }
-                break;
-            case dom_1.DomType.MmlRadical:
-                oNode = this.renderMmlRadical(elem);
-                if (parent) {
-                    this.appendChildren(parent, oNode);
-                }
-                break;
-            case dom_1.DomType.MmlSuperscript:
-                oNode = this.renderContainerNS(elem, ns.mathML, "msup");
-                if (parent) {
-                    this.appendChildren(parent, oNode);
-                }
-                break;
-            case dom_1.DomType.MmlSubscript:
-                oNode = this.renderContainerNS(elem, ns.mathML, "msub");
-                if (parent) {
-                    this.appendChildren(parent, oNode);
-                }
-                break;
-            case dom_1.DomType.MmlDegree:
-            case dom_1.DomType.MmlSuperArgument:
-            case dom_1.DomType.MmlSubArgument:
-                oNode = this.renderContainerNS(elem, ns.mathML, "mn");
-                if (parent) {
-                    this.appendChildren(parent, oNode);
-                }
-                break;
-            case dom_1.DomType.MmlFunctionName:
-                oNode = this.renderContainerNS(elem, ns.mathML, "ms");
-                if (parent) {
-                    this.appendChildren(parent, oNode);
-                }
-                break;
-            case dom_1.DomType.MmlDelimiter:
-                oNode = this.renderMmlDelimiter(elem);
-                if (parent) {
-                    this.appendChildren(parent, oNode);
-                }
-                break;
-            case dom_1.DomType.MmlRun:
-                oNode = this.renderMmlRun(elem);
-                if (parent) {
-                    this.appendChildren(parent, oNode);
-                }
-                break;
-            case dom_1.DomType.MmlNary:
-                oNode = this.renderMmlNary(elem);
-                if (parent) {
-                    this.appendChildren(parent, oNode);
-                }
-                break;
-            case dom_1.DomType.MmlPreSubSuper:
-                oNode = this.renderMmlPreSubSuper(elem);
-                if (parent) {
-                    this.appendChildren(parent, oNode);
-                }
-                break;
-            case dom_1.DomType.MmlBar:
-                oNode = this.renderMmlBar(elem);
-                if (parent) {
-                    this.appendChildren(parent, oNode);
-                }
-                break;
-            case dom_1.DomType.MmlEquationArray:
-                oNode = this.renderMllList(elem);
-                if (parent) {
-                    this.appendChildren(parent, oNode);
-                }
-                break;
-            case dom_1.DomType.Inserted:
-                oNode = this.renderInserted(elem);
-                if (parent) {
-                    this.appendChildren(parent, oNode);
-                }
-                break;
-            case dom_1.DomType.Deleted:
-                oNode = this.renderDeleted(elem);
-                if (parent) {
-                    this.appendChildren(parent, oNode);
-                }
-                break;
-        }
-        return oNode;
-    }
-    isPageBreakElement(elem) {
-        if (elem.type != dom_1.DomType.Break) {
-            return false;
-        }
-        if (elem.break == "lastRenderedPageBreak") {
-            return !this.options.ignoreLastRenderedPageBreak;
-        }
-        if (elem.break === "page") {
-            return true;
-        }
-    }
-    renderChildren(elem, parent) {
-        this.renderElements(elem.children, parent);
-    }
-    appendChildren(parent, children) {
-        appendChildren(parent, children);
-        let { is_split, contentElement, pageIndex, elementIndex, checking_overflow, elements } = this.current_section;
-        if (is_split === false && checking_overflow) {
-            let is_overflow = checkOverflow(contentElement);
-            if (is_overflow) {
-                console.log(elementIndex, children, is_overflow);
-                removeElements(children, parent);
-                elements.splice(0, elementIndex);
-                pageIndex += 1;
-                checking_overflow = false;
-                this.current_section = Object.assign(Object.assign({}, this.current_section), { pageIndex, checking_overflow, elements });
-                this.renderSection();
-            }
-        }
-    }
-    renderContainer(elem, tagName, props) {
-        let parent = createElement(tagName, props);
-        this.renderChildren(elem, parent);
-        return parent;
-    }
-    renderContainerNS(elem, ns, tagName, props) {
-        let parent = createElementNS(ns, tagName, props);
-        this.renderChildren(elem, parent);
-        return parent;
-    }
-    renderParagraph(elem, parent) {
-        var _a, _b, _c, _d;
-        let oParagraph = createElement("p");
-        const style = this.findStyle(elem.styleName);
-        (_a = elem.tabs) !== null && _a !== void 0 ? _a : (elem.tabs = (_b = style === null || style === void 0 ? void 0 : style.paragraphProps) === null || _b === void 0 ? void 0 : _b.tabs);
-        this.renderClass(elem, oParagraph);
-        this.renderStyleValues(elem.cssStyle, oParagraph);
-        this.renderCommonProperties(oParagraph.style, elem);
-        if (parent) {
-            this.appendChildren(parent, oParagraph);
-        }
-        this.renderChildren(elem, oParagraph);
-        const numbering = (_c = elem.numbering) !== null && _c !== void 0 ? _c : (_d = style === null || style === void 0 ? void 0 : style.paragraphProps) === null || _d === void 0 ? void 0 : _d.numbering;
-        if (numbering) {
-            oParagraph.classList.add(this.numberingClass(numbering.id, numbering.level));
-        }
-        return oParagraph;
-    }
-    renderRunProperties(style, props) {
-        this.renderCommonProperties(style, props);
-    }
-    renderCommonProperties(style, props) {
-        if (props == null)
-            return;
-        if (props.color) {
-            style["color"] = props.color;
-        }
-        if (props.fontSize) {
-            style["font-size"] = props.fontSize;
-        }
-    }
-    renderHyperlink(elem, parent) {
-        let oAnchor = createElement("a");
-        if (parent) {
-            this.appendChildren(parent, oAnchor);
-        }
-        this.renderChildren(elem, oAnchor);
-        this.renderStyleValues(elem.cssStyle, oAnchor);
-        if (elem.href) {
-            oAnchor.href = elem.href;
-        }
-        else if (elem.id) {
-            const rel = this.document.documentPart.rels
-                .find(it => it.id == elem.id && it.targetMode === "External");
-            oAnchor.href = rel === null || rel === void 0 ? void 0 : rel.target;
-        }
-        return oAnchor;
-    }
-    renderDrawing(elem, parent) {
-        let oDrawing = createElement("div");
-        oDrawing.style.display = "inline-block";
-        oDrawing.style.position = "relative";
-        oDrawing.style.textIndent = "0px";
-        this.renderChildren(elem, oDrawing);
-        this.renderStyleValues(elem.cssStyle, oDrawing);
-        if (parent) {
-            this.appendChildren(parent, oDrawing);
-        }
-        return oDrawing;
-    }
-    renderImage(elem, parent) {
-        let oImage = createElement("img");
-        this.renderStyleValues(elem.cssStyle, oImage);
-        if (this.document) {
-            this.document
-                .loadDocumentImage(elem.src, this.currentPart)
-                .then(src => {
-                oImage.src = src;
-            });
-        }
-        if (parent) {
-            this.appendChildren(parent, oImage);
-        }
-        return oImage;
-    }
-    renderText(elem, parent) {
-        let oText = document.createTextNode(elem.text);
-        if (parent) {
-            this.appendChildren(parent, oText);
-        }
-        return oText;
-    }
-    renderDeletedText(elem, parent) {
-        let oDeletedText;
-        if (this.options.renderEndnotes) {
-            oDeletedText = document.createTextNode(elem.text);
-            if (parent) {
-                this.appendChildren(parent, oDeletedText);
-            }
-        }
-        else {
-            oDeletedText = null;
-        }
-        return oDeletedText;
-    }
-    renderBreak(elem, parent) {
-        if (elem.break == "textWrapping") {
-            let oBr = createElement("br");
-            if (parent) {
-                this.appendChildren(parent, oBr);
-            }
-            return oBr;
-        }
-        return null;
-    }
-    renderInserted(elem) {
-        if (this.options.renderChanges) {
-            return this.renderContainer(elem, "ins");
-        }
-        return this.renderContainer(elem, "span");
-    }
-    renderDeleted(elem) {
-        if (this.options.renderChanges) {
-            return this.renderContainer(elem, "del");
-        }
-        return null;
-    }
-    renderSymbol(elem, parent) {
-        let oSpan = createElement("span");
-        oSpan.style.fontFamily = elem.font;
-        oSpan.innerHTML = `&#x${elem.char};`;
-        if (parent) {
-            this.appendChildren(parent, oSpan);
-        }
-        return oSpan;
-    }
-    renderHeaderFooter(elem, tagName) {
-        let oElement = createElement(tagName);
-        this.renderChildren(elem, oElement);
-        this.renderStyleValues(elem.cssStyle, oElement);
-        return oElement;
-    }
-    renderFootnoteReference(elem) {
-        let oSup = createElement("sup");
-        this.currentFootnoteIds.push(elem.id);
-        oSup.textContent = `${this.currentFootnoteIds.length}`;
-        return oSup;
-    }
-    renderEndnoteReference(elem) {
-        let oSup = createElement("sup");
-        this.currentEndnoteIds.push(elem.id);
-        oSup.textContent = `${this.currentEndnoteIds.length}`;
-        return oSup;
-    }
-    renderTab(elem, parent) {
-        var _a;
-        let tabSpan = createElement("span");
-        tabSpan.innerHTML = "&emsp;";
-        if (this.options.experimental) {
-            tabSpan.className = this.tabStopClass();
-            let stops = (_a = findParent(elem, dom_1.DomType.Paragraph)) === null || _a === void 0 ? void 0 : _a.tabs;
-            this.currentTabs.push({ stops, span: tabSpan });
-        }
-        if (parent) {
-            this.appendChildren(parent, tabSpan);
-        }
-        return tabSpan;
-    }
-    renderBookmarkStart(elem, parent) {
-        let oSpan = createElement("span");
-        oSpan.id = elem.name;
-        if (parent) {
-            this.appendChildren(parent, oSpan);
-        }
-        return oSpan;
-    }
-    renderRun(elem, parent) {
-        if (elem.fieldRun) {
-            return null;
-        }
-        const oSpan = createElement("span");
-        if (elem.id) {
-            oSpan.id = elem.id;
-        }
-        this.renderClass(elem, oSpan);
-        this.renderStyleValues(elem.cssStyle, oSpan);
-        if (parent) {
-            this.appendChildren(parent, oSpan);
-        }
-        if (elem.verticalAlign) {
-            const wrapper = createElement(elem.verticalAlign);
-            this.renderChildren(elem, wrapper);
-            this.appendChildren(oSpan, wrapper);
-        }
-        else {
-            this.renderChildren(elem, oSpan);
-        }
-        return oSpan;
-    }
-    renderTable(elem, parent) {
-        let oTable = createElement("table");
-        this.tableCellPositions.push(this.currentCellPosition);
-        this.tableVerticalMerges.push(this.currentVerticalMerge);
-        this.currentVerticalMerge = {};
-        this.currentCellPosition = { col: 0, row: 0 };
-        this.renderClass(elem, oTable);
-        this.renderStyleValues(elem.cssStyle, oTable);
-        if (parent) {
-            this.appendChildren(parent, oTable);
-        }
-        if (elem.columns) {
-            let oColumns = this.renderTableColumns(elem.columns, oTable);
-        }
-        this.renderChildren(elem, oTable);
-        this.currentVerticalMerge = this.tableVerticalMerges.pop();
-        this.currentCellPosition = this.tableCellPositions.pop();
-        return oTable;
-    }
-    renderTableColumns(columns, parent) {
-        let oColGroup = createElement("colgroup");
-        if (parent) {
-            this.appendChildren(parent, oColGroup);
-        }
-        for (let col of columns) {
-            let oCol = createElement("col");
-            if (col.width) {
-                oCol.style.width = col.width;
-            }
-            this.appendChildren(oColGroup, oCol);
-        }
-        return oColGroup;
-    }
-    renderTableRow(elem, parent) {
-        let oTableRow = createElement("tr");
-        this.currentCellPosition.col = 0;
-        if (parent) {
-            this.appendChildren(parent, oTableRow);
-        }
-        this.renderClass(elem, oTableRow);
-        this.renderChildren(elem, oTableRow);
-        this.renderStyleValues(elem.cssStyle, oTableRow);
-        this.currentCellPosition.row++;
-        return oTableRow;
-    }
-    renderTableCell(elem, parent) {
-        let oTableCell = createElement("td");
-        const key = this.currentCellPosition.col;
-        if (elem.verticalMerge) {
-            if (elem.verticalMerge == "restart") {
-                this.currentVerticalMerge[key] = oTableCell;
-                oTableCell.rowSpan = 1;
-            }
-            else if (this.currentVerticalMerge[key]) {
-                this.currentVerticalMerge[key].rowSpan += 1;
-                oTableCell.style.display = "none";
-            }
-        }
-        else {
-            this.currentVerticalMerge[key] = null;
-        }
-        if (parent) {
-            this.appendChildren(parent, oTableCell);
-        }
-        this.renderClass(elem, oTableCell);
-        this.renderChildren(elem, oTableCell);
-        this.renderStyleValues(elem.cssStyle, oTableCell);
-        if (elem.span)
-            oTableCell.colSpan = elem.span;
-        this.currentCellPosition.col += oTableCell.colSpan;
-        return oTableCell;
-    }
-    renderVmlPicture(elem) {
-        let oPictureContainer = createElement("div");
-        this.renderChildren(elem, oPictureContainer);
-        return oPictureContainer;
-    }
-    renderVmlElement(elem) {
-        var _a, _b;
-        let oSvg = createSvgElement("svg");
-        oSvg.setAttribute("style", elem.cssStyleText);
-        const oChildren = this.renderVmlChildElement(elem);
-        if ((_a = elem.imageHref) === null || _a === void 0 ? void 0 : _a.id) {
-            (_b = this.document) === null || _b === void 0 ? void 0 : _b.loadDocumentImage(elem.imageHref.id, this.currentPart).then(x => oChildren.setAttribute("href", x));
-        }
-        appendChildren(oSvg, oChildren);
-        requestAnimationFrame(() => {
-            const bb = oSvg.firstElementChild.getBBox();
-            oSvg.setAttribute("width", `${Math.ceil(bb.x + bb.width)}`);
-            oSvg.setAttribute("height", `${Math.ceil(bb.y + bb.height)}`);
-        });
-        return oSvg;
-    }
-    renderVmlChildElement(elem) {
-        const oSvgElement = createSvgElement(elem.tagName);
-        Object.entries(elem.attrs).forEach(([k, v]) => oSvgElement.setAttribute(k, v));
-        for (let child of elem.children) {
-            if (child.type == dom_1.DomType.VmlElement) {
-                let oChild = this.renderVmlChildElement(child);
-                appendChildren(oSvgElement, oChild);
-            }
-            else {
-                let oChild = this.renderElement(child);
-                appendChildren(oSvgElement, oChild);
-            }
-        }
-        return oSvgElement;
-    }
-    renderMmlRadical(elem) {
-        var _a;
-        const base = elem.children.find(el => el.type == dom_1.DomType.MmlBase);
-        let oParent;
-        if ((_a = elem.props) === null || _a === void 0 ? void 0 : _a.hideDegree) {
-            oParent = createElementNS(ns.mathML, "msqrt", null);
-            this.renderElements([base], oParent);
-            return oParent;
-        }
-        const degree = elem.children.find(el => el.type == dom_1.DomType.MmlDegree);
-        oParent = createElementNS(ns.mathML, "mroot", null);
-        this.renderElements([base, degree], oParent);
-        return oParent;
-    }
-    renderMmlDelimiter(elem) {
-        var _a, _b;
-        let oMrow = createElementNS(ns.mathML, "mrow", null);
-        let oBegin = createElementNS(ns.mathML, "mo", null, [(_a = elem.props.beginChar) !== null && _a !== void 0 ? _a : '(']);
-        appendChildren(oMrow, oBegin);
-        this.renderElements(elem.children, oMrow);
-        let oEnd = createElementNS(ns.mathML, "mo", null, [(_b = elem.props.endChar) !== null && _b !== void 0 ? _b : ')']);
-        appendChildren(oMrow, oEnd);
-        return oMrow;
-    }
-    renderMmlNary(elem) {
-        var _a, _b;
-        const children = [];
-        const grouped = (0, utils_1.keyBy)(elem.children, x => x.type);
-        const sup = grouped[dom_1.DomType.MmlSuperArgument];
-        const sub = grouped[dom_1.DomType.MmlSubArgument];
-        const supElem = sup ? createElementNS(ns.mathML, "mo", null, (0, utils_1.asArray)(this.renderElement(sup))) : null;
-        const subElem = sub ? createElementNS(ns.mathML, "mo", null, (0, utils_1.asArray)(this.renderElement(sub))) : null;
-        const charElem = createElementNS(ns.mathML, "mo", null, [(_b = (_a = elem.props) === null || _a === void 0 ? void 0 : _a.char) !== null && _b !== void 0 ? _b : '\u222B']);
-        if (supElem || subElem) {
-            children.push(createElementNS(ns.mathML, "munderover", null, [charElem, subElem, supElem]));
-        }
-        else if (supElem) {
-            children.push(createElementNS(ns.mathML, "mover", null, [charElem, supElem]));
-        }
-        else if (subElem) {
-            children.push(createElementNS(ns.mathML, "munder", null, [charElem, subElem]));
-        }
-        else {
-            children.push(charElem);
-        }
-        let oMrow = createElementNS(ns.mathML, "mrow", null);
-        appendChildren(oMrow, children);
-        this.renderElements(grouped[dom_1.DomType.MmlBase].children, oMrow);
-        return oMrow;
-    }
-    renderMmlPreSubSuper(elem) {
-        const children = [];
-        const grouped = (0, utils_1.keyBy)(elem.children, x => x.type);
-        const sup = grouped[dom_1.DomType.MmlSuperArgument];
-        const sub = grouped[dom_1.DomType.MmlSubArgument];
-        const supElem = sup ? createElementNS(ns.mathML, "mo", null, (0, utils_1.asArray)(this.renderElement(sup))) : null;
-        const subElem = sub ? createElementNS(ns.mathML, "mo", null, (0, utils_1.asArray)(this.renderElement(sub))) : null;
-        const stubElem = createElementNS(ns.mathML, "mo", null);
-        children.push(createElementNS(ns.mathML, "msubsup", null, [stubElem, subElem, supElem]));
-        let oMrow = createElementNS(ns.mathML, "mrow", null);
-        appendChildren(oMrow, children);
-        this.renderElements(grouped[dom_1.DomType.MmlBase].children, oMrow);
-        return oMrow;
-    }
-    renderMmlGroupChar(elem) {
-        const tagName = elem.props.verticalJustification === "bot" ? "mover" : "munder";
-        const oGroupChar = this.renderContainerNS(elem, ns.mathML, tagName);
-        if (elem.props.char) {
-            let oMo = createElementNS(ns.mathML, "mo", null, [elem.props.char]);
-            appendChildren(oGroupChar, oMo);
-        }
-        return oGroupChar;
-    }
-    renderMmlBar(elem) {
-        const oMrow = this.renderContainerNS(elem, ns.mathML, "mrow");
-        switch (elem.props.position) {
-            case "top":
-                oMrow.style.textDecoration = "overline";
-                break;
-            case "bottom":
-                oMrow.style.textDecoration = "underline";
-                break;
-        }
-        return oMrow;
-    }
-    renderMmlRun(elem) {
-        const oMs = createElementNS(ns.mathML, "ms");
-        this.renderClass(elem, oMs);
-        this.renderStyleValues(elem.cssStyle, oMs);
-        this.renderChildren(elem, oMs);
-        return oMs;
-    }
-    renderMllList(elem) {
-        const oMtable = createElementNS(ns.mathML, "mtable");
-        this.renderClass(elem, oMtable);
-        this.renderStyleValues(elem.cssStyle, oMtable);
-        for (let child of elem.children) {
-            let oChild = this.renderElement(child);
-            let oMtd = createElementNS(ns.mathML, "mtd", null, [oChild]);
-            let oMtr = createElementNS(ns.mathML, "mtr", null, [oMtd]);
-            appendChildren(oMtable, oMtr);
-        }
-        return oMtable;
-    }
-    renderStyleValues(style, output) {
-        for (let k in style) {
-            if (k.startsWith("$")) {
-                output.setAttribute(k.slice(1), style[k]);
-            }
-            else {
-                output.style[k] = style[k];
-            }
-        }
-    }
-    renderClass(input, output) {
-        if (input.className) {
-            output.className = input.className;
-        }
-        if (input.styleName) {
-            output.classList.add(this.processStyleName(input.styleName));
-        }
-    }
-    findStyle(styleName) {
-        var _a;
-        return styleName && ((_a = this.styleMap) === null || _a === void 0 ? void 0 : _a[styleName]);
-    }
-    tabStopClass() {
-        return `${this.className}-tab-stop`;
-    }
-    refreshTabStops() {
-        if (!this.options.experimental) {
-            return;
-        }
-        clearTimeout(this.tabsTimeout);
-        this.tabsTimeout = setTimeout(() => {
-            const pixelToPoint = (0, javascript_1.computePixelToPoint)();
-            for (let tab of this.currentTabs) {
-                (0, javascript_1.updateTabStop)(tab.span, tab.stops, this.defaultTabSize, pixelToPoint);
-            }
-        }, 500);
-    }
-}
-exports.HtmlRendererSync = HtmlRendererSync;
-function createElement(tagName, props) {
-    return createElementNS(null, tagName, props);
-}
-function createSvgElement(tagName, props) {
-    return createElementNS(ns.svg, tagName, props);
-}
-function createElementNS(ns, tagName, props, children) {
-    let oParent;
-    switch (ns) {
-        case "http://www.w3.org/1998/Math/MathML":
-            oParent = document.createElementNS(ns, tagName);
-            break;
-        case "http://www.w3.org/2000/svg":
-            oParent = document.createElementNS(ns, tagName);
-            break;
-        case "http://www.w3.org/1999/xhtml":
-            oParent = document.createElement(tagName);
-            break;
-        default:
-            oParent = document.createElement(tagName);
-    }
-    if (props) {
-        Object.assign(oParent, props);
-    }
-    if (children) {
-        appendChildren(oParent, children);
-    }
-    return oParent;
-}
-function removeAllElements(elem) {
-    elem.innerHTML = '';
-}
-function appendChildren(parent, children) {
-    if (Array.isArray(children)) {
-        parent.append(...children);
-    }
-    else if (children) {
-        if ((0, utils_1.isString)(children)) {
-            parent.append(children);
-        }
-        else {
-            parent.appendChild(children);
-        }
-    }
-}
-function checkOverflow(el) {
-    return el.clientWidth < el.scrollWidth || el.clientHeight < el.scrollHeight;
-}
-function removeElements(target, parent) {
-    if (Array.isArray(target)) {
-        target.forEach((elem) => {
-            if (elem instanceof Element) {
-                elem.remove();
-            }
-            else {
-                if (parent) {
-                    parent.removeChild(elem);
-                }
-            }
-        });
-    }
-    else {
-        if (target instanceof Element) {
-            target.remove();
-        }
-        else {
-            if (target) {
-                parent.removeChild(target);
-            }
-        }
-    }
-}
-function createStyleElement(cssText) {
-    return createElement("style", { innerHTML: cssText });
-}
-function appendComment(elem, comment) {
-    elem.appendChild(document.createComment(comment));
-}
-function findParent(elem, type) {
-    let parent = elem.parent;
-    while (parent != null && parent.type != type)
-        parent = parent.parent;
-    return parent;
-}
-
-
-/***/ }),
-
-/***/ "./src/html-renderer.ts":
-/*!******************************!*\
-  !*** ./src/html-renderer.ts ***!
-  \******************************/
-/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
-
-
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.HtmlRenderer = void 0;
-const dom_1 = __webpack_require__(/*! ./document/dom */ "./src/document/dom.ts");
-const utils_1 = __webpack_require__(/*! ./utils */ "./src/utils.ts");
-const javascript_1 = __webpack_require__(/*! ./javascript */ "./src/javascript.ts");
-const ns = {
-    svg: "http://www.w3.org/2000/svg",
-    mathML: "http://www.w3.org/1998/Math/MathML"
-};
-class HtmlRenderer {
-    constructor() {
-        this.className = "docx";
-        this.styleMap = {};
-        this.currentPart = null;
-        this.tableVerticalMerges = [];
-        this.currentVerticalMerge = null;
-        this.tableCellPositions = [];
-        this.currentCellPosition = null;
-        this.footnoteMap = {};
-        this.endnoteMap = {};
-        this.currentEndnoteIds = [];
-        this.usedHederFooterParts = [];
-        this.currentTabs = [];
-        this.tabsTimeout = 0;
-        this.createElement = createElement;
-    }
-    render(document, bodyContainer, styleContainer = null, options) {
-        var _a;
-        this.document = document;
-        this.options = options;
-        this.className = options.className;
-        this.rootSelector = options.inWrapper ? `.${this.className}-wrapper` : ':root';
-        this.styleMap = null;
-        styleContainer = styleContainer || bodyContainer;
-        removeAllElements(styleContainer);
-        removeAllElements(bodyContainer);
-        appendComment(styleContainer, "docxjs library predefined styles");
-        styleContainer.appendChild(this.renderDefaultStyle());
-        if (document.themePart) {
-            appendComment(styleContainer, "docxjs document theme values");
-            this.renderTheme(document.themePart, styleContainer);
-        }
-        if (document.stylesPart != null) {
-            this.styleMap = this.processStyles(document.stylesPart.styles);
-            appendComment(styleContainer, "docxjs document styles");
-            styleContainer.appendChild(this.renderStyles(document.stylesPart.styles));
-        }
-        if (document.numberingPart) {
-            this.processNumberings(document.numberingPart.domNumberings);
-            appendComment(styleContainer, "docxjs document numbering styles");
-            styleContainer.appendChild(this.renderNumbering(document.numberingPart.domNumberings, styleContainer));
-        }
-        if (!options.ignoreFonts && document.fontTablePart) {
-            this.renderFontTable(document.fontTablePart, styleContainer);
-        }
-        if (document.footnotesPart) {
-            this.footnoteMap = (0, utils_1.keyBy)(document.footnotesPart.notes, x => x.id);
-        }
-        if (document.endnotesPart) {
-            this.endnoteMap = (0, utils_1.keyBy)(document.endnotesPart.notes, x => x.id);
-        }
-        if (document.settingsPart) {
-            this.defaultTabSize = (_a = document.settingsPart.settings) === null || _a === void 0 ? void 0 : _a.defaultTabStop;
-        }
-        let sectionElements = this.renderSections(document.documentPart.body);
-        if (this.options.inWrapper) {
-            bodyContainer.appendChild(this.renderWrapper(sectionElements));
-        }
-        else {
-            appendChildren(bodyContainer, sectionElements);
-        }
-        this.refreshTabStops();
-    }
-    renderTheme(themePart, styleContainer) {
-        var _a, _b;
-        const variables = {};
-        const fontScheme = (_a = themePart.theme) === null || _a === void 0 ? void 0 : _a.fontScheme;
-        if (fontScheme) {
-            if (fontScheme.majorFont) {
-                variables['--docx-majorHAnsi-font'] = fontScheme.majorFont.latinTypeface;
-            }
-            if (fontScheme.minorFont) {
-                variables['--docx-minorHAnsi-font'] = fontScheme.minorFont.latinTypeface;
-            }
-        }
-        const colorScheme = (_b = themePart.theme) === null || _b === void 0 ? void 0 : _b.colorScheme;
-        if (colorScheme) {
-            for (let [k, v] of Object.entries(colorScheme.colors)) {
-                variables[`--docx-${k}-color`] = `#${v}`;
-            }
-        }
-        const cssText = this.styleToString(`.${this.className}`, variables);
-        styleContainer.appendChild(createStyleElement(cssText));
-    }
-    renderFontTable(fontsPart, styleContainer) {
-        for (let f of fontsPart.fonts) {
-            for (let ref of f.embedFontRefs) {
-                this.document.loadFont(ref.id, ref.key).then(fontData => {
-                    const cssValues = {
-                        'font-family': f.name,
-                        'src': `url(${fontData})`
-                    };
-                    if (ref.type == "bold" || ref.type == "boldItalic") {
-                        cssValues['font-weight'] = 'bold';
-                    }
-                    if (ref.type == "italic" || ref.type == "boldItalic") {
-                        cssValues['font-style'] = 'italic';
-                    }
-                    appendComment(styleContainer, `docxjs ${f.name} font`);
-                    const cssText = this.styleToString("@font-face", cssValues);
-                    styleContainer.appendChild(createStyleElement(cssText));
-                    this.refreshTabStops();
-                });
-            }
-        }
-    }
-    processStyleName(className) {
-        return className ? `${this.className}_${(0, utils_1.escapeClassName)(className)}` : this.className;
-    }
-    processStyles(styles) {
-        const stylesMap = (0, utils_1.keyBy)(styles.filter(x => x.id != null), x => x.id);
-        for (const style of styles.filter(x => x.basedOn)) {
-            let baseStyle = stylesMap[style.basedOn];
-            if (baseStyle) {
-                style.paragraphProps = (0, utils_1.mergeDeep)(style.paragraphProps, baseStyle.paragraphProps);
-                style.runProps = (0, utils_1.mergeDeep)(style.runProps, baseStyle.runProps);
-                for (const baseValues of baseStyle.styles) {
-                    const styleValues = style.styles.find(x => x.target == baseValues.target);
-                    if (styleValues) {
-                        this.copyStyleProperties(baseValues.values, styleValues.values);
-                    }
-                    else {
-                        style.styles.push(Object.assign(Object.assign({}, baseValues), { values: Object.assign({}, baseValues.values) }));
-                    }
-                }
-            }
-            else if (this.options.debug) {
-                console.warn(`Can't find base style ${style.basedOn}`);
-            }
-        }
-        for (let style of styles) {
-            style.cssName = this.processStyleName(style.id);
-        }
-        return stylesMap;
-    }
-    processNumberings(numberings) {
-        var _a;
-        for (let num of numberings.filter(n => n.pStyleName)) {
-            const style = this.findStyle(num.pStyleName);
-            if ((_a = style === null || style === void 0 ? void 0 : style.paragraphProps) === null || _a === void 0 ? void 0 : _a.numbering) {
-                style.paragraphProps.numbering.level = num.level;
-            }
-        }
-    }
-    processElement(element) {
-        if (element.children) {
-            for (let e of element.children) {
-                e.parent = element;
-                if (e.type == dom_1.DomType.Table) {
-                    this.processTable(e);
-                }
-                else {
-                    this.processElement(e);
-                }
-            }
-        }
-    }
-    processTable(table) {
-        for (let r of table.children) {
-            for (let c of r.children) {
-                c.cssStyle = this.copyStyleProperties(table.cellStyle, c.cssStyle, [
-                    "border-left", "border-right", "border-top", "border-bottom",
-                    "padding-left", "padding-right", "padding-top", "padding-bottom"
-                ]);
-                this.processElement(c);
-            }
-        }
-    }
-    copyStyleProperties(input, output, attrs = null) {
-        if (!input) {
-            return output;
-        }
-        if (output == null) {
-            output = {};
-        }
-        if (attrs == null) {
-            attrs = Object.getOwnPropertyNames(input);
-        }
-        for (let key of attrs) {
-            if (input.hasOwnProperty(key) && !output.hasOwnProperty(key))
-                output[key] = input[key];
-        }
-        return output;
-    }
-    createSection(className, props) {
-        let elem = this.createElement("section", { className });
-        if (props) {
-            if (props.pageMargins) {
-                elem.style.paddingLeft = props.pageMargins.left;
-                elem.style.paddingRight = props.pageMargins.right;
-                elem.style.paddingTop = props.pageMargins.top;
-                elem.style.paddingBottom = props.pageMargins.bottom;
-            }
-            if (props.pageSize) {
-                if (!this.options.ignoreWidth) {
-                    elem.style.width = props.pageSize.width;
-                }
-                if (!this.options.ignoreHeight) {
-                    elem.style.minHeight = props.pageSize.height;
-                }
-            }
-            if (props.columns && props.columns.numberOfColumns) {
-                elem.style.columnCount = `${props.columns.numberOfColumns}`;
-                elem.style.columnGap = props.columns.space;
-                if (props.columns.separator) {
-                    elem.style.columnRule = "1px solid black";
-                }
-            }
-        }
-        return elem;
     }
     renderSections(document) {
         const result = [];
@@ -3997,7 +4346,7 @@ class HtmlRenderer {
         if (this.options.renderHeaders) {
             this.renderHeaderFooterRef(props.headerRefs, props, pageIndex, isFirstSection, sectionElement);
         }
-        let contentElement = this.createElement("article");
+        let contentElement = createElement("article");
         if (this.options.breakPages) {
             contentElement.style.minHeight = props.contentSize.height;
         }
@@ -4013,6 +4362,33 @@ class HtmlRenderer {
             this.renderHeaderFooterRef(props.footerRefs, props, pageIndex, isFirstSection, sectionElement);
         }
         return [sectionElement];
+    }
+    createSection(className, props) {
+        let oSection = createElement("section", { className });
+        if (props) {
+            if (props.pageMargins) {
+                oSection.style.paddingLeft = props.pageMargins.left;
+                oSection.style.paddingRight = props.pageMargins.right;
+                oSection.style.paddingTop = props.pageMargins.top;
+                oSection.style.paddingBottom = props.pageMargins.bottom;
+            }
+            if (props.pageSize) {
+                if (!this.options.ignoreWidth) {
+                    oSection.style.width = props.pageSize.width;
+                }
+                if (!this.options.ignoreHeight) {
+                    oSection.style.minHeight = props.pageSize.height;
+                }
+            }
+            if (props.columns && props.columns.numberOfColumns) {
+                oSection.style.columnCount = `${props.columns.numberOfColumns}`;
+                oSection.style.columnGap = props.columns.space;
+                if (props.columns.separator) {
+                    oSection.style.columnRule = "1px solid black";
+                }
+            }
+        }
+        return oSection;
     }
     renderHeaderFooterRef(refs, props, page, firstOfSection, parent) {
         var _a, _b, _c, _d, _e, _f, _g, _h;
@@ -4049,185 +4425,32 @@ class HtmlRenderer {
             this.currentPart = null;
         }
     }
-    isPageBreakElement(elem) {
-        if (elem.type != dom_1.DomType.Break) {
-            return false;
-        }
-        if (elem.break == "lastRenderedPageBreak") {
-            return !this.options.ignoreLastRenderedPageBreak;
-        }
-        if (elem.break === "page") {
-            return true;
-        }
-    }
-    splitBySection(elements) {
-        var _a;
-        let current_section = { sectProps: null, elements: [], is_split: false, };
-        let sections = [current_section];
-        for (let elem of elements) {
-            current_section.elements.push(elem);
-            if (elem.type == dom_1.DomType.Paragraph) {
-                const p = elem;
-                let sectProps = p.sectionProps;
-                const default_paragraph_style = this.findStyle(p.styleName);
-                if ((_a = default_paragraph_style === null || default_paragraph_style === void 0 ? void 0 : default_paragraph_style.paragraphProps) === null || _a === void 0 ? void 0 : _a.pageBreakBefore) {
-                    current_section.is_split = true;
-                    current_section.sectProps = sectProps;
-                    current_section = { sectProps: null, elements: [], is_split: false };
-                    sections.push(current_section);
-                }
-                let pBreakIndex = -1;
-                let rBreakIndex = -1;
-                if (p.children) {
-                    pBreakIndex = p.children.findIndex(r => {
-                        var _a;
-                        rBreakIndex = (_a = r.children) === null || _a === void 0 ? void 0 : _a.findIndex((t) => {
-                            if (t.type != dom_1.DomType.Break) {
-                                return false;
-                            }
-                            if (t.break == "lastRenderedPageBreak") {
-                                return current_section.elements.length > 1 || !this.options.ignoreLastRenderedPageBreak;
-                            }
-                            if (t.break === "page") {
-                                return true;
-                            }
-                        });
-                        rBreakIndex = rBreakIndex !== null && rBreakIndex !== void 0 ? rBreakIndex : -1;
-                        return rBreakIndex != -1;
-                    });
-                }
-                if (sectProps || pBreakIndex != -1) {
-                    current_section.is_split = true;
-                    current_section.sectProps = sectProps;
-                    current_section = { sectProps: null, elements: [], is_split: false };
-                    sections.push(current_section);
-                }
-                if (pBreakIndex != -1) {
-                    let breakRun = p.children[pBreakIndex];
-                    let is_split = rBreakIndex < breakRun.children.length - 1;
-                    if (pBreakIndex < p.children.length - 1 || is_split) {
-                        let origin_run = p.children;
-                        let new_paragraph = Object.assign(Object.assign({}, p), { children: origin_run.slice(pBreakIndex) });
-                        p.children = origin_run.slice(0, pBreakIndex);
-                        current_section.elements.push(new_paragraph);
-                        if (is_split) {
-                            let origin_elements = breakRun.children;
-                            let newRun = Object.assign(Object.assign({}, breakRun), { children: origin_elements.slice(0, rBreakIndex) });
-                            p.children.push(newRun);
-                            breakRun.children = origin_elements.slice(rBreakIndex);
-                        }
-                    }
-                }
-            }
-            if (elem.type === dom_1.DomType.Table) {
-                current_section.is_split = false;
-            }
-        }
-        let currentSectProps = null;
-        for (let i = sections.length - 1; i >= 0; i--) {
-            if (sections[i].sectProps == null) {
-                sections[i].sectProps = currentSectProps;
-            }
-            else {
-                currentSectProps = sections[i].sectProps;
-            }
-        }
-        return sections;
-    }
-    renderWrapper(children) {
-        return this.createElement("div", { className: `${this.className}-wrapper` }, children);
-    }
-    renderDefaultStyle() {
-        let c = this.className;
-        let styleText = `
-			.${c}-wrapper { background: gray; padding: 30px; padding-bottom: 0px; display: flex; flex-flow: column; align-items: center; } 
-			.${c}-wrapper>section.${c} { background: white; box-shadow: 0 0 10px rgba(0, 0, 0, 0.5); margin-bottom: 30px; }
-			.${c} { color: black; hyphens: auto; }
-			section.${c} { box-sizing: border-box; display: flex; flex-flow: column nowrap; position: relative; overflow: hidden; }
-            section.${c}>header { position: absolute; top: 0; z-index: 1; display: flex; align-items: flex-end; }
-			section.${c}>article { overflow: hidden; z-index: 1; }
-			section.${c}>footer { position: absolute; bottom: 0; z-index: 1; }
-			.${c} table { border-collapse: collapse; }
-			.${c} table td, .${c} table th { vertical-align: top; }
-			.${c} p { margin: 0pt; min-height: 1em; }
-			.${c} span { white-space: pre-wrap; overflow-wrap: break-word; }
-			.${c} a { color: inherit; text-decoration: inherit; }
-		`;
-        return createStyleElement(styleText);
-    }
-    renderNumbering(numberings, styleContainer) {
-        let styleText = "";
-        let resetCounters = [];
-        for (let num of numberings) {
-            let selector = `p.${this.numberingClass(num.id, num.level)}`;
-            let listStyleType = "none";
-            if (num.bullet) {
-                let valiable = `--${this.className}-${num.bullet.src}`.toLowerCase();
-                styleText += this.styleToString(`${selector}:before`, {
-                    "content": "' '",
-                    "display": "inline-block",
-                    "background": `var(${valiable})`
-                }, num.bullet.style);
-                this.document.loadNumberingImage(num.bullet.src).then(data => {
-                    let text = `${this.rootSelector} { ${valiable}: url(${data}) }`;
-                    styleContainer.appendChild(createStyleElement(text));
-                });
-            }
-            else if (num.levelText) {
-                let counter = this.numberingCounter(num.id, num.level);
-                const counterReset = counter + " " + (num.start - 1);
-                if (num.level > 0) {
-                    styleText += this.styleToString(`p.${this.numberingClass(num.id, num.level - 1)}`, {
-                        "counter-reset": counterReset
-                    });
-                }
-                resetCounters.push(counterReset);
-                styleText += this.styleToString(`${selector}:before`, Object.assign({ "content": this.levelTextToContent(num.levelText, num.suff, num.id, this.numFormatToCssValue(num.format)), "counter-increment": counter }, num.rStyle));
-            }
-            else {
-                listStyleType = this.numFormatToCssValue(num.format);
-            }
-            styleText += this.styleToString(selector, Object.assign({ "display": "list-item", "list-style-position": "inside", "list-style-type": listStyleType }, num.pStyle));
-        }
-        if (resetCounters.length > 0) {
-            styleText += this.styleToString(this.rootSelector, {
-                "counter-reset": resetCounters.join(" ")
-            });
-        }
-        return createStyleElement(styleText);
-    }
-    renderStyles(styles) {
-        var _a;
-        let styleText = "";
-        const stylesMap = this.styleMap;
-        const defaultStyles = (0, utils_1.keyBy)(styles.filter(s => s.isDefault), s => s.target);
-        for (const style of styles) {
-            let subStyles = style.styles;
-            if (style.linked) {
-                let linkedStyle = style.linked && stylesMap[style.linked];
-                if (linkedStyle)
-                    subStyles = subStyles.concat(linkedStyle.styles);
-                else if (this.options.debug)
-                    console.warn(`Can't find linked style ${style.linked}`);
-            }
-            for (const subStyle of subStyles) {
-                let selector = `${(_a = style.target) !== null && _a !== void 0 ? _a : ''}.${style.cssName}`;
-                if (style.target != subStyle.target)
-                    selector += ` ${subStyle.target}`;
-                if (defaultStyles[style.target] == style)
-                    selector = `.${this.className} ${style.target}, ` + selector;
-                styleText += this.styleToString(selector, subStyle.values);
-            }
-        }
-        return createStyleElement(styleText);
-    }
     renderNotes(noteIds, notesMap, parent) {
         let notes = noteIds.map(id => notesMap[id]).filter(x => x);
         if (notes.length > 0) {
             let children = this.renderElements(notes);
-            let result = this.createElement("ol", null, children);
+            let result = createElement("ol", null, children);
             parent.appendChild(result);
         }
+    }
+    renderElements(elems, parent) {
+        if (elems == null) {
+            return null;
+        }
+        let result = [];
+        for (let i = 0; i < elems.length; i++) {
+            let element = this.renderElement(elems[i]);
+            if (Array.isArray(element)) {
+                result.push(...element);
+            }
+            else if (element) {
+                result.push(element);
+            }
+        }
+        if (parent) {
+            appendChildren(parent, result);
+        }
+        return result;
     }
     renderElement(elem) {
         switch (elem.type) {
@@ -4273,7 +4496,7 @@ class HtmlRenderer {
             case dom_1.DomType.EndnoteReference:
                 return this.renderEndnoteReference(elem);
             case dom_1.DomType.NoBreakHyphen:
-                return this.createElement("wbr");
+                return createElement("wbr");
             case dom_1.DomType.VmlPicture:
                 return this.renderVmlPicture(elem);
             case dom_1.DomType.VmlElement:
@@ -4331,37 +4554,29 @@ class HtmlRenderer {
         }
         return null;
     }
+    isPageBreakElement(elem) {
+        if (elem.type != dom_1.DomType.Break) {
+            return false;
+        }
+        if (elem.break == "lastRenderedPageBreak") {
+            return !this.options.ignoreLastRenderedPageBreak;
+        }
+        if (elem.break === "page") {
+            return true;
+        }
+    }
     renderChildren(elem, parent) {
         return this.renderElements(elem.children, parent);
     }
-    renderElements(elems, parent) {
-        if (elems == null) {
-            return null;
-        }
-        let result = [];
-        for (let i = 0; i < elems.length; i++) {
-            let element = this.renderElement(elems[i]);
-            if (Array.isArray(element)) {
-                result.push(...element);
-            }
-            else if (element) {
-                result.push(element);
-            }
-        }
-        if (parent) {
-            appendChildren(parent, result);
-        }
-        return result;
-    }
     renderContainer(elem, tagName, props) {
-        return this.createElement(tagName, props, this.renderChildren(elem));
+        return createElement(tagName, props, this.renderChildren(elem));
     }
     renderContainerNS(elem, ns, tagName, props) {
         return createElementNS(ns, tagName, props, this.renderChildren(elem));
     }
     renderParagraph(elem) {
         var _a, _b, _c, _d;
-        let result = this.createElement("p");
+        let result = createElement("p");
         const style = this.findStyle(elem.styleName);
         (_a = elem.tabs) !== null && _a !== void 0 ? _a : (elem.tabs = (_b = style === null || style === void 0 ? void 0 : style.paragraphProps) === null || _b === void 0 ? void 0 : _b.tabs);
         this.renderClass(elem, result);
@@ -4374,21 +4589,29 @@ class HtmlRenderer {
         }
         return result;
     }
-    renderRunProperties(style, props) {
-        this.renderCommonProperties(style, props);
+    renderRun(elem) {
+        if (elem.fieldRun)
+            return null;
+        const result = createElement("span");
+        if (elem.id)
+            result.id = elem.id;
+        this.renderClass(elem, result);
+        this.renderStyleValues(elem.cssStyle, result);
+        if (elem.verticalAlign) {
+            const wrapper = createElement(elem.verticalAlign);
+            this.renderChildren(elem, wrapper);
+            result.appendChild(wrapper);
+        }
+        else {
+            this.renderChildren(elem, result);
+        }
+        return result;
     }
-    renderCommonProperties(style, props) {
-        if (props == null)
-            return;
-        if (props.color) {
-            style["color"] = props.color;
-        }
-        if (props.fontSize) {
-            style["font-size"] = props.fontSize;
-        }
+    renderText(elem) {
+        return document.createTextNode(elem.text);
     }
     renderHyperlink(elem) {
-        let result = this.createElement("a");
+        let result = createElement("a");
         this.renderChildren(elem, result);
         this.renderStyleValues(elem.cssStyle, result);
         if (elem.href) {
@@ -4402,7 +4625,7 @@ class HtmlRenderer {
         return result;
     }
     renderDrawing(elem) {
-        let result = this.createElement("div");
+        let result = createElement("div");
         result.style.display = "inline-block";
         result.style.position = "relative";
         result.style.textIndent = "0px";
@@ -4411,7 +4634,7 @@ class HtmlRenderer {
         return result;
     }
     renderImage(elem) {
-        let result = this.createElement("img");
+        let result = createElement("img");
         this.renderStyleValues(elem.cssStyle, result);
         if (this.document) {
             this.document
@@ -4422,15 +4645,12 @@ class HtmlRenderer {
         }
         return result;
     }
-    renderText(elem) {
-        return document.createTextNode(elem.text);
-    }
     renderDeletedText(elem) {
         return this.options.renderEndnotes ? document.createTextNode(elem.text) : null;
     }
     renderBreak(elem) {
         if (elem.break == "textWrapping") {
-            return this.createElement("br");
+            return createElement("br");
         }
         return null;
     }
@@ -4447,32 +4667,32 @@ class HtmlRenderer {
         return null;
     }
     renderSymbol(elem) {
-        let span = this.createElement("span");
+        let span = createElement("span");
         span.style.fontFamily = elem.font;
         span.innerHTML = `&#x${elem.char};`;
         return span;
     }
     renderHeaderFooter(elem, tagName) {
-        let result = this.createElement(tagName);
+        let result = createElement(tagName);
         this.renderChildren(elem, result);
         this.renderStyleValues(elem.cssStyle, result);
         return result;
     }
     renderFootnoteReference(elem) {
-        let result = this.createElement("sup");
+        let result = createElement("sup");
         this.currentFootnoteIds.push(elem.id);
         result.textContent = `${this.currentFootnoteIds.length}`;
         return result;
     }
     renderEndnoteReference(elem) {
-        let result = this.createElement("sup");
+        let result = createElement("sup");
         this.currentEndnoteIds.push(elem.id);
         result.textContent = `${this.currentEndnoteIds.length}`;
         return result;
     }
     renderTab(elem) {
         var _a;
-        let tabSpan = this.createElement("span");
+        let tabSpan = createElement("span");
         tabSpan.innerHTML = "&emsp;";
         if (this.options.experimental) {
             tabSpan.className = this.tabStopClass();
@@ -4482,30 +4702,12 @@ class HtmlRenderer {
         return tabSpan;
     }
     renderBookmarkStart(elem) {
-        let result = this.createElement("span");
+        let result = createElement("span");
         result.id = elem.name;
         return result;
     }
-    renderRun(elem) {
-        if (elem.fieldRun)
-            return null;
-        const result = this.createElement("span");
-        if (elem.id)
-            result.id = elem.id;
-        this.renderClass(elem, result);
-        this.renderStyleValues(elem.cssStyle, result);
-        if (elem.verticalAlign) {
-            const wrapper = this.createElement(elem.verticalAlign);
-            this.renderChildren(elem, wrapper);
-            result.appendChild(wrapper);
-        }
-        else {
-            this.renderChildren(elem, result);
-        }
-        return result;
-    }
     renderTable(elem) {
-        let oTable = this.createElement("table");
+        let oTable = createElement("table");
         this.tableCellPositions.push(this.currentCellPosition);
         this.tableVerticalMerges.push(this.currentVerticalMerge);
         this.currentVerticalMerge = {};
@@ -4521,9 +4723,9 @@ class HtmlRenderer {
         return oTable;
     }
     renderTableColumns(columns) {
-        let result = this.createElement("colgroup");
+        let result = createElement("colgroup");
         for (let col of columns) {
-            let colElem = this.createElement("col");
+            let colElem = createElement("col");
             if (col.width)
                 colElem.style.width = col.width;
             result.appendChild(colElem);
@@ -4531,7 +4733,7 @@ class HtmlRenderer {
         return result;
     }
     renderTableRow(elem) {
-        let result = this.createElement("tr");
+        let result = createElement("tr");
         this.currentCellPosition.col = 0;
         this.renderClass(elem, result);
         this.renderChildren(elem, result);
@@ -4540,7 +4742,7 @@ class HtmlRenderer {
         return result;
     }
     renderTableCell(elem) {
-        let result = this.createElement("td");
+        let result = createElement("td");
         const key = this.currentCellPosition.col;
         if (elem.verticalMerge) {
             if (elem.verticalMerge == "restart") {
@@ -4699,6 +4901,19 @@ class HtmlRenderer {
             }
         }
     }
+    renderRunProperties(style, props) {
+        this.renderCommonProperties(style, props);
+    }
+    renderCommonProperties(style, props) {
+        if (props == null)
+            return;
+        if (props.color) {
+            style["color"] = props.color;
+        }
+        if (props.fontSize) {
+            style["font-size"] = props.fontSize;
+        }
+    }
     renderClass(input, output) {
         if (input.className) {
             output.className = input.className;
@@ -4711,77 +4926,8 @@ class HtmlRenderer {
         var _a;
         return styleName && ((_a = this.styleMap) === null || _a === void 0 ? void 0 : _a[styleName]);
     }
-    numberingClass(id, lvl) {
-        return `${this.className}-num-${id}-${lvl}`;
-    }
     tabStopClass() {
         return `${this.className}-tab-stop`;
-    }
-    styleToString(selectors, values, cssText = null) {
-        let result = `${selectors} {\r\n`;
-        for (const key in values) {
-            if (key.startsWith('$'))
-                continue;
-            result += `  ${key}: ${values[key]};\r\n`;
-        }
-        if (cssText)
-            result += cssText;
-        return result + "}\r\n";
-    }
-    numberingCounter(id, lvl) {
-        return `${this.className}-num-${id}-${lvl}`;
-    }
-    levelTextToContent(text, suff, id, numformat) {
-        var _a;
-        const suffMap = {
-            "tab": "\\9",
-            "space": "\\a0",
-        };
-        let result = text.replace(/%\d*/g, s => {
-            let lvl = parseInt(s.substring(1), 10) - 1;
-            return `"counter(${this.numberingCounter(id, lvl)}, ${numformat})"`;
-        });
-        return `"${result}${(_a = suffMap[suff]) !== null && _a !== void 0 ? _a : ""}"`;
-    }
-    numFormatToCssValue(format) {
-        var _a;
-        let mapping = {
-            none: "none",
-            bullet: "disc",
-            decimal: "decimal",
-            lowerLetter: "lower-alpha",
-            upperLetter: "upper-alpha",
-            lowerRoman: "lower-roman",
-            upperRoman: "upper-roman",
-            decimalZero: "decimal-leading-zero",
-            aiueo: "katakana",
-            aiueoFullWidth: "katakana",
-            chineseCounting: "simp-chinese-informal",
-            chineseCountingThousand: "simp-chinese-informal",
-            chineseLegalSimplified: "simp-chinese-formal",
-            chosung: "hangul-consonant",
-            ideographDigital: "cjk-ideographic",
-            ideographTraditional: "cjk-heavenly-stem",
-            ideographLegalTraditional: "trad-chinese-formal",
-            ideographZodiac: "cjk-earthly-branch",
-            iroha: "katakana-iroha",
-            irohaFullWidth: "katakana-iroha",
-            japaneseCounting: "japanese-informal",
-            japaneseDigitalTenThousand: "cjk-decimal",
-            japaneseLegal: "japanese-formal",
-            thaiNumbers: "thai",
-            koreanCounting: "korean-hangul-formal",
-            koreanDigital: "korean-hangul-formal",
-            koreanDigital2: "korean-hanja-informal",
-            hebrew1: "hebrew",
-            hebrew2: "hebrew",
-            hindiNumbers: "devanagari",
-            ganada: "hangul",
-            taiwaneseCounting: "cjk-ideographic",
-            taiwaneseCountingThousand: "cjk-ideographic",
-            taiwaneseDigital: "cjk-decimal",
-        };
-        return (_a = mapping[format]) !== null && _a !== void 0 ? _a : format;
     }
     refreshTabStops() {
         if (!this.options.experimental) {
