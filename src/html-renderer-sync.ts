@@ -18,7 +18,7 @@ import {CommonProperties} from './document/common';
 import {Options} from './docx-preview';
 import {DocumentElement} from './document/document';
 import {WmlParagraph} from './document/paragraph';
-import {asArray, escapeClassName, isString, keyBy, mergeDeep} from './utils';
+import {asArray, escapeClassName, isString, keyBy, mergeDeep, uuid} from './utils';
 import {computePixelToPoint, updateTabStop} from './javascript';
 import {FontTablePart} from './font-table/font-table';
 import {FooterHeaderReference, Section, SectionProperties} from './document/section';
@@ -603,16 +603,15 @@ export class HtmlRendererSync {
 			if (elem.type == DomType.Paragraph) {
 				let p = elem as WmlParagraph;
 				// 节属性，代表分节符
-				let sectProps = p.sectionProps;
-
-				/*
-					检测段落是否默认存在强制分页符
-				*/
-
+				let sectProps: SectionProperties = p.sectionProps;
+				// 节属性生成唯一uuid，每一个节中section均是同一个uuid，代表属于同一个节
+				if (sectProps) {
+					sectProps.uuid = uuid();
+				}
 				// 查找内置默认段落样式
 				let default_paragraph_style = this.findStyle(p.styleName);
 
-				// 段落内置样式之前存在强制分页符
+				// 检测段落内置样式是否存在段前分页符
 				if (default_paragraph_style?.paragraphProps?.pageBreakBefore) {
 					// 标记当前section已拆分
 					current_section.is_split = true;
@@ -723,7 +722,6 @@ export class HtmlRendererSync {
 			}
 
 		}
-
 		// 一个节可能分好几个页，但是节属性section_props存在当前节中最后一段对应的 paragraph 元素的子元素。即：[null,null,null,setPr];
 		let currentSectProps = null;
 		// 倒序给每一页填充section_props，方便后期页面渲染
@@ -755,13 +753,11 @@ export class HtmlRendererSync {
 		// 遍历生成每一个section
 		for (let i = 0, l = sections.length; i < l; i++) {
 			this.currentFootnoteIds = [];
-
 			let section: Section = sections[i];
-
 			let {sectProps} = section;
 			// section属性不存在，则使用文档级别props;
 			section.sectProps = sectProps ?? document.props;
-			// 是否第一个section
+			// 是否本小节的第一个section
 			section.isFirstSection = prevProps != sectProps;
 			// 是否最后一个section
 			section.isLastSection = i === (l - 1);
@@ -830,47 +826,50 @@ export class HtmlRendererSync {
 
 	// 创建Page Section
 	createSection(className: string, props: SectionProperties) {
-		let elem = createElement("section", {className});
+		let oSection = createElement("section", {className});
 
 		if (props) {
+			// 生成uuid标识，相同的uuid即属于同一个节
+			oSection.dataset.uuid = props.uuid;
+			// 页边距
 			if (props.pageMargins) {
-				elem.style.paddingLeft = props.pageMargins.left;
-				elem.style.paddingRight = props.pageMargins.right;
-				elem.style.paddingTop = props.pageMargins.top;
-				elem.style.paddingBottom = props.pageMargins.bottom;
+				oSection.style.paddingLeft = props.pageMargins.left;
+				oSection.style.paddingRight = props.pageMargins.right;
+				oSection.style.paddingTop = props.pageMargins.top;
+				oSection.style.paddingBottom = props.pageMargins.bottom;
 			}
-
+			// 页面尺寸
 			if (props.pageSize) {
 				if (!this.options.ignoreWidth) {
-					elem.style.width = props.pageSize.width;
+					oSection.style.width = props.pageSize.width;
 				}
 				if (!this.options.ignoreHeight) {
-					elem.style.minHeight = props.pageSize.height;
+					oSection.style.minHeight = props.pageSize.height;
 				}
 			}
-
+			// 多列布局
 			if (props.columns && props.columns.numberOfColumns) {
-				elem.style.columnCount = `${props.columns.numberOfColumns}`;
-				elem.style.columnGap = props.columns.space;
+				oSection.style.columnCount = `${props.columns.numberOfColumns}`;
+				oSection.style.columnGap = props.columns.space;
 
 				if (props.columns.separator) {
-					elem.style.columnRule = "1px solid black";
+					oSection.style.columnRule = "1px solid black";
 				}
 			}
 		}
 		// 插入生成的section
-		this.wrapper.appendChild(elem);
+		this.wrapper.appendChild(oSection);
 
-		return elem;
+		return oSection;
 	}
 
 	// TODO 分页不准确，页脚页码混乱
 	// 渲染页眉/页脚的Ref
-	async renderHeaderFooterRef(refs: FooterHeaderReference[], props: SectionProperties, page: number, firstOfSection: boolean, parent: HTMLElement) {
+	async renderHeaderFooterRef(refs: FooterHeaderReference[], props: SectionProperties, pageIndex: number, firstOfSection: boolean, parent: HTMLElement) {
 		if (!refs) return;
 		// 查找奇数偶数的ref指向
 		let ref = (props.titlePage && firstOfSection ? refs.find(x => x.type == "first") : null)
-			?? (page % 2 == 1 ? refs.find(x => x.type == "even") : null)
+			?? (pageIndex % 2 == 1 ? refs.find(x => x.type == "even") : null)
 			?? refs.find(x => x.type == "default");
 
 		// 查找ref对应的part部分

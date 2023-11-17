@@ -25,6 +25,7 @@ import {IDomStyle, IDomSubStyle} from './document/style';
 import {WmlFieldChar, WmlFieldSimple, WmlInstructionText} from './document/fields';
 import {convertLength, LengthUsage, LengthUsageType} from './document/common';
 import {parseVmlElement} from './vml/vml';
+import {uuid} from "./utils";
 
 export var autos = {
 	shd: "inherit",
@@ -106,11 +107,18 @@ export class DocumentParser {
 		let xbody = xml.element(xmlDoc, "body");
 		let background = xml.element(xmlDoc, "background");
 		let sectPr = xml.element(xbody, "sectPr");
+		// 计算节属性
+		let props = {} as SectionProperties;
+		if (sectPr) {
+			props = parseSectionProperties(sectPr, xml);
+		}
+		// 生成唯一uuid标识
+		props.uuid = uuid();
 
 		return {
 			type: DomType.Document,
 			children: this.parseBodyElements(xbody),
-			props: sectPr ? parseSectionProperties(sectPr, xml) : {} as SectionProperties,
+			props,
 			cssStyle: background ? this.parseBackground(background) : {},
 		};
 	}

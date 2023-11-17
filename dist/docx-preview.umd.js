@@ -163,6 +163,7 @@ const run_1 = __webpack_require__(/*! ./document/run */ "./src/document/run.ts")
 const bookmarks_1 = __webpack_require__(/*! ./document/bookmarks */ "./src/document/bookmarks.ts");
 const common_1 = __webpack_require__(/*! ./document/common */ "./src/document/common.ts");
 const vml_1 = __webpack_require__(/*! ./vml/vml */ "./src/vml/vml.ts");
+const utils_1 = __webpack_require__(/*! ./utils */ "./src/utils.ts");
 exports.autos = {
     shd: "inherit",
     color: "black",
@@ -222,10 +223,15 @@ class DocumentParser {
         let xbody = xml_parser_1.default.element(xmlDoc, "body");
         let background = xml_parser_1.default.element(xmlDoc, "background");
         let sectPr = xml_parser_1.default.element(xbody, "sectPr");
+        let props = {};
+        if (sectPr) {
+            props = (0, section_1.parseSectionProperties)(sectPr, xml_parser_1.default);
+        }
+        props.uuid = (0, utils_1.uuid)();
         return {
             type: dom_1.DomType.Document,
             children: this.parseBodyElements(xbody),
-            props: sectPr ? (0, section_1.parseSectionProperties)(sectPr, xml_parser_1.default) : {},
+            props,
             cssStyle: background ? this.parseBackground(background) : {},
         };
     }
@@ -2823,6 +2829,9 @@ class HtmlRendererSync {
             if (elem.type == dom_1.DomType.Paragraph) {
                 let p = elem;
                 let sectProps = p.sectionProps;
+                if (sectProps) {
+                    sectProps.uuid = (0, utils_1.uuid)();
+                }
                 let default_paragraph_style = this.findStyle(p.styleName);
                 if ((_a = default_paragraph_style === null || default_paragraph_style === void 0 ? void 0 : default_paragraph_style.paragraphProps) === null || _a === void 0 ? void 0 : _a.pageBreakBefore) {
                     current_section.is_split = true;
@@ -2956,38 +2965,39 @@ class HtmlRendererSync {
         this.current_section.checking_overflow = false;
     }
     createSection(className, props) {
-        let elem = createElement("section", { className });
+        let oSection = createElement("section", { className });
         if (props) {
+            oSection.dataset.uuid = props.uuid;
             if (props.pageMargins) {
-                elem.style.paddingLeft = props.pageMargins.left;
-                elem.style.paddingRight = props.pageMargins.right;
-                elem.style.paddingTop = props.pageMargins.top;
-                elem.style.paddingBottom = props.pageMargins.bottom;
+                oSection.style.paddingLeft = props.pageMargins.left;
+                oSection.style.paddingRight = props.pageMargins.right;
+                oSection.style.paddingTop = props.pageMargins.top;
+                oSection.style.paddingBottom = props.pageMargins.bottom;
             }
             if (props.pageSize) {
                 if (!this.options.ignoreWidth) {
-                    elem.style.width = props.pageSize.width;
+                    oSection.style.width = props.pageSize.width;
                 }
                 if (!this.options.ignoreHeight) {
-                    elem.style.minHeight = props.pageSize.height;
+                    oSection.style.minHeight = props.pageSize.height;
                 }
             }
             if (props.columns && props.columns.numberOfColumns) {
-                elem.style.columnCount = `${props.columns.numberOfColumns}`;
-                elem.style.columnGap = props.columns.space;
+                oSection.style.columnCount = `${props.columns.numberOfColumns}`;
+                oSection.style.columnGap = props.columns.space;
                 if (props.columns.separator) {
-                    elem.style.columnRule = "1px solid black";
+                    oSection.style.columnRule = "1px solid black";
                 }
             }
         }
-        this.wrapper.appendChild(elem);
-        return elem;
+        this.wrapper.appendChild(oSection);
+        return oSection;
     }
-    async renderHeaderFooterRef(refs, props, page, firstOfSection, parent) {
+    async renderHeaderFooterRef(refs, props, pageIndex, firstOfSection, parent) {
         var _a, _b, _c, _d, _e, _f, _g, _h;
         if (!refs)
             return;
-        let ref = (_b = (_a = (props.titlePage && firstOfSection ? refs.find(x => x.type == "first") : null)) !== null && _a !== void 0 ? _a : (page % 2 == 1 ? refs.find(x => x.type == "even") : null)) !== null && _b !== void 0 ? _b : refs.find(x => x.type == "default");
+        let ref = (_b = (_a = (props.titlePage && firstOfSection ? refs.find(x => x.type == "first") : null)) !== null && _a !== void 0 ? _a : (pageIndex % 2 == 1 ? refs.find(x => x.type == "even") : null)) !== null && _b !== void 0 ? _b : refs.find(x => x.type == "default");
         let part = ref && this.document.findPartByRelId(ref.id, this.document.documentPart);
         if (part) {
             this.currentPart = part;
@@ -5622,7 +5632,7 @@ exports.parseFontInfo = parseFontInfo;
 
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.asArray = exports.formatCssRules = exports.parseCssRules = exports.mergeDeep = exports.isString = exports.isObject = exports.blobToBase64 = exports.keyBy = exports.resolvePath = exports.splitPath = exports.escapeClassName = void 0;
+exports.uuid = exports.asArray = exports.formatCssRules = exports.parseCssRules = exports.mergeDeep = exports.isString = exports.isObject = exports.blobToBase64 = exports.keyBy = exports.resolvePath = exports.splitPath = exports.escapeClassName = void 0;
 function escapeClassName(className) {
     return className === null || className === void 0 ? void 0 : className.replace(/[ .]+/g, '-').replace(/[&]+/g, 'and').toLowerCase();
 }
@@ -5705,6 +5715,35 @@ function asArray(val) {
     return Array.isArray(val) ? val : [val];
 }
 exports.asArray = asArray;
+function uuid() {
+    if (typeof crypto === 'object') {
+        if (typeof crypto.randomUUID === 'function') {
+            return crypto.randomUUID();
+        }
+        if (typeof crypto.getRandomValues === 'function' && typeof Uint8Array === 'function') {
+            const callback = (c) => {
+                const num = Number(c);
+                return (num ^ (crypto.getRandomValues(new Uint8Array(1))[0] & (15 >> (num / 4)))).toString(16);
+            };
+            return '10000000-1000-4000-8000-100000000000'.replace(/[018]/g, callback);
+        }
+    }
+    let timestamp = new Date().getTime();
+    let perforNow = (typeof performance !== 'undefined' && performance.now && performance.now() * 1000) || 0;
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+        let random = Math.random() * 16;
+        if (timestamp > 0) {
+            random = (timestamp + random) % 16 | 0;
+            timestamp = Math.floor(timestamp / 16);
+        }
+        else {
+            random = (perforNow + random) % 16 | 0;
+            perforNow = Math.floor(perforNow / 16);
+        }
+        return (c === 'x' ? random : (random & 0x3) | 0x8).toString(16);
+    });
+}
+exports.uuid = uuid;
 
 
 /***/ }),
