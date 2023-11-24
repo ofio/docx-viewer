@@ -1,11 +1,12 @@
 import {
 	DomType,
-	WmlDrawing,
 	IDomImage,
 	IDomNumbering,
 	NumberingPicBullet,
 	OpenXmlElement,
 	WmlBreak,
+	WrapType,
+	WmlDrawing,
 	WmlHyperlink,
 	WmlNoteReference,
 	WmlSymbol,
@@ -15,17 +16,17 @@ import {
 	WmlTableRow,
 	WmlText
 } from './document/dom';
-import {DocumentElement} from './document/document';
-import {parseParagraphProperties, parseParagraphProperty, WmlParagraph} from './document/paragraph';
-import {parseSectionProperties, SectionProperties} from './document/section';
+import { DocumentElement } from './document/document';
+import { parseParagraphProperties, parseParagraphProperty, WmlParagraph } from './document/paragraph';
+import { parseSectionProperties, SectionProperties } from './document/section';
 import xml from './parser/xml-parser';
-import {parseRunProperties, WmlRun} from './document/run';
-import {parseBookmarkEnd, parseBookmarkStart} from './document/bookmarks';
-import {IDomStyle, IDomSubStyle} from './document/style';
-import {WmlFieldChar, WmlFieldSimple, WmlInstructionText} from './document/fields';
-import {convertLength, LengthUsage, LengthUsageType} from './document/common';
-import {parseVmlElement} from './vml/vml';
-import {uuid} from "./utils";
+import { parseRunProperties, WmlRun } from './document/run';
+import { parseBookmarkEnd, parseBookmarkStart } from './document/bookmarks';
+import { IDomStyle, IDomSubStyle } from './document/style';
+import { WmlFieldChar, WmlFieldSimple, WmlInstructionText } from './document/fields';
+import { convertLength, LengthUsage, LengthUsageType } from './document/common';
+import { parseVmlElement } from './vml/vml';
+import { uuid } from "./utils";
 
 export var autos = {
 	shd: "inherit",
@@ -34,7 +35,10 @@ export var autos = {
 	highlight: "transparent"
 };
 
-const supportedNamespaceURIs = [];
+// TODO 支持的命名空间：wps、wpi
+const supportedNamespaceURIs = [
+	// "http://schemas.microsoft.com/office/word/2010/wordprocessingShape"
+];
 
 const mmlTagMap = {
 	"oMath": DomType.MmlMath,
@@ -105,6 +109,7 @@ export class DocumentParser {
 
 	parseDocumentFile(xmlDoc: Element): DocumentElement {
 		let xbody = xml.element(xmlDoc, "body");
+		// 背景色
 		let background = xml.element(xmlDoc, "background");
 		let sectPr = xml.element(xbody, "sectPr");
 		// 计算节属性
@@ -506,62 +511,65 @@ export class DocumentParser {
 	}
 
 	parseParagraph(node: Element): OpenXmlElement {
-		let result = <WmlParagraph>{type: DomType.Paragraph, children: []};
+		let wmlParagraph = <WmlParagraph>{ type: DomType.Paragraph, children: [] };
 
 		for (let el of xml.elements(node)) {
 			switch (el.localName) {
 				case "pPr":
-					this.parseParagraphProperties(el, result);
+					this.parseParagraphProperties(el, wmlParagraph);
 					break;
 
 				case "r":
-					result.children.push(this.parseRun(el, result));
+					wmlParagraph.children.push(this.parseRun(el, wmlParagraph));
 					break;
 
 				case "hyperlink":
-					result.children.push(this.parseHyperlink(el, result));
+					wmlParagraph.children.push(this.parseHyperlink(el, wmlParagraph));
 					break;
 
 				case "bookmarkStart":
-					result.children.push(parseBookmarkStart(el, xml));
+					wmlParagraph.children.push(parseBookmarkStart(el, xml));
 					break;
 
 				case "bookmarkEnd":
-					result.children.push(parseBookmarkEnd(el, xml));
+					wmlParagraph.children.push(parseBookmarkEnd(el, xml));
 					break;
 
 				case "oMath":
 				case "oMathPara":
-					result.children.push(this.parseMathElement(el));
+					wmlParagraph.children.push(this.parseMathElement(el));
 					break;
 
 				case "sdt":
-					result.children.push(...this.parseSdt(el, (e: Element) => this.parseParagraph(e).children));
+					wmlParagraph.children.push(...this.parseSdt(el, (e: Element) => this.parseParagraph(e).children));
 					break;
 
 				case "ins":
-					result.children.push(this.parseInserted(el, (e: Element) => this.parseParagraph(e)));
+					wmlParagraph.children.push(this.parseInserted(el, (e: Element) => this.parseParagraph(e)));
 					break;
 
 				case "del":
-					result.children.push(this.parseDeleted(el, (e: Element) => this.parseParagraph(e)));
+					wmlParagraph.children.push(this.parseDeleted(el, (e: Element) => this.parseParagraph(e)));
 					break;
 			}
 		}
 		// when paragraph is empty, a br tag needs to be added to work with the rich text editor and generate line height
 		// 当段落children为空，需要添加一个br标签，配合富文本编辑器，同时产生行高
-		if (result.children.length === 0) {
-			let br: WmlBreak = {type: DomType.Break, "break": "textWrapping"};
-			result.children = [br];
+		// TODO 实体符号来替换空行
+		if (wmlParagraph.children.length === 0) {
+			let wmlBreak: WmlBreak = { type: DomType.Break, "break": "textWrapping" };
+			let wmlRun = { type: DomType.Run, children: [wmlBreak as OpenXmlElement] } as WmlRun;
+			wmlParagraph.children = [wmlRun];
 		}
 
-		return result;
+		return wmlParagraph;
 	}
 
 	parseParagraphProperties(elem: Element, paragraph: WmlParagraph) {
 		this.parseDefaultProperties(elem, paragraph.cssStyle = {}, null, c => {
-			if (parseParagraphProperty(c, paragraph, xml))
+			if (parseParagraphProperty(c, paragraph, xml)) {
 				return true;
+			}
 
 			switch (c.localName) {
 				case "pStyle":
@@ -596,7 +604,7 @@ export class DocumentParser {
 	}
 
 	parseHyperlink(node: Element, parent?: OpenXmlElement): WmlHyperlink {
-		let result: WmlHyperlink = <WmlHyperlink>{type: DomType.Hyperlink, parent: parent, children: []};
+		let result: WmlHyperlink = <WmlHyperlink>{ type: DomType.Hyperlink, parent: parent, children: [] };
 		let anchor = xml.attr(node, "anchor");
 		let relId = xml.attr(node, "id");
 
@@ -618,7 +626,7 @@ export class DocumentParser {
 	}
 
 	parseRun(node: Element, parent?: OpenXmlElement): WmlRun {
-		let result: WmlRun = <WmlRun>{type: DomType.Run, parent: parent, children: []};
+		let result: WmlRun = <WmlRun>{ type: DomType.Run, parent: parent, children: [] };
 
 		xmlUtil.foreach(node, c => {
 			c = this.checkAlternateContent(c);
@@ -673,7 +681,7 @@ export class DocumentParser {
 					break;
 
 				case "noBreakHyphen":
-					result.children.push({type: DomType.NoBreakHyphen});
+					result.children.push({ type: DomType.NoBreakHyphen });
 					break;
 
 				case "br":
@@ -699,7 +707,7 @@ export class DocumentParser {
 					break;
 
 				case "tab":
-					result.children.push({type: DomType.Tab});
+					result.children.push({ type: DomType.Tab });
 					break;
 
 				case "footnoteReference":
@@ -738,7 +746,7 @@ export class DocumentParser {
 
 	parseMathElement(elem: Element): OpenXmlElement {
 		const propsTag = `${elem.localName}Pr`;
-		const result = {type: mmlTagMap[elem.localName], children: []} as OpenXmlElement;
+		const result = { type: mmlTagMap[elem.localName], children: [] } as OpenXmlElement;
 
 		for (const el of xml.elements(elem)) {
 			const childType = mmlTagMap[el.localName];
@@ -806,7 +814,7 @@ export class DocumentParser {
 	}
 
 	parseVmlPicture(elem: Element): OpenXmlElement {
-		const result = {type: DomType.VmlPicture, children: []};
+		const result = { type: DomType.VmlPicture, children: [] };
 
 		for (const el of xml.elements(elem)) {
 			const child = parseVmlElement(el, this);
@@ -816,20 +824,23 @@ export class DocumentParser {
 		return result;
 	}
 
+	// 检测备选内容
 	checkAlternateContent(elem: Element): Element {
-		if (elem.localName != 'AlternateContent')
+		if (elem.localName != 'AlternateContent') {
 			return elem;
+		}
 
 		let choice = xml.element(elem, "Choice");
-
+		// 备选项
 		if (choice) {
 			let requires = xml.attr(choice, "Requires");
 			let namespaceURI = elem.lookupNamespaceURI(requires);
 
-			if (supportedNamespaceURIs.includes(namespaceURI))
+			if (supportedNamespaceURIs.includes(namespaceURI)) {
 				return choice.firstElementChild;
+			}
 		}
-
+		// 回退
 		return xml.element(elem, "Fallback")?.firstElementChild;
 	}
 
@@ -843,25 +854,40 @@ export class DocumentParser {
 		}
 	}
 
+	// DrawingML对象有两种状态：内联（inline）-- 对象与文本对齐，浮动（anchor）--对象在文本中浮动，但可以相对于页面进行绝对定位
 	parseDrawingWrapper(node: Element): OpenXmlElement {
+		// 是否布局在表格中
+		let layoutInCell = xml.boolAttr(node, "layoutInCell");
+		// 是否锁定
+		let locked = xml.boolAttr(node, "locked");
+		// 是否在文字后面显示
+		let behindDoc = xml.boolAttr(node, "behindDoc");
+		// 是否允许重叠
+		let allowOverlap = xml.boolAttr(node, "allowOverlap");
+		// 是否简单定位
+		let simplePos = xml.boolAttr(node, "simplePos");
+		// 层叠数值
+		let relativeHeight = xml.intAttr(node, "relativeHeight", 1);
+
 		let result: WmlDrawing = {
 			type: DomType.Drawing,
 			children: [],
 			cssStyle: {},
-			localName: node.localName,
-			wrapType: null
+			props: {
+				localName: node.localName,
+				wrapType: null,
+				layoutInCell,
+				locked,
+				behindDoc,
+				allowOverlap,
+				simplePos,
+				relativeHeight
+			},
 		};
-		// DrawingML对象有两种状态：内联（inline）-- 对象与文本对齐，浮动（anchor）--对象在文本中浮动，但可以相对于页面进行绝对定位
-		let isAnchor = node.localName === "anchor";
-
-		// 是否简单定位
-		let simplePos = xml.boolAttr(node, "simplePos");
-
-		// 根据relativeHeight设置z-index
-		result.cssStyle["z-index"] = xml.intAttr(node, "relativeHeight", 1);
-
-		let posX = {relative: "page", align: "left", offset: "0"};
-		let posY = {relative: "page", align: "top", offset: "0"};
+		// 横轴定位
+		let posX = { relative: "page", align: null, offset: "0" };
+		// 纵轴定位
+		let posY = { relative: "page", align: null, offset: "0" };
 
 		for (let n of xml.elements(node)) {
 			switch (n.localName) {
@@ -872,40 +898,49 @@ export class DocumentParser {
 						posY.offset = xml.lengthAttr(n, "y", LengthUsage.Emu);
 					}
 					break;
-
-				case "extent":
-					result.cssStyle["width"] = xml.lengthAttr(n, "cx", LengthUsage.Emu);
-					result.cssStyle["height"] = xml.lengthAttr(n, "cy", LengthUsage.Emu);
-					break;
-
 				case "positionH":
-				case "positionV":
 					if (!simplePos) {
-						let pos = n.localName == "positionH" ? posX : posY;
 						let alignNode = xml.element(n, "align");
 						let offsetNode = xml.element(n, "posOffset");
 
-						pos.relative = xml.attr(n, "relativeFrom") ?? pos.relative;
+						posX.relative = xml.attr(n, "relativeFrom") ?? posX.relative;
 
 						if (alignNode) {
-							pos.align = alignNode.textContent;
+							posX.align = alignNode.textContent;
 						}
 
 						if (offsetNode) {
-							pos.offset = xmlUtil.sizeValue(offsetNode, LengthUsage.Emu);
+							posX.offset = xmlUtil.sizeValue(offsetNode, LengthUsage.Emu);
 						}
-
 					}
 					break;
 
-				case "wrapTopAndBottom":
-					result.wrapType = "wrapTopAndBottom";
-					break;
+				case "positionV":
+					if (!simplePos) {
+						let alignNode = xml.element(n, "align");
+						let offsetNode = xml.element(n, "posOffset");
 
-				case "wrapNone":
-					result.wrapType = "wrapNone";
-					break;
+						posY.relative = xml.attr(n, "relativeFrom") ?? posY.relative;
 
+						if (alignNode) {
+							posY.align = alignNode.textContent;
+						}
+
+						if (offsetNode) {
+							posY.offset = xmlUtil.sizeValue(offsetNode, LengthUsage.Emu);
+						}
+					}
+					break;
+				// drawing外框尺寸
+				case "extent":
+					result.cssStyle["width"] = xml.lengthAttr(n, "cx", LengthUsage.Emu);
+					result.cssStyle["height"] = xml.lengthAttr(n, "cy", LengthUsage.Emu);
+
+					break;
+				// 特效占据空间
+				case "effectExtent":
+					break;
+				// 图片
 				case "graphic":
 					let g = this.parseGraphic(n);
 
@@ -913,61 +948,118 @@ export class DocumentParser {
 						result.children.push(g);
 					}
 					break;
+				case "wrapTopAndBottom":
+					result.props.wrapType = WrapType.TopAndBottom;
+					break;
+
+				case "wrapNone":
+					result.props.wrapType = WrapType.None;
+					break;
+
+				case "wrapTight":
+					result.props.wrapType = WrapType.Tight;
+					break;
+
+				case "wrapThrough":
+					result.props.wrapType = WrapType.Through;
+					break;
+
+				case "wrapSquare":
+					result.props.wrapType = WrapType.Square;
+					break;
+
+				case "wrapPolygon":
+					result.props.wrapType = WrapType.Polygon;
+					break;
 			}
 		}
-		// 图片文字环绕默认采用wrapTopAndBottom
-		if (this.options.ignoreImageWrap) {
-			result.wrapType = "wrapTopAndBottom";
+		// 内联（inline）--嵌入型环绕
+		if (node.localName === "inline") {
+			result.props.wrapType = WrapType.Inline;
 		}
 
-		switch (result.wrapType) {
-			case "wrapTopAndBottom":
+		// 浮动（anchor）--其他环绕
+		if (node.localName === "anchor") {
+
+			// 根据relativeHeight设置z-index
+			result.cssStyle["z-index"] = relativeHeight;
+
+			// 图片文字环绕默认采用wrapTopAndBottom
+			if (this.options.ignoreImageWrap) {
+				result.props.wrapType = WrapType.TopAndBottom;
+			}
+
+			switch (result.props.wrapType) {
 				// 顶部底部文字环绕
-				result.cssStyle['display'] = 'block';
+				case WrapType.TopAndBottom:
+					result.cssStyle['position'] = 'absolute';
 
-				if (posX.align) {
-					result.cssStyle['text-align'] = posX.align;
-					result.cssStyle['width'] = "100%";
-				}
-				break;
-			case "wrapNone":
-				// 衬于文字下方、浮于文字上方
-				result.cssStyle['display'] = 'block';
-				result.cssStyle['position'] = 'relative';
-				result.cssStyle["width"] = "0px";
-				result.cssStyle["height"] = "0px";
-
-				if (posX.offset) {
-					result.cssStyle["left"] = posX.offset;
-				}
-
-				if (posY.offset) {
-					result.cssStyle["top"] = posY.offset;
-				}
-				break;
-			case "wrapTight":
-				// TODO 紧密型环绕
-				break;
-			case "wrapThrough":
-				// TODO 穿越型环绕
-				break;
-			case "wrapSquare":
-				// TODO 矩形环绕
-				break;
-			case "wrapPolygon":
-				// TODO 多边形环绕
-				break;
-			default:
-				// 处理浮动（anchor）
-				if (isAnchor && (posX.align == 'left' || posX.align == 'right')) {
-					result.cssStyle["float"] = posX.align;
-					// 计算DrawML对象相对于文字的上下左右间距；仅在浮动、文字环绕模式下有效；
-					result.cssStyle["margin-left"] = xml.lengthAttr(node, "distL", LengthUsage.Emu);
-					result.cssStyle["margin-right"] = xml.lengthAttr(node, "distR", LengthUsage.Emu);
+					if (posX.align) {
+						result.cssStyle['text-align'] = posX.align;
+						result.cssStyle['width'] = "100%";
+					}
+					if (posX.offset) {
+						result.cssStyle["left"] = posX.offset;
+					}
+					if (posY.offset) {
+						result.cssStyle["top"] = posY.offset;
+					}
+					// DrawML对象与文字的上下间距
 					result.cssStyle["margin-top"] = xml.lengthAttr(node, "distT", LengthUsage.Emu);
 					result.cssStyle["margin-bottom"] = xml.lengthAttr(node, "distB", LengthUsage.Emu);
-				}
+					break;
+
+				// 衬于文字下方、浮于文字上方
+				case WrapType.None:
+					result.cssStyle['display'] = 'inline';
+					result.cssStyle['position'] = 'absolute';
+					result.cssStyle["width"] = "0px";
+					result.cssStyle["height"] = "0px";
+
+					if (posX.offset) {
+						result.cssStyle["left"] = posX.offset;
+					}
+
+					if (posY.offset) {
+						result.cssStyle["top"] = posY.offset;
+					}
+					// 根据behindDoc判断，衬于文字下方、浮于文字上方
+					if (behindDoc) {
+						result.cssStyle["z-index"] = -1;
+					}
+					break;
+
+				case WrapType.Tight:
+					// TODO 紧密型环绕
+					break;
+
+				case WrapType.Through:
+					// TODO 穿越型环绕
+					break;
+
+				case WrapType.Square:
+					// TODO 矩形环绕
+					break;
+
+				case WrapType.Polygon:
+					// TODO 多边形环绕
+					break;
+
+				default:
+					// 处理浮动（anchor）
+					if (posX.align == 'left' || posX.align == 'right') {
+						result.cssStyle["float"] = posX.align;
+						// 计算DrawML对象相对于文字的上下左右间距；仅在浮动、文字环绕模式下有效；
+						result.cssStyle["margin-left"] = xml.lengthAttr(node, "distL", LengthUsage.Emu);
+						result.cssStyle["margin-right"] = xml.lengthAttr(node, "distR", LengthUsage.Emu);
+						result.cssStyle["margin-top"] = xml.lengthAttr(node, "distT", LengthUsage.Emu);
+						result.cssStyle["margin-bottom"] = xml.lengthAttr(node, "distB", LengthUsage.Emu);
+					}
+			}
 		}
+		// 设置横轴、纵轴的属性
+		result.props.posX = posX;
+		result.props.posY = posY;
 
 		return result;
 	}
@@ -977,6 +1069,10 @@ export class DocumentParser {
 
 		for (let n of xml.elements(graphicData)) {
 			switch (n.localName) {
+				// TODO DrawML其他元素
+				// shape图形
+				case "wsp":
+					return this.parseShape(n);
 				case "pic":
 					return this.parsePicture(n);
 			}
@@ -985,8 +1081,73 @@ export class DocumentParser {
 		return null;
 	}
 
+	// 解析图形shape
+	parseShape(node: Element) {
+		let shape: OpenXmlElement = { type: DomType.Shape, cssStyle: {} }
+		// TODO	预制图形
+		for (let n of xml.elements(node)) {
+			switch (n.localName) {
+				case "cNvPr":
+				case "cNvSpPr":
+				case "cNvCnPr":
+				// 图形属性
+				case "spPr":
+					return this.parseShapeProperties(n, shape);
+				// 图形样式
+				case "style":
+
+				case "txbx":
+				case "linkedTxbx":
+				// 指定形状中文本正文的正文属性。
+				case "bodyPr":
+			}
+		}
+		return null;
+	}
+
+	// 图形属性
+	parseShapeProperties(node: Element, shape: OpenXmlElement) {
+		for (let n of xml.elements(node)) {
+			switch (n.localName) {
+				case "xfrm":
+					// 水平翻转
+					let flipH = xml.boolAttr(n, "flipH");
+					if (flipH) {
+						shape.cssStyle["transform"] = 'scaleX(-1)';
+					}
+					// 垂直翻转
+					let flipV = xml.boolAttr(n, "flipV");
+					if (flipV) {
+						shape.cssStyle["transform"] = 'scaleY(-1)';
+					}
+					// 旋转角度
+					let degree = xml.lengthAttr(n, "rot", LengthUsage.degree);
+					if (degree) {
+						shape.cssStyle["transform"] = `rotate(${degree})`;
+					}
+					break;
+				case "custGeom":
+				case "prstGeom":
+				case "noFill":
+				case "solidFill":
+				case "gradFill":
+				case "blipFill":
+				case "pattFill":
+				case "grpFill":
+				case "ln":
+				case "effectLst":
+				case "effectDag":
+				case "scene3d":
+				case "sp3d":
+				case "extLst":
+			}
+		}
+		return null;
+	}
+
+	// 解析图片
 	parsePicture(elem: Element): IDomImage {
-		let result = <IDomImage>{type: DomType.Image, src: "", cssStyle: {}};
+		let result = <IDomImage>{ type: DomType.Image, src: "", cssStyle: {} };
 		let blipFill = xml.element(elem, "blipFill");
 		let blip = xml.element(blipFill, "blip");
 
@@ -1020,7 +1181,7 @@ export class DocumentParser {
 	}
 
 	parseTable(node: Element): WmlTable {
-		let result: WmlTable = {type: DomType.Table, children: []};
+		let result: WmlTable = { type: DomType.Table, children: [] };
 
 		xmlUtil.foreach(node, c => {
 			switch (c.localName) {
@@ -1047,7 +1208,7 @@ export class DocumentParser {
 		xmlUtil.foreach(node, n => {
 			switch (n.localName) {
 				case "gridCol":
-					result.push({width: xml.lengthAttr(n, "w")});
+					result.push({ width: xml.lengthAttr(n, "w") });
 					break;
 			}
 		});
@@ -1122,7 +1283,7 @@ export class DocumentParser {
 	}
 
 	parseTableRow(node: Element): WmlTableRow {
-		let result: WmlTableRow = {type: DomType.Row, children: []};
+		let result: WmlTableRow = { type: DomType.Row, children: [] };
 
 		xmlUtil.foreach(node, c => {
 			switch (c.localName) {
@@ -1159,7 +1320,7 @@ export class DocumentParser {
 	}
 
 	parseTableCell(node: Element): OpenXmlElement {
-		let result: WmlTableCell = {type: DomType.Cell, children: []};
+		let result: WmlTableCell = { type: DomType.Cell, children: [] };
 
 		xmlUtil.foreach(node, c => {
 			switch (c.localName) {

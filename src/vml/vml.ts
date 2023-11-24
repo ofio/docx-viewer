@@ -9,7 +9,6 @@ export class VmlElement extends OpenXmlElementBase {
 	tagName: string;
 	cssStyleText?: string;
 	attrs: Record<string, string> = {};
-	wrapType?: string;
 	imageHref?: {
 		id: string,
 		title: string
@@ -21,40 +20,40 @@ export function parseVmlElement(elem: Element, parser: DocumentParser): VmlEleme
 
 	switch (elem.localName) {
 		case "rect":
-			result.tagName = "rect"; 
+			result.tagName = "rect";
 			Object.assign(result.attrs, { width: '100%', height: '100%' });
 			break;
 
 		case "oval":
-			result.tagName = "ellipse"; 
+			result.tagName = "ellipse";
 			Object.assign(result.attrs, { cx: "50%", cy: "50%", rx: "50%", ry: "50%" });
 			break;
-	
+
 		case "line":
-			result.tagName = "line"; 
+			result.tagName = "line";
 			break;
 
 		case "shape":
-			result.tagName = "g"; 
+			result.tagName = "g";
 			break;
 
 		case "textbox":
-			result.tagName = "foreignObject"; 
+			result.tagName = "foreignObject";
 			Object.assign(result.attrs, { width: '100%', height: '100%' });
 			break;
-	
+
 		default:
 			return null;
 	}
 
 	for (const at of xml.attrs(elem)) {
-		switch(at.localName) {
-			case "style": 
+		switch (at.localName) {
+			case "style":
 				result.cssStyleText = at.value;
 				break;
 
-			case "fillcolor": 
-				result.attrs.fill = at.value; 
+			case "fillcolor":
+				result.attrs.fill = at.value;
 				break;
 
 			case "from":
@@ -71,11 +70,11 @@ export function parseVmlElement(elem: Element, parser: DocumentParser): VmlEleme
 
 	for (const el of xml.elements(elem)) {
 		switch (el.localName) {
-			case "stroke": 
+			case "stroke":
 				Object.assign(result.attrs, parseStroke(el));
 				break;
 
-			case "fill": 
+			case "fill":
 				Object.assign(result.attrs, parseFill(el));
 				break;
 
@@ -88,7 +87,7 @@ export function parseVmlElement(elem: Element, parser: DocumentParser): VmlEleme
 				}
 				break;
 
-			case "txbxContent": 
+			case "txbxContent":
 				result.children.push(...parser.parseBodyElements(el));
 				break;
 
@@ -121,7 +120,7 @@ function parsePoint(val: string): string[] {
 
 function convertPath(path: string): string {
 	return path.replace(/([mlxe])|([-\d]+)|([,])/g, (m) => {
-		if (/[-\d]/.test(m)) return convertLength(m,  LengthUsage.VmlEmu);
+		if (/[-\d]/.test(m)) return convertLength(m, LengthUsage.VmlEmu);
 		if (/[ml,]/.test(m)) return m;
 
 		return '';

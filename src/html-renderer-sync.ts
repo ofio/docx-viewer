@@ -1,10 +1,11 @@
-import {WordDocument} from './word-document';
+import { WordDocument } from './word-document';
 import {
 	DomType,
 	IDomImage,
 	IDomNumbering,
 	OpenXmlElement,
 	WmlBreak,
+	WmlDrawing,
 	WmlHyperlink,
 	WmlNoteReference,
 	WmlSymbol,
@@ -12,24 +13,25 @@ import {
 	WmlTableCell,
 	WmlTableColumn,
 	WmlTableRow,
-	WmlText
+	WmlText,
+	WrapType,
 } from './document/dom';
-import {CommonProperties} from './document/common';
-import {Options} from './docx-preview';
-import {DocumentElement} from './document/document';
-import {WmlParagraph} from './document/paragraph';
-import {asArray, escapeClassName, isString, keyBy, mergeDeep, uuid} from './utils';
-import {computePixelToPoint, updateTabStop} from './javascript';
-import {FontTablePart} from './font-table/font-table';
-import {FooterHeaderReference, Section, SectionProperties} from './document/section';
-import {RunProperties, WmlRun} from './document/run';
-import {WmlBookmarkStart} from './document/bookmarks';
-import {IDomStyle} from './document/style';
-import {WmlBaseNote, WmlFootnote} from './notes/elements';
-import {ThemePart} from './theme/theme-part';
-import {BaseHeaderFooterPart} from './header-footer/parts';
-import {Part} from './common/part';
-import {VmlElement} from './vml/vml';
+import { CommonProperties } from './document/common';
+import { Options } from './docx-preview';
+import { DocumentElement } from './document/document';
+import { WmlParagraph } from './document/paragraph';
+import { asArray, escapeClassName, isString, keyBy, mergeDeep, uuid } from './utils';
+import { computePixelToPoint, updateTabStop } from './javascript';
+import { FontTablePart } from './font-table/font-table';
+import { FooterHeaderReference, Section, SectionProperties, SectionType } from './document/section';
+import { RunProperties, WmlRun } from './document/run';
+import { WmlBookmarkStart } from './document/bookmarks';
+import { IDomStyle } from './document/style';
+import { WmlBaseNote, WmlFootnote } from './notes/elements';
+import { ThemePart } from './theme/theme-part';
+import { BaseHeaderFooterPart } from './header-footer/parts';
+import { Part } from './common/part';
+import { VmlElement } from './vml/vml';
 
 let ns = {
 	html: "http://www.w3.org/1999/xhtml",
@@ -171,7 +173,7 @@ export class HtmlRendererSync {
 	renderDefaultStyle() {
 		let c = this.className;
 		let styleText = `
-			.${c}-wrapper { background: gray; padding: 30px; padding-bottom: 0px; display: flex; flex-flow: column; align-items: center; } 
+			.${c}-wrapper { background: gray; padding: 30px; padding-bottom: 0px; display: flex; flex-flow: column; align-items: center; line-height:1.5; font-weight:normal; } 
 			.${c}-wrapper>section.${c} { background: white; box-shadow: 0 0 10px rgba(0, 0, 0, 0.5); margin-bottom: 30px; }
 			.${c} { color: black; hyphens: auto; }
 			section.${c} { box-sizing: border-box; display: flex; flex-flow: column nowrap; position: relative; overflow: hidden; }
@@ -183,6 +185,7 @@ export class HtmlRendererSync {
 			.${c} p { margin: 0pt; min-height: 1em; }
 			.${c} span { white-space: pre-wrap; overflow-wrap: break-word; }
 			.${c} a { color: inherit; text-decoration: inherit; }
+			.${c} img, ${c} svg { vertical-align: baseline; }
 		`;
 
 		return createStyleElement(styleText);
@@ -239,7 +242,7 @@ export class HtmlRendererSync {
 					if (styleValues) {
 						this.copyStyleProperties(baseValues.values, styleValues.values);
 					} else {
-						style.styles.push({...baseValues, values: {...baseValues.values}});
+						style.styles.push({ ...baseValues, values: { ...baseValues.values } });
 					}
 				}
 			} else if (this.options.debug) {
@@ -534,7 +537,7 @@ export class HtmlRendererSync {
 
 	// 生成父级容器
 	renderWrapper() {
-		return createElement("div", {className: `${this.className}-wrapper`});
+		return createElement("div", { className: `${this.className}-wrapper` });
 	}
 
 	// 复制CSS样式
@@ -590,7 +593,7 @@ export class HtmlRendererSync {
 	// 根据section切分页面
 	splitBySection(elements: OpenXmlElement[]): Section[] {
 		// 当前操作section，elements数组包含子元素
-		let current_section = {sectProps: null, elements: [], is_split: false,};
+		let current_section = { sectProps: null, elements: [], is_split: false, };
 		// 切分出的所有sections
 		let sections = [current_section];
 
@@ -618,7 +621,7 @@ export class HtmlRendererSync {
 					// 保存当前section的sectionProps
 					current_section.sectProps = sectProps;
 					// 重置新的section
-					current_section = {sectProps: null, elements: [], is_split: false};
+					current_section = { sectProps: null, elements: [], is_split: false };
 					// 添加新section
 					sections.push(current_section);
 				}
@@ -675,12 +678,18 @@ export class HtmlRendererSync {
 						current_section.is_split = false;
 					}
 				}
-				// 段落中存在节属性sectProps/段落Break索引
-				if (sectProps || pBreakIndex != -1) {
+				/*
+				*
+				* 分页有两种情况：
+				* 1、段落中存在节属性sectProps，且类型不是continuous/nextColumn
+				* 2、段落存在Break索引
+				*
+				*/
+				if (pBreakIndex != -1 || ((sectProps && sectProps.type != SectionType.Continuous && sectProps.type != SectionType.NextColumn))) {
 					// 保存当前section的sectionProps
 					current_section.sectProps = sectProps;
 					// 重置新的section
-					current_section = {sectProps: null, elements: [], is_split: false};
+					current_section = { sectProps: null, elements: [], is_split: false };
 					// 添加新section
 					sections.push(current_section);
 				}
@@ -695,7 +704,7 @@ export class HtmlRendererSync {
 						// 原始的Run
 						let origin_run = p.children;
 						// 切出Break索引后面的Run，创建新段落
-						let new_paragraph = {...p, children: origin_run.slice(pBreakIndex)};
+						let new_paragraph = { ...p, children: origin_run.slice(pBreakIndex) };
 						// 保存Break索引前面的Run
 						p.children = origin_run.slice(0, pBreakIndex);
 						// 添加新段落
@@ -705,7 +714,7 @@ export class HtmlRendererSync {
 							// Run下面原始的元素
 							let origin_elements = breakRun.children;
 							// 切出Run Break索引前面的元素，创建新Run
-							let newRun = {...breakRun, children: origin_elements.slice(0, rBreakIndex)};
+							let newRun = { ...breakRun, children: origin_elements.slice(0, rBreakIndex) };
 							// 将新Run放入上一个section的段落
 							p.children.push(newRun);
 							// 切出Run Break索引后面的元素
@@ -746,7 +755,7 @@ export class HtmlRendererSync {
 			sections = this.splitBySection(document.children);
 		} else {
 			// 不分页则，只有一个section
-			sections = [{sectProps: document.props, elements: document.children, is_split: false}];
+			sections = [{ sectProps: document.props, elements: document.children, is_split: false }];
 		}
 		// 前一个节属性，判断分节符的第一个section
 		let prevProps = null;
@@ -754,7 +763,7 @@ export class HtmlRendererSync {
 		for (let i = 0, l = sections.length; i < l; i++) {
 			this.currentFootnoteIds = [];
 			let section: Section = sections[i];
-			let {sectProps} = section;
+			let { sectProps } = section;
 			// section属性不存在，则使用文档级别props;
 			section.sectProps = sectProps ?? document.props;
 			// 是否本小节的第一个section
@@ -779,12 +788,12 @@ export class HtmlRendererSync {
 		// 当前操作的section
 		let section: Section = this.current_section;
 		// 解构section中的属性
-		let {is_split, sectProps, isFirstSection, isLastSection, pageIndex} = section;
+		let { is_split, sectProps, isFirstSection, isLastSection, pageIndex } = section;
 		// 根据sectProps，创建section
 		let sectionElement = this.createSection(this.className, sectProps);
 		// 标记section是否需要拆分
 		sectionElement.dataset.splited = String(is_split);
-		// 给section添加style样式
+		// 给section添加背景样式
 		this.renderStyleValues(this.document.documentPart.body.cssStyle, sectionElement);
 		// 渲染section页眉
 		if (this.options.renderHeaders) {
@@ -802,6 +811,9 @@ export class HtmlRendererSync {
 		if (this.options.renderFooters) {
 			await this.renderHeaderFooterRef(sectProps.footerRefs, sectProps, pageIndex, isFirstSection, sectionElement);
 		}
+
+		// TODO 分栏情况下，有可能一个section一种分栏，在分节符（continuous）情况下，一个section拥有多种分栏；
+
 		// section内容Article元素
 		let contentElement = createElement("article");
 		// 根据options.breakPages，设置article的高度
@@ -826,7 +838,7 @@ export class HtmlRendererSync {
 
 	// 创建Page Section
 	createSection(className: string, props: SectionProperties) {
-		let oSection = createElement("section", {className});
+		let oSection = createElement("section", { className });
 
 		if (props) {
 			// 生成uuid标识，相同的uuid即属于同一个节
@@ -918,7 +930,7 @@ export class HtmlRendererSync {
 		}
 	}
 
-	// 根据XML对象渲染出多元素，
+	// 根据XML对象渲染出多元素
 	async renderElements(elems: OpenXmlElement[], parent: HTMLElement | Element) {
 		let is_overflow: Overflow = Overflow.FALSE;
 		for (let i = 0; i < elems.length; i++) {
@@ -953,7 +965,7 @@ export class HtmlRendererSync {
 				oNode = await this.renderText(elem as WmlText, parent);
 				break;
 			case DomType.Table:
-				oNode = await this.renderTable(elem, parent);
+				oNode = await this.renderTable(elem as WmlTable, parent);
 				break;
 			case DomType.Row:
 				oNode = await this.renderTableRow(elem, parent);
@@ -969,7 +981,7 @@ export class HtmlRendererSync {
 				oNode = await this.renderHyperlink(elem, parent);
 				break;
 			case DomType.Drawing:
-				oNode = await this.renderDrawing(elem, parent);
+				oNode = await this.renderDrawing(elem as WmlDrawing, parent);
 				break;
 			case DomType.Image:
 				oNode = await this.renderImage(elem as IDomImage, parent);
@@ -1061,7 +1073,7 @@ export class HtmlRendererSync {
 				}
 				break;
 			case DomType.MmlMath:
-				oNode = await this.renderContainerNS(elem, ns.mathML, "math", {xmlns: ns.mathML});
+				oNode = await this.renderContainerNS(elem, ns.mathML, "math", { xmlns: ns.mathML });
 				if (parent) {
 					oNode.dataset.overflow = await this.appendChildren(parent, oNode);
 				}
@@ -1206,7 +1218,10 @@ export class HtmlRendererSync {
 				}
 				break;
 		}
-
+		// 标记其XML标签名
+		if (oNode && oNode?.nodeType === 1) {
+			oNode.dataset.tag = elem.type;
+		}
 		return oNode;
 	}
 
@@ -1237,7 +1252,7 @@ export class HtmlRendererSync {
 		appendChildren(parent, children);
 		// 是否溢出标识
 		let is_overflow: boolean = false;
-		let {is_split, contentElement, pageIndex, elementIndex, checking_overflow, elements} = this.current_section;
+		let { is_split, contentElement, pageIndex, elementIndex, checking_overflow, elements } = this.current_section;
 		// 当前section已拆分，忽略溢出检测
 		if (is_split) {
 			return Overflow.UNKNOWN;
@@ -1271,7 +1286,13 @@ export class HtmlRendererSync {
 				// 关闭溢出检测，方便后续页眉页脚渲染
 				checking_overflow = false;
 				// 覆盖current_section的属性
-				this.current_section = {...this.current_section, pageIndex, checking_overflow, elements, elementIndex};
+				this.current_section = {
+					...this.current_section,
+					pageIndex,
+					checking_overflow,
+					elements,
+					elementIndex
+				};
 				// 重启新一个section的渲染
 				await this.renderSection();
 			}
@@ -1293,7 +1314,12 @@ export class HtmlRendererSync {
 	}
 
 	async renderParagraph(elem: WmlParagraph, parent?: HTMLElement | Element) {
+		// 添加行，辅助行定位
+		let oParagraphLine = createElement("div", { className: "line" });
+		// 创建段落元素
 		let oParagraph = createElement("p");
+
+		appendChildren(oParagraphLine, oParagraph);
 
 		let style = this.findStyle(elem.styleName);
 		elem.tabs ??= style?.paragraphProps?.tabs;  //TODO
@@ -1301,26 +1327,45 @@ export class HtmlRendererSync {
 		this.renderClass(elem, oParagraph);
 		this.renderStyleValues(elem.cssStyle, oParagraph);
 		this.renderCommonProperties(oParagraph.style, elem);
-		// 如果拥有父级
-		if (parent) {
-			// 作为子元素插入,针对此元素进行溢出检测
-			let is_overflow: Overflow = await this.appendChildren(parent, oParagraph);
-			if (is_overflow === Overflow.TRUE) {
-				oParagraph.dataset.overflow = Overflow.TRUE
-				return oParagraph;
-			}
-		}
-
+		// 列表序号
 		let numbering = elem.numbering ?? style?.paragraphProps?.numbering;
 
 		if (numbering) {
 			oParagraph.classList.add(this.numberingClass(numbering.id, numbering.level));
 		}
 
-		// 针对后代子元素进行溢出检测
-		oParagraph.dataset.overflow = await this.renderChildren(elem, oParagraph);
+		// TODO 子代元素（Run）=> 孙代元素（Drawing）,可能有n个drawML对象
+		let drawMLs = elem.children.reduce((result, run) => {
+			let drawML = run?.children?.filter((child: WmlDrawing) => child.type === DomType.Drawing && child.props.wrapType === WrapType.TopAndBottom)
+			if (drawML?.length) {
+				return result.concat(drawML);
+			}
+			return result
+		}, []);
 
-		return oParagraph;
+		// n个DrawML对象中高度的最大值；
+		let heights = drawMLs.map((item) => parseFloat(item?.cssStyle?.height));
+
+		// 上下环绕，设置其padding-bottom
+		oParagraph.style.paddingBottom = Math.max(...heights) + 'pt';
+
+		// TODO 目前仅考虑一个DrawML的情况，多个DrawML对象定位存在bug
+		oParagraphLine.style.position = 'relative';
+
+		// 如果拥有父级
+		if (parent) {
+			// 作为子元素插入,针对此元素进行溢出检测
+			let is_overflow: Overflow = await this.appendChildren(parent, oParagraphLine);
+			if (is_overflow === Overflow.TRUE) {
+				oParagraphLine.dataset.overflow = Overflow.TRUE
+				return oParagraphLine;
+			}
+		}
+
+		// 针对后代子元素进行溢出检测
+		oParagraphLine.dataset.overflow = await this.renderChildren(elem, oParagraph);
+
+		return oParagraphLine;
 	}
 
 	// TODO 需要处理溢出
@@ -1374,7 +1419,7 @@ export class HtmlRendererSync {
 		this.tableCellPositions.push(this.currentCellPosition);
 		this.tableVerticalMerges.push(this.currentVerticalMerge);
 		this.currentVerticalMerge = {};
-		this.currentCellPosition = {col: 0, row: 0};
+		this.currentCellPosition = { col: 0, row: 0 };
 
 		this.renderClass(elem, oTable);
 		this.renderStyleValues(elem.cssStyle, oTable);
@@ -1400,6 +1445,7 @@ export class HtmlRendererSync {
 		return oTable;
 	}
 
+	// 表格--列
 	async renderTableColumns(columns: WmlTableColumn[], parent?: HTMLElement | Element) {
 		let oColGroup = createElement("colgroup");
 
@@ -1420,6 +1466,7 @@ export class HtmlRendererSync {
 		return oColGroup;
 	}
 
+	// 表格--行
 	async renderTableRow(elem: OpenXmlElement, parent?: HTMLElement | Element) {
 		let oTableRow = createElement("tr");
 
@@ -1428,6 +1475,8 @@ export class HtmlRendererSync {
 		this.renderClass(elem, oTableRow);
 		this.renderStyleValues(elem.cssStyle, oTableRow);
 		this.currentCellPosition.row++;
+		// TODO 单行溢出页面，陷入死循环
+
 		// 后代元素忽略溢出检测
 		await this.renderChildren(elem, oTableRow);
 		// 如果拥有父级
@@ -1439,6 +1488,7 @@ export class HtmlRendererSync {
 		return oTableRow;
 	}
 
+	// 表格--单元格
 	async renderTableCell(elem: WmlTableCell) {
 		let oTableCell = createElement("td");
 
@@ -1495,16 +1545,18 @@ export class HtmlRendererSync {
 		return oAnchor;
 	}
 
-	async renderDrawing(elem: OpenXmlElement, parent?: HTMLElement | Element) {
-		let oDrawing = createElement("div");
+	async renderDrawing(elem: WmlDrawing, parent?: HTMLElement | Element) {
+		let oDrawing = createElement("span");
 
-		oDrawing.style.display = "inline-block";
-		oDrawing.style.position = "relative";
 		oDrawing.style.textIndent = "0px";
 
 		// TODO 外围添加一个元素清除浮动
 
-		// TODO 去除图片外围的宽高影响
+		// TODO 去除图片外围的宽高影响???
+
+		// TODO 标识当前环绕方式，后期可删除
+		oDrawing.dataset.wrap = elem?.props.wrapType;
+
 		this.renderStyleValues(elem.cssStyle, oDrawing);
 		// 作为子元素插入，先执行溢出检测，方便对后代元素进行溢出检测
 		if (parent) {
@@ -1554,7 +1606,7 @@ export class HtmlRendererSync {
 		if (this.options.experimental) {
 			tabSpan.className = this.tabStopClass();
 			let stops = findParent<WmlParagraph>(elem, DomType.Paragraph)?.tabs;
-			this.currentTabs.push({stops, span: tabSpan});
+			this.currentTabs.push({ stops, span: tabSpan });
 		}
 
 		// 作为子元素插入，执行溢出检测
@@ -1702,27 +1754,28 @@ export class HtmlRendererSync {
 		return oSvg;
 	}
 
+	// 渲染VML中图片
 	async renderVmlPicture(elem: OpenXmlElement) {
-		let oPictureContainer = createElement("div");
+		let oPictureContainer = createElement("span");
 		await this.renderChildren(elem, oPictureContainer);
 		return oPictureContainer;
 	}
 
 	async renderVmlChildElement(elem: VmlElement) {
-		let oSvgElement = createSvgElement(elem.tagName as any);
+		let oVMLElement = createSvgElement(elem.tagName as any);
 		// set attributes
-		Object.entries(elem.attrs).forEach(([k, v]) => oSvgElement.setAttribute(k, v));
+		Object.entries(elem.attrs).forEach(([k, v]) => oVMLElement.setAttribute(k, v));
 
 		for (let child of elem.children) {
 			if (child.type == DomType.VmlElement) {
 				let oChild = await this.renderVmlChildElement(child as VmlElement);
-				appendChildren(oSvgElement, oChild);
+				appendChildren(oVMLElement, oChild);
 			} else {
-				await this.renderElement(child as any, oSvgElement);
+				await this.renderElement(child as any, oVMLElement);
 			}
 		}
 
-		return oSvgElement;
+		return oVMLElement;
 	}
 
 	async renderMmlRadical(elem: OpenXmlElement) {
@@ -2041,7 +2094,7 @@ function removeElements(target: ChildrenType, parent?: HTMLElement | Element): v
 
 // 创建style标签
 function createStyleElement(cssText: string) {
-	return createElement("style", {innerHTML: cssText});
+	return createElement("style", { innerHTML: cssText });
 }
 
 // 插入注释

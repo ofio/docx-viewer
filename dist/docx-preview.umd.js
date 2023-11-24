@@ -555,49 +555,51 @@ class DocumentParser {
         };
     }
     parseParagraph(node) {
-        let result = { type: dom_1.DomType.Paragraph, children: [] };
+        let wmlParagraph = { type: dom_1.DomType.Paragraph, children: [] };
         for (let el of xml_parser_1.default.elements(node)) {
             switch (el.localName) {
                 case "pPr":
-                    this.parseParagraphProperties(el, result);
+                    this.parseParagraphProperties(el, wmlParagraph);
                     break;
                 case "r":
-                    result.children.push(this.parseRun(el, result));
+                    wmlParagraph.children.push(this.parseRun(el, wmlParagraph));
                     break;
                 case "hyperlink":
-                    result.children.push(this.parseHyperlink(el, result));
+                    wmlParagraph.children.push(this.parseHyperlink(el, wmlParagraph));
                     break;
                 case "bookmarkStart":
-                    result.children.push((0, bookmarks_1.parseBookmarkStart)(el, xml_parser_1.default));
+                    wmlParagraph.children.push((0, bookmarks_1.parseBookmarkStart)(el, xml_parser_1.default));
                     break;
                 case "bookmarkEnd":
-                    result.children.push((0, bookmarks_1.parseBookmarkEnd)(el, xml_parser_1.default));
+                    wmlParagraph.children.push((0, bookmarks_1.parseBookmarkEnd)(el, xml_parser_1.default));
                     break;
                 case "oMath":
                 case "oMathPara":
-                    result.children.push(this.parseMathElement(el));
+                    wmlParagraph.children.push(this.parseMathElement(el));
                     break;
                 case "sdt":
-                    result.children.push(...this.parseSdt(el, (e) => this.parseParagraph(e).children));
+                    wmlParagraph.children.push(...this.parseSdt(el, (e) => this.parseParagraph(e).children));
                     break;
                 case "ins":
-                    result.children.push(this.parseInserted(el, (e) => this.parseParagraph(e)));
+                    wmlParagraph.children.push(this.parseInserted(el, (e) => this.parseParagraph(e)));
                     break;
                 case "del":
-                    result.children.push(this.parseDeleted(el, (e) => this.parseParagraph(e)));
+                    wmlParagraph.children.push(this.parseDeleted(el, (e) => this.parseParagraph(e)));
                     break;
             }
         }
-        if (result.children.length === 0) {
-            let br = { type: dom_1.DomType.Break, "break": "textWrapping" };
-            result.children = [br];
+        if (wmlParagraph.children.length === 0) {
+            let wmlBreak = { type: dom_1.DomType.Break, "break": "textWrapping" };
+            let wmlRun = { type: dom_1.DomType.Run, children: [wmlBreak] };
+            wmlParagraph.children = [wmlRun];
         }
-        return result;
+        return wmlParagraph;
     }
     parseParagraphProperties(elem, paragraph) {
         this.parseDefaultProperties(elem, paragraph.cssStyle = {}, null, c => {
-            if ((0, paragraph_1.parseParagraphProperty)(c, paragraph, xml_parser_1.default))
+            if ((0, paragraph_1.parseParagraphProperty)(c, paragraph, xml_parser_1.default)) {
                 return true;
+            }
             switch (c.localName) {
                 case "pStyle":
                     paragraph.styleName = xml_parser_1.default.attr(c, "val");
@@ -806,14 +808,16 @@ class DocumentParser {
     }
     checkAlternateContent(elem) {
         var _a;
-        if (elem.localName != 'AlternateContent')
+        if (elem.localName != 'AlternateContent') {
             return elem;
+        }
         let choice = xml_parser_1.default.element(elem, "Choice");
         if (choice) {
             let requires = xml_parser_1.default.attr(choice, "Requires");
             let namespaceURI = elem.lookupNamespaceURI(requires);
-            if (supportedNamespaceURIs.includes(namespaceURI))
+            if (supportedNamespaceURIs.includes(namespaceURI)) {
                 return choice.firstElementChild;
+            }
         }
         return (_a = xml_parser_1.default.element(elem, "Fallback")) === null || _a === void 0 ? void 0 : _a.firstElementChild;
     }
@@ -827,19 +831,30 @@ class DocumentParser {
         }
     }
     parseDrawingWrapper(node) {
-        var _a;
+        var _a, _b;
+        let layoutInCell = xml_parser_1.default.boolAttr(node, "layoutInCell");
+        let locked = xml_parser_1.default.boolAttr(node, "locked");
+        let behindDoc = xml_parser_1.default.boolAttr(node, "behindDoc");
+        let allowOverlap = xml_parser_1.default.boolAttr(node, "allowOverlap");
+        let simplePos = xml_parser_1.default.boolAttr(node, "simplePos");
+        let relativeHeight = xml_parser_1.default.intAttr(node, "relativeHeight", 1);
         let result = {
             type: dom_1.DomType.Drawing,
             children: [],
             cssStyle: {},
-            localName: node.localName,
-            wrapType: null
+            props: {
+                localName: node.localName,
+                wrapType: null,
+                layoutInCell,
+                locked,
+                behindDoc,
+                allowOverlap,
+                simplePos,
+                relativeHeight
+            },
         };
-        let isAnchor = node.localName === "anchor";
-        let simplePos = xml_parser_1.default.boolAttr(node, "simplePos");
-        result.cssStyle["z-index"] = xml_parser_1.default.intAttr(node, "relativeHeight", 1);
-        let posX = { relative: "page", align: "left", offset: "0" };
-        let posY = { relative: "page", align: "top", offset: "0" };
+        let posX = { relative: "page", align: null, offset: "0" };
+        let posY = { relative: "page", align: null, offset: "0" };
         for (let n of xml_parser_1.default.elements(node)) {
             switch (n.localName) {
                 case "simplePos":
@@ -848,30 +863,37 @@ class DocumentParser {
                         posY.offset = xml_parser_1.default.lengthAttr(n, "y", common_1.LengthUsage.Emu);
                     }
                     break;
+                case "positionH":
+                    if (!simplePos) {
+                        let alignNode = xml_parser_1.default.element(n, "align");
+                        let offsetNode = xml_parser_1.default.element(n, "posOffset");
+                        posX.relative = (_a = xml_parser_1.default.attr(n, "relativeFrom")) !== null && _a !== void 0 ? _a : posX.relative;
+                        if (alignNode) {
+                            posX.align = alignNode.textContent;
+                        }
+                        if (offsetNode) {
+                            posX.offset = xmlUtil.sizeValue(offsetNode, common_1.LengthUsage.Emu);
+                        }
+                    }
+                    break;
+                case "positionV":
+                    if (!simplePos) {
+                        let alignNode = xml_parser_1.default.element(n, "align");
+                        let offsetNode = xml_parser_1.default.element(n, "posOffset");
+                        posY.relative = (_b = xml_parser_1.default.attr(n, "relativeFrom")) !== null && _b !== void 0 ? _b : posY.relative;
+                        if (alignNode) {
+                            posY.align = alignNode.textContent;
+                        }
+                        if (offsetNode) {
+                            posY.offset = xmlUtil.sizeValue(offsetNode, common_1.LengthUsage.Emu);
+                        }
+                    }
+                    break;
                 case "extent":
                     result.cssStyle["width"] = xml_parser_1.default.lengthAttr(n, "cx", common_1.LengthUsage.Emu);
                     result.cssStyle["height"] = xml_parser_1.default.lengthAttr(n, "cy", common_1.LengthUsage.Emu);
                     break;
-                case "positionH":
-                case "positionV":
-                    if (!simplePos) {
-                        let pos = n.localName == "positionH" ? posX : posY;
-                        let alignNode = xml_parser_1.default.element(n, "align");
-                        let offsetNode = xml_parser_1.default.element(n, "posOffset");
-                        pos.relative = (_a = xml_parser_1.default.attr(n, "relativeFrom")) !== null && _a !== void 0 ? _a : pos.relative;
-                        if (alignNode) {
-                            pos.align = alignNode.textContent;
-                        }
-                        if (offsetNode) {
-                            pos.offset = xmlUtil.sizeValue(offsetNode, common_1.LengthUsage.Emu);
-                        }
-                    }
-                    break;
-                case "wrapTopAndBottom":
-                    result.wrapType = "wrapTopAndBottom";
-                    break;
-                case "wrapNone":
-                    result.wrapType = "wrapNone";
+                case "effectExtent":
                     break;
                 case "graphic":
                     let g = this.parseGraphic(n);
@@ -879,56 +901,147 @@ class DocumentParser {
                         result.children.push(g);
                     }
                     break;
+                case "wrapTopAndBottom":
+                    result.props.wrapType = dom_1.WrapType.TopAndBottom;
+                    break;
+                case "wrapNone":
+                    result.props.wrapType = dom_1.WrapType.None;
+                    break;
+                case "wrapTight":
+                    result.props.wrapType = dom_1.WrapType.Tight;
+                    break;
+                case "wrapThrough":
+                    result.props.wrapType = dom_1.WrapType.Through;
+                    break;
+                case "wrapSquare":
+                    result.props.wrapType = dom_1.WrapType.Square;
+                    break;
+                case "wrapPolygon":
+                    result.props.wrapType = dom_1.WrapType.Polygon;
+                    break;
             }
         }
-        if (this.options.ignoreImageWrap) {
-            result.wrapType = "wrapTopAndBottom";
+        if (node.localName === "inline") {
+            result.props.wrapType = dom_1.WrapType.Inline;
         }
-        switch (result.wrapType) {
-            case "wrapTopAndBottom":
-                result.cssStyle['display'] = 'block';
-                if (posX.align) {
-                    result.cssStyle['text-align'] = posX.align;
-                    result.cssStyle['width'] = "100%";
-                }
-                break;
-            case "wrapNone":
-                result.cssStyle['display'] = 'block';
-                result.cssStyle['position'] = 'relative';
-                result.cssStyle["width"] = "0px";
-                result.cssStyle["height"] = "0px";
-                if (posX.offset) {
-                    result.cssStyle["left"] = posX.offset;
-                }
-                if (posY.offset) {
-                    result.cssStyle["top"] = posY.offset;
-                }
-                break;
-            case "wrapTight":
-                break;
-            case "wrapThrough":
-                break;
-            case "wrapSquare":
-                break;
-            case "wrapPolygon":
-                break;
-            default:
-                if (isAnchor && (posX.align == 'left' || posX.align == 'right')) {
-                    result.cssStyle["float"] = posX.align;
-                    result.cssStyle["margin-left"] = xml_parser_1.default.lengthAttr(node, "distL", common_1.LengthUsage.Emu);
-                    result.cssStyle["margin-right"] = xml_parser_1.default.lengthAttr(node, "distR", common_1.LengthUsage.Emu);
+        if (node.localName === "anchor") {
+            result.cssStyle["z-index"] = relativeHeight;
+            if (this.options.ignoreImageWrap) {
+                result.props.wrapType = dom_1.WrapType.TopAndBottom;
+            }
+            switch (result.props.wrapType) {
+                case dom_1.WrapType.TopAndBottom:
+                    result.cssStyle['position'] = 'absolute';
+                    if (posX.align) {
+                        result.cssStyle['text-align'] = posX.align;
+                        result.cssStyle['width'] = "100%";
+                    }
+                    if (posX.offset) {
+                        result.cssStyle["left"] = posX.offset;
+                    }
+                    if (posY.offset) {
+                        result.cssStyle["top"] = posY.offset;
+                    }
                     result.cssStyle["margin-top"] = xml_parser_1.default.lengthAttr(node, "distT", common_1.LengthUsage.Emu);
                     result.cssStyle["margin-bottom"] = xml_parser_1.default.lengthAttr(node, "distB", common_1.LengthUsage.Emu);
-                }
+                    break;
+                case dom_1.WrapType.None:
+                    result.cssStyle['display'] = 'inline';
+                    result.cssStyle['position'] = 'absolute';
+                    result.cssStyle["width"] = "0px";
+                    result.cssStyle["height"] = "0px";
+                    if (posX.offset) {
+                        result.cssStyle["left"] = posX.offset;
+                    }
+                    if (posY.offset) {
+                        result.cssStyle["top"] = posY.offset;
+                    }
+                    if (behindDoc) {
+                        result.cssStyle["z-index"] = -1;
+                    }
+                    break;
+                case dom_1.WrapType.Tight:
+                    break;
+                case dom_1.WrapType.Through:
+                    break;
+                case dom_1.WrapType.Square:
+                    break;
+                case dom_1.WrapType.Polygon:
+                    break;
+                default:
+                    if (posX.align == 'left' || posX.align == 'right') {
+                        result.cssStyle["float"] = posX.align;
+                        result.cssStyle["margin-left"] = xml_parser_1.default.lengthAttr(node, "distL", common_1.LengthUsage.Emu);
+                        result.cssStyle["margin-right"] = xml_parser_1.default.lengthAttr(node, "distR", common_1.LengthUsage.Emu);
+                        result.cssStyle["margin-top"] = xml_parser_1.default.lengthAttr(node, "distT", common_1.LengthUsage.Emu);
+                        result.cssStyle["margin-bottom"] = xml_parser_1.default.lengthAttr(node, "distB", common_1.LengthUsage.Emu);
+                    }
+            }
         }
+        result.props.posX = posX;
+        result.props.posY = posY;
         return result;
     }
     parseGraphic(elem) {
         let graphicData = xml_parser_1.default.element(elem, "graphicData");
         for (let n of xml_parser_1.default.elements(graphicData)) {
             switch (n.localName) {
+                case "wsp":
+                    return this.parseShape(n);
                 case "pic":
                     return this.parsePicture(n);
+            }
+        }
+        return null;
+    }
+    parseShape(node) {
+        let shape = { type: dom_1.DomType.Shape, cssStyle: {} };
+        for (let n of xml_parser_1.default.elements(node)) {
+            switch (n.localName) {
+                case "cNvPr":
+                case "cNvSpPr":
+                case "cNvCnPr":
+                case "spPr":
+                    return this.parseShapeProperties(n, shape);
+                case "style":
+                case "txbx":
+                case "linkedTxbx":
+                case "bodyPr":
+            }
+        }
+        return null;
+    }
+    parseShapeProperties(node, shape) {
+        for (let n of xml_parser_1.default.elements(node)) {
+            switch (n.localName) {
+                case "xfrm":
+                    let flipH = xml_parser_1.default.boolAttr(n, "flipH");
+                    if (flipH) {
+                        shape.cssStyle["transform"] = 'scaleX(-1)';
+                    }
+                    let flipV = xml_parser_1.default.boolAttr(n, "flipV");
+                    if (flipV) {
+                        shape.cssStyle["transform"] = 'scaleY(-1)';
+                    }
+                    let degree = xml_parser_1.default.lengthAttr(n, "rot", common_1.LengthUsage.degree);
+                    if (degree) {
+                        shape.cssStyle["transform"] = `rotate(${degree})`;
+                    }
+                    break;
+                case "custGeom":
+                case "prstGeom":
+                case "noFill":
+                case "solidFill":
+                case "gradFill":
+                case "blipFill":
+                case "pattFill":
+                case "grpFill":
+                case "ln":
+                case "effectLst":
+                case "effectDag":
+                case "scene3d":
+                case "sp3d":
+                case "extLst":
             }
         }
         return null;
@@ -1917,7 +2030,7 @@ exports.DocumentPart = DocumentPart;
 
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.OpenXmlElementBase = exports.DomType = void 0;
+exports.WrapType = exports.OpenXmlElementBase = exports.DomType = void 0;
 var DomType;
 (function (DomType) {
     DomType["Document"] = "document";
@@ -1946,6 +2059,7 @@ var DomType;
     DomType["ComplexField"] = "complexField";
     DomType["Instruction"] = "instruction";
     DomType["VmlPicture"] = "vmlPicture";
+    DomType["Shape"] = "shape";
     DomType["MmlMath"] = "mmlMath";
     DomType["MmlMathParagraph"] = "mmlMathParagraph";
     DomType["MmlFraction"] = "mmlFraction";
@@ -1984,6 +2098,16 @@ class OpenXmlElementBase {
     }
 }
 exports.OpenXmlElementBase = OpenXmlElementBase;
+var WrapType;
+(function (WrapType) {
+    WrapType["Inline"] = "Inline";
+    WrapType["None"] = "None";
+    WrapType["TopAndBottom"] = "TopAndBottom";
+    WrapType["Tight"] = "Tight";
+    WrapType["Through"] = "Through";
+    WrapType["Square"] = "Square";
+    WrapType["Polygon"] = "Polygon";
+})(WrapType || (exports.WrapType = WrapType = {}));
 
 
 /***/ }),
@@ -2466,6 +2590,7 @@ exports.HtmlRendererSync = void 0;
 const dom_1 = __webpack_require__(/*! ./document/dom */ "./src/document/dom.ts");
 const utils_1 = __webpack_require__(/*! ./utils */ "./src/utils.ts");
 const javascript_1 = __webpack_require__(/*! ./javascript */ "./src/javascript.ts");
+const section_1 = __webpack_require__(/*! ./document/section */ "./src/document/section.ts");
 let ns = {
     html: "http://www.w3.org/1999/xhtml",
     svg: "http://www.w3.org/2000/svg",
@@ -2545,7 +2670,7 @@ class HtmlRendererSync {
     renderDefaultStyle() {
         let c = this.className;
         let styleText = `
-			.${c}-wrapper { background: gray; padding: 30px; padding-bottom: 0px; display: flex; flex-flow: column; align-items: center; } 
+			.${c}-wrapper { background: gray; padding: 30px; padding-bottom: 0px; display: flex; flex-flow: column; align-items: center; line-height:1.5; font-weight:normal; } 
 			.${c}-wrapper>section.${c} { background: white; box-shadow: 0 0 10px rgba(0, 0, 0, 0.5); margin-bottom: 30px; }
 			.${c} { color: black; hyphens: auto; }
 			section.${c} { box-sizing: border-box; display: flex; flex-flow: column nowrap; position: relative; overflow: hidden; }
@@ -2557,6 +2682,7 @@ class HtmlRendererSync {
 			.${c} p { margin: 0pt; min-height: 1em; }
 			.${c} span { white-space: pre-wrap; overflow-wrap: break-word; }
 			.${c} a { color: inherit; text-decoration: inherit; }
+			.${c} img, ${c} svg { vertical-align: baseline; }
 		`;
         return createStyleElement(styleText);
     }
@@ -2872,7 +2998,7 @@ class HtmlRendererSync {
                         current_section.is_split = false;
                     }
                 }
-                if (sectProps || pBreakIndex != -1) {
+                if (pBreakIndex != -1 || ((sectProps && sectProps.type != section_1.SectionType.Continuous && sectProps.type != section_1.SectionType.NextColumn))) {
                     current_section.sectProps = sectProps;
                     current_section = { sectProps: null, elements: [], is_split: false };
                     sections.push(current_section);
@@ -3290,6 +3416,9 @@ class HtmlRendererSync {
                 }
                 break;
         }
+        if (oNode && (oNode === null || oNode === void 0 ? void 0 : oNode.nodeType) === 1) {
+            oNode.dataset.tag = elem.type;
+        }
         return oNode;
     }
     isPageBreakElement(elem) {
@@ -3328,7 +3457,10 @@ class HtmlRendererSync {
                 removeElements(children, parent);
                 pageIndex += 1;
                 checking_overflow = false;
-                this.current_section = Object.assign(Object.assign({}, this.current_section), { pageIndex, checking_overflow, elements, elementIndex });
+                this.current_section = Object.assign(Object.assign({}, this.current_section), { pageIndex,
+                    checking_overflow,
+                    elements,
+                    elementIndex });
                 await this.renderSection();
             }
         }
@@ -3346,25 +3478,38 @@ class HtmlRendererSync {
     }
     async renderParagraph(elem, parent) {
         var _a, _b, _c, _d;
+        let oParagraphLine = createElement("div", { className: "line" });
         let oParagraph = createElement("p");
+        appendChildren(oParagraphLine, oParagraph);
         let style = this.findStyle(elem.styleName);
         (_a = elem.tabs) !== null && _a !== void 0 ? _a : (elem.tabs = (_b = style === null || style === void 0 ? void 0 : style.paragraphProps) === null || _b === void 0 ? void 0 : _b.tabs);
         this.renderClass(elem, oParagraph);
         this.renderStyleValues(elem.cssStyle, oParagraph);
         this.renderCommonProperties(oParagraph.style, elem);
-        if (parent) {
-            let is_overflow = await this.appendChildren(parent, oParagraph);
-            if (is_overflow === Overflow.TRUE) {
-                oParagraph.dataset.overflow = Overflow.TRUE;
-                return oParagraph;
-            }
-        }
         let numbering = (_c = elem.numbering) !== null && _c !== void 0 ? _c : (_d = style === null || style === void 0 ? void 0 : style.paragraphProps) === null || _d === void 0 ? void 0 : _d.numbering;
         if (numbering) {
             oParagraph.classList.add(this.numberingClass(numbering.id, numbering.level));
         }
-        oParagraph.dataset.overflow = await this.renderChildren(elem, oParagraph);
-        return oParagraph;
+        let drawMLs = elem.children.reduce((result, run) => {
+            var _a;
+            let drawML = (_a = run === null || run === void 0 ? void 0 : run.children) === null || _a === void 0 ? void 0 : _a.filter((child) => child.type === dom_1.DomType.Drawing && child.props.wrapType === dom_1.WrapType.TopAndBottom);
+            if (drawML === null || drawML === void 0 ? void 0 : drawML.length) {
+                return result.concat(drawML);
+            }
+            return result;
+        }, []);
+        let heights = drawMLs.map((item) => { var _a; return parseFloat((_a = item === null || item === void 0 ? void 0 : item.cssStyle) === null || _a === void 0 ? void 0 : _a.height); });
+        oParagraph.style.paddingBottom = Math.max(...heights) + 'pt';
+        oParagraphLine.style.position = 'relative';
+        if (parent) {
+            let is_overflow = await this.appendChildren(parent, oParagraphLine);
+            if (is_overflow === Overflow.TRUE) {
+                oParagraphLine.dataset.overflow = Overflow.TRUE;
+                return oParagraphLine;
+            }
+        }
+        oParagraphLine.dataset.overflow = await this.renderChildren(elem, oParagraph);
+        return oParagraphLine;
     }
     async renderRun(elem, parent) {
         if (elem.fieldRun) {
@@ -3495,10 +3640,9 @@ class HtmlRendererSync {
         return oAnchor;
     }
     async renderDrawing(elem, parent) {
-        let oDrawing = createElement("div");
-        oDrawing.style.display = "inline-block";
-        oDrawing.style.position = "relative";
+        let oDrawing = createElement("span");
         oDrawing.style.textIndent = "0px";
+        oDrawing.dataset.wrap = elem === null || elem === void 0 ? void 0 : elem.props.wrapType;
         this.renderStyleValues(elem.cssStyle, oDrawing);
         if (parent) {
             let is_overflow = await this.appendChildren(parent, oDrawing);
@@ -3639,23 +3783,23 @@ class HtmlRendererSync {
         return oSvg;
     }
     async renderVmlPicture(elem) {
-        let oPictureContainer = createElement("div");
+        let oPictureContainer = createElement("span");
         await this.renderChildren(elem, oPictureContainer);
         return oPictureContainer;
     }
     async renderVmlChildElement(elem) {
-        let oSvgElement = createSvgElement(elem.tagName);
-        Object.entries(elem.attrs).forEach(([k, v]) => oSvgElement.setAttribute(k, v));
+        let oVMLElement = createSvgElement(elem.tagName);
+        Object.entries(elem.attrs).forEach(([k, v]) => oVMLElement.setAttribute(k, v));
         for (let child of elem.children) {
             if (child.type == dom_1.DomType.VmlElement) {
                 let oChild = await this.renderVmlChildElement(child);
-                appendChildren(oSvgElement, oChild);
+                appendChildren(oVMLElement, oChild);
             }
             else {
-                await this.renderElement(child, oSvgElement);
+                await this.renderElement(child, oVMLElement);
             }
         }
-        return oSvgElement;
+        return oVMLElement;
     }
     async renderMmlRadical(elem) {
         var _a;

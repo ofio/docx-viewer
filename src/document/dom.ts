@@ -25,6 +25,7 @@ export enum DomType {
 	ComplexField = "complexField",
 	Instruction = "instruction",
 	VmlPicture = "vmlPicture",
+	Shape = "shape",
 	MmlMath = "mmlMath",
 	MmlMathParagraph = "mmlMathParagraph",
 	MmlFraction = "mmlFraction",
@@ -125,9 +126,18 @@ export interface IDomImage extends OpenXmlElement {
 	src: string;
 }
 
+export enum WrapType {
+	Inline = "Inline",
+	None = "None",
+	TopAndBottom = "TopAndBottom",
+	Tight = "Tight",
+	Through = "Through",
+	Square = "Square",
+	Polygon = "Polygon",
+}
+
 export interface WmlDrawing extends OpenXmlElement {
-	localName?: string;
-	wrapType?: string;
+
 }
 
 export interface WmlTableColumn {
