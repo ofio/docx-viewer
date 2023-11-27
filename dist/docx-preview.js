@@ -1417,9 +1417,9 @@ class DocumentParser {
         if (hanging)
             style["text-indent"] = `-${hanging}`;
         if (left || start)
-            style["margin-left"] = left || start;
+            style["padding-left"] = left || start;
         if (right || end)
-            style["margin-right"] = right || end;
+            style["padding-right"] = right || end;
     }
     parseSpacing(node, style) {
         let before = xml_parser_1.default.lengthAttr(node, "before");
@@ -3467,9 +3467,7 @@ class HtmlRendererSync {
     }
     async renderParagraph(elem, parent) {
         var _a, _b, _c, _d;
-        let oParagraphLine = createElement("div", { className: "line" });
         let oParagraph = createElement("p");
-        appendChildren(oParagraphLine, oParagraph);
         let style = this.findStyle(elem.styleName);
         (_a = elem.tabs) !== null && _a !== void 0 ? _a : (elem.tabs = (_b = style === null || style === void 0 ? void 0 : style.paragraphProps) === null || _b === void 0 ? void 0 : _b.tabs);
         this.renderClass(elem, oParagraph);
@@ -3489,16 +3487,16 @@ class HtmlRendererSync {
         }, []);
         let heights = drawMLs.map((item) => { var _a; return parseFloat((_a = item === null || item === void 0 ? void 0 : item.cssStyle) === null || _a === void 0 ? void 0 : _a.height); });
         oParagraph.style.paddingBottom = Math.max(...heights) + 'pt';
-        oParagraphLine.style.position = 'relative';
+        oParagraph.style.position = 'relative';
         if (parent) {
-            let is_overflow = await this.appendChildren(parent, oParagraphLine);
+            let is_overflow = await this.appendChildren(parent, oParagraph);
             if (is_overflow === Overflow.TRUE) {
-                oParagraphLine.dataset.overflow = Overflow.TRUE;
-                return oParagraphLine;
+                oParagraph.dataset.overflow = Overflow.TRUE;
+                return oParagraph;
             }
         }
-        oParagraphLine.dataset.overflow = await this.renderChildren(elem, oParagraph);
-        return oParagraphLine;
+        oParagraph.dataset.overflow = await this.renderChildren(elem, oParagraph);
+        return oParagraph;
     }
     async renderRun(elem, parent) {
         if (elem.fieldRun) {

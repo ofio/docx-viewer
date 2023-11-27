@@ -1314,12 +1314,8 @@ export class HtmlRendererSync {
 	}
 
 	async renderParagraph(elem: WmlParagraph, parent?: HTMLElement | Element) {
-		// 添加行，辅助行定位
-		let oParagraphLine = createElement("div", { className: "line" });
 		// 创建段落元素
 		let oParagraph = createElement("p");
-
-		appendChildren(oParagraphLine, oParagraph);
 
 		let style = this.findStyle(elem.styleName);
 		elem.tabs ??= style?.paragraphProps?.tabs;  //TODO
@@ -1350,22 +1346,22 @@ export class HtmlRendererSync {
 		oParagraph.style.paddingBottom = Math.max(...heights) + 'pt';
 
 		// TODO 目前仅考虑一个DrawML的情况，多个DrawML对象定位存在bug
-		oParagraphLine.style.position = 'relative';
+		oParagraph.style.position = 'relative';
 
 		// 如果拥有父级
 		if (parent) {
 			// 作为子元素插入,针对此元素进行溢出检测
-			let is_overflow: Overflow = await this.appendChildren(parent, oParagraphLine);
+			let is_overflow: Overflow = await this.appendChildren(parent, oParagraph);
 			if (is_overflow === Overflow.TRUE) {
-				oParagraphLine.dataset.overflow = Overflow.TRUE
-				return oParagraphLine;
+				oParagraph.dataset.overflow = Overflow.TRUE
+				return oParagraph;
 			}
 		}
 
 		// 针对后代子元素进行溢出检测
-		oParagraphLine.dataset.overflow = await this.renderChildren(elem, oParagraph);
+		oParagraph.dataset.overflow = await this.renderChildren(elem, oParagraph);
 
-		return oParagraphLine;
+		return oParagraph;
 	}
 
 	// TODO 需要处理溢出

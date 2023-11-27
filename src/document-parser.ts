@@ -1644,8 +1644,8 @@ export class DocumentParser {
 
 		if (firstLine) style["text-indent"] = firstLine;
 		if (hanging) style["text-indent"] = `-${hanging}`;
-		if (left || start) style["margin-left"] = left || start;
-		if (right || end) style["margin-right"] = right || end;
+		if (left || start) style["padding-left"] = left || start;
+		if (right || end) style["padding-right"] = right || end;
 	}
 
 	parseSpacing(node: Element, style: Record<string, string>) {
