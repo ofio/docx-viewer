@@ -1332,16 +1332,16 @@ export class HtmlRendererSync {
 		}
 
 		// TODO 子代元素（Run）=> 孙代元素（Drawing）,可能有n个drawML对象。目前仅考虑一个DrawML的情况，多个DrawML对象定位存在bug
-		// 只筛选出上下型环绕
-		let drawMLs = elem.children.reduce((result, run) => {
-			let drawML = run?.children?.filter((child: WmlDrawing) => child.type === DomType.Drawing && child.props.wrapType === WrapType.TopAndBottom)
-			if (drawML?.length) {
-				return result.concat(drawML);
-			}
-			return result
-		}, []);
+		// 是否需要清除浮动
+		let is_clear = elem.children.some((run) => {
+			// 是否存在上下型环绕
+			let is_exist_drawML = run?.children?.some((child) => child.type === DomType.Drawing && child.props.wrapType === WrapType.TopAndBottom)
+			// 是否存在br元素拥有clear属性
+			let is_clear_break = run?.children?.some((child) => child.type === DomType.Break && child?.props?.clear);
+			return is_exist_drawML || is_clear_break;
+		});
 		// 仅在上下型环绕清除浮动
-		if (drawMLs.length) {
+		if (is_clear) {
 			oParagraph.classList.add('clearfix');
 		}
 		// 后代元素定位参照物

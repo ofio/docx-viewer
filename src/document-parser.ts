@@ -687,7 +687,10 @@ export class DocumentParser {
 				case "br":
 					result.children.push(<WmlBreak>{
 						type: DomType.Break,
-						break: xml.attr(c, "type") || "textWrapping"
+						break: xml.attr(c, "type") || "textWrapping",
+						props: {
+							clear: xml.attr(c, "clear")
+						}
 					});
 					break;
 
@@ -1078,10 +1081,10 @@ export class DocumentParser {
 							result.cssStyle["margin-left"] = posX.offset;
 							break;
 						case "largest":
-
+							result.cssStyle["margin-left"] = posX.offset;
 							break;
 						case "bothSides":
-
+							result.cssStyle["margin-left"] = posX.offset;
 							break;
 					}
 					// DrawML对象与文字的上下间距
@@ -1118,10 +1121,10 @@ export class DocumentParser {
 							result.cssStyle["margin-left"] = posX.offset;
 							break;
 						case "largest":
-
+							result.cssStyle["margin-left"] = posX.offset;
 							break;
 						case "bothSides":
-
+							result.cssStyle["margin-left"] = posX.offset;
 							break;
 					}
 					break;
@@ -1140,7 +1143,7 @@ export class DocumentParser {
 	*/
 	parsePolygon(node: Element, target: OpenXmlElement) {
 		let polygon = [];
-		let { wrapText, extent: { width, height }, distance: { distL, distT, distR, distB }, posX: { origin: left }, posY: { origin: top } } = target.props;
+		let { wrapText, extent: { width, height }, posX: { origin: left }, posY: { origin: top } } = target.props;
 
 		xmlUtil.foreach(node, (elem) => {
 			// 原始值，单位：EMU
@@ -1166,8 +1169,8 @@ export class DocumentParser {
 					break;
 			}
 
-			let x = convertLength(real_x, LengthUsage.Emu);
-			let y = convertLength(real_y, LengthUsage.Emu);
+			let x = convertLength(real_x, LengthUsage.Emu) ?? 0;
+			let y = convertLength(real_y, LengthUsage.Emu) ?? 0;
 			let point = `${x} ${y}`;
 			polygon.push(point);
 		});

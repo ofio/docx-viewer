@@ -43,9 +43,9 @@ export const LengthUsage: Record<string, LengthUsageType> = {
 
 export function convertLength(val: string | number, usage: LengthUsageType = LengthUsage.Dxa): string {
 	//"simplified" docx documents use pt's as units
-	// undefined类型
-	if (val === undefined) {
-		return undefined;
+	// undefined、null类型
+	if (!val) {
+		return null;
 	}
 	// number类型
 	if (typeof val === 'number') {

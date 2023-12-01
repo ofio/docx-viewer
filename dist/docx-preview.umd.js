@@ -692,7 +692,10 @@ class DocumentParser {
                 case "br":
                     result.children.push({
                         type: dom_1.DomType.Break,
-                        break: xml_parser_1.default.attr(c, "type") || "textWrapping"
+                        break: xml_parser_1.default.attr(c, "type") || "textWrapping",
+                        props: {
+                            clear: xml_parser_1.default.attr(c, "clear")
+                        }
                     });
                     break;
                 case "lastRenderedPageBreak":
@@ -997,8 +1000,10 @@ class DocumentParser {
                             result.cssStyle["margin-left"] = posX.offset;
                             break;
                         case "largest":
+                            result.cssStyle["margin-left"] = posX.offset;
                             break;
                         case "bothSides":
+                            result.cssStyle["margin-left"] = posX.offset;
                             break;
                     }
                     result.cssStyle["box-sizing"] = "content-box";
@@ -1023,8 +1028,10 @@ class DocumentParser {
                             result.cssStyle["margin-left"] = posX.offset;
                             break;
                         case "largest":
+                            result.cssStyle["margin-left"] = posX.offset;
                             break;
                         case "bothSides":
+                            result.cssStyle["margin-left"] = posX.offset;
                             break;
                     }
                     break;
@@ -1034,8 +1041,9 @@ class DocumentParser {
     }
     parsePolygon(node, target) {
         let polygon = [];
-        let { wrapText, extent: { width, height }, distance: { distL, distT, distR, distB }, posX: { origin: left }, posY: { origin: top } } = target.props;
+        let { wrapText, extent: { width, height }, posX: { origin: left }, posY: { origin: top } } = target.props;
         xmlUtil.foreach(node, (elem) => {
+            var _a, _b;
             let origin_x = xml_parser_1.default.intAttr(elem, 'x', 0);
             let origin_y = xml_parser_1.default.intAttr(elem, 'y', 0);
             let real_x, real_y;
@@ -1053,8 +1061,8 @@ class DocumentParser {
                 case "bothSides":
                     break;
             }
-            let x = (0, common_1.convertLength)(real_x, common_1.LengthUsage.Emu);
-            let y = (0, common_1.convertLength)(real_y, common_1.LengthUsage.Emu);
+            let x = (_a = (0, common_1.convertLength)(real_x, common_1.LengthUsage.Emu)) !== null && _a !== void 0 ? _a : 0;
+            let y = (_b = (0, common_1.convertLength)(real_y, common_1.LengthUsage.Emu)) !== null && _b !== void 0 ? _b : 0;
             let point = `${x} ${y}`;
             polygon.push(point);
         });
@@ -2072,8 +2080,8 @@ exports.LengthUsage = {
     degree: { mul: 1 / 60000, unit: "deg" },
 };
 function convertLength(val, usage = exports.LengthUsage.Dxa) {
-    if (val === undefined) {
-        return undefined;
+    if (!val) {
+        return null;
     }
     if (typeof val === 'number') {
         return `${(val * usage.mul).toFixed(2)}${usage.unit}`;
@@ -3618,15 +3626,13 @@ class HtmlRendererSync {
         if (numbering) {
             oParagraph.classList.add(this.numberingClass(numbering.id, numbering.level));
         }
-        let drawMLs = elem.children.reduce((result, run) => {
-            var _a;
-            let drawML = (_a = run === null || run === void 0 ? void 0 : run.children) === null || _a === void 0 ? void 0 : _a.filter((child) => child.type === dom_1.DomType.Drawing && child.props.wrapType === dom_1.WrapType.TopAndBottom);
-            if (drawML === null || drawML === void 0 ? void 0 : drawML.length) {
-                return result.concat(drawML);
-            }
-            return result;
-        }, []);
-        if (drawMLs.length) {
+        let is_clear = elem.children.some((run) => {
+            var _a, _b;
+            let is_exist_drawML = (_a = run === null || run === void 0 ? void 0 : run.children) === null || _a === void 0 ? void 0 : _a.some((child) => child.type === dom_1.DomType.Drawing && child.props.wrapType === dom_1.WrapType.TopAndBottom);
+            let is_clear_break = (_b = run === null || run === void 0 ? void 0 : run.children) === null || _b === void 0 ? void 0 : _b.some((child) => { var _a; return child.type === dom_1.DomType.Break && ((_a = child === null || child === void 0 ? void 0 : child.props) === null || _a === void 0 ? void 0 : _a.clear); });
+            return is_exist_drawML || is_clear_break;
+        });
+        if (is_clear) {
             oParagraph.classList.add('clearfix');
         }
         oParagraph.style.position = 'relative';
