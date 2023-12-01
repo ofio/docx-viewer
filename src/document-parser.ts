@@ -868,6 +868,17 @@ export class DocumentParser {
 		let simplePos = xml.boolAttr(node, "simplePos");
 		// 层叠数值
 		let relativeHeight = xml.intAttr(node, "relativeHeight", 1);
+		// 计算DrawML对象相对于文字的上下左右间距；仅在浮动、文字环绕模式下有效；
+		let distance = {
+			left: xml.lengthAttr(node, "distL", LengthUsage.Emu),
+			right: xml.lengthAttr(node, "distR", LengthUsage.Emu),
+			top: xml.lengthAttr(node, "distT", LengthUsage.Emu),
+			bottom: xml.lengthAttr(node, "distB", LengthUsage.Emu),
+			distL: xml.intAttr(node, "distL", 0),
+			distR: xml.intAttr(node, "distR", 0),
+			distT: xml.intAttr(node, "distT", 0),
+			distB: xml.intAttr(node, "distB", 0),
+		}
 
 		let result: WmlDrawing = {
 			type: DomType.Drawing,
@@ -881,13 +892,15 @@ export class DocumentParser {
 				behindDoc,
 				allowOverlap,
 				simplePos,
-				relativeHeight
+				relativeHeight,
+				distance,
+				extent: { width: 0, height: 0 }
 			},
 		};
 		// 横轴定位
-		let posX = { relative: "page", align: null, offset: "0" };
+		let posX = { relative: "page", align: "left", offset: "0", origin: 0, };
 		// 纵轴定位
-		let posY = { relative: "page", align: null, offset: "0" };
+		let posY = { relative: "page", align: "top", offset: "0", origin: 0, };
 
 		for (let n of xml.elements(node)) {
 			switch (n.localName) {
@@ -896,8 +909,11 @@ export class DocumentParser {
 					if (simplePos) {
 						posX.offset = xml.lengthAttr(n, "x", LengthUsage.Emu);
 						posY.offset = xml.lengthAttr(n, "y", LengthUsage.Emu);
+						posX.origin = xml.intAttr(n, "x", 0);
+						posY.origin = xml.intAttr(n, "y", 0);
 					}
 					break;
+
 				case "positionH":
 					if (!simplePos) {
 						let alignNode = xml.element(n, "align");
@@ -911,7 +927,10 @@ export class DocumentParser {
 
 						if (offsetNode) {
 							posX.offset = xmlUtil.sizeValue(offsetNode, LengthUsage.Emu);
+							posX.origin = xmlUtil.text_to_int(offsetNode, 0);
 						}
+						// 设置横轴的属性
+						result.props.posX = posX;
 					}
 					break;
 
@@ -928,18 +947,25 @@ export class DocumentParser {
 
 						if (offsetNode) {
 							posY.offset = xmlUtil.sizeValue(offsetNode, LengthUsage.Emu);
+							posY.origin = xmlUtil.text_to_int(offsetNode, 0);
 						}
+						// 设置纵轴的属性
+						result.props.posY = posY;
 					}
 					break;
+
 				// drawing外框尺寸
 				case "extent":
 					result.cssStyle["width"] = xml.lengthAttr(n, "cx", LengthUsage.Emu);
 					result.cssStyle["height"] = xml.lengthAttr(n, "cy", LengthUsage.Emu);
-
+					result.props.extent.width = xml.intAttr(n, "cx", 0);
+					result.props.extent.height = xml.intAttr(n, "cy", 0);
 					break;
+
 				// 特效占据空间
 				case "effectExtent":
 					break;
+
 				// 图片
 				case "graphic":
 					let g = this.parseGraphic(n);
@@ -956,20 +982,20 @@ export class DocumentParser {
 					result.props.wrapType = WrapType.None;
 					break;
 
-				case "wrapTight":
-					result.props.wrapType = WrapType.Tight;
+				case "wrapSquare":
+					result.props.wrapType = WrapType.Square;
+					// 文本环绕位置：bothSides、largest、left、right
+					result.props.wrapText = xml.attr(n, "wrapText");
 					break;
 
 				case "wrapThrough":
-					result.props.wrapType = WrapType.Through;
-					break;
-
-				case "wrapSquare":
-					result.props.wrapType = WrapType.Square;
-					break;
-
-				case "wrapPolygon":
-					result.props.wrapType = WrapType.Polygon;
+				case "wrapTight":
+					result.props.wrapType = WrapType.Tight;
+					// 文本环绕位置：bothSides、largest、left、right
+					result.props.wrapText = xml.attr(n, "wrapText");
+					// 多边形数据
+					let polygonNode = xml.element(n, "wrapPolygon");
+					this.parsePolygon(polygonNode, result);
 					break;
 			}
 		}
@@ -977,44 +1003,49 @@ export class DocumentParser {
 		if (node.localName === "inline") {
 			result.props.wrapType = WrapType.Inline;
 		}
-
 		// 浮动（anchor）--其他环绕
 		if (node.localName === "anchor") {
-
 			// 根据relativeHeight设置z-index
-			result.cssStyle["z-index"] = relativeHeight;
-
+			result.cssStyle["position"] = "relative";
+			// 根据behindDoc判断，衬于文字下方、浮于文字上方
+			if (behindDoc) {
+				result.cssStyle["z-index"] = -1;
+			} else {
+				result.cssStyle["z-index"] = relativeHeight;
+			}
 			// 图片文字环绕默认采用wrapTopAndBottom
 			if (this.options.ignoreImageWrap) {
 				result.props.wrapType = WrapType.TopAndBottom;
 			}
+			// 文本环绕位置：bothSides、largest、left、right
+			let { wrapText } = result.props;
 
 			switch (result.props.wrapType) {
 				// 顶部底部文字环绕
 				case WrapType.TopAndBottom:
-					result.cssStyle['position'] = 'absolute';
-
+					result.cssStyle['float'] = 'left';
+					result.cssStyle['width'] = "100%";
 					if (posX.align) {
 						result.cssStyle['text-align'] = posX.align;
-						result.cssStyle['width'] = "100%";
 					}
 					if (posX.offset) {
-						result.cssStyle["left"] = posX.offset;
+						result.cssStyle["transform"] = `translate(${posX.offset},0)`;
 					}
 					if (posY.offset) {
-						result.cssStyle["top"] = posY.offset;
+						// 计算距离顶部的inset
+						let inset_top = convertLength(posY.origin - distance.distT, LengthUsage.Emu);
+						result.cssStyle["margin-top"] = inset_top;
+						result.cssStyle["shape-outside"] = `inset(${inset_top} 0 0 0)`;
 					}
 					// DrawML对象与文字的上下间距
-					result.cssStyle["margin-top"] = xml.lengthAttr(node, "distT", LengthUsage.Emu);
-					result.cssStyle["margin-bottom"] = xml.lengthAttr(node, "distB", LengthUsage.Emu);
+					result.cssStyle["box-sizing"] = "content-box";
+					result.cssStyle["padding-top"] = distance.top;
+					result.cssStyle["padding-bottom"] = distance.bottom;
 					break;
 
 				// 衬于文字下方、浮于文字上方
 				case WrapType.None:
-					result.cssStyle['display'] = 'inline';
 					result.cssStyle['position'] = 'absolute';
-					result.cssStyle["width"] = "0px";
-					result.cssStyle["height"] = "0px";
 
 					if (posX.offset) {
 						result.cssStyle["left"] = posX.offset;
@@ -1023,45 +1054,124 @@ export class DocumentParser {
 					if (posY.offset) {
 						result.cssStyle["top"] = posY.offset;
 					}
-					// 根据behindDoc判断，衬于文字下方、浮于文字上方
-					if (behindDoc) {
-						result.cssStyle["z-index"] = -1;
-					}
+
 					break;
 
-				case WrapType.Tight:
-					// TODO 紧密型环绕
-					break;
-
-				case WrapType.Through:
-					// TODO 穿越型环绕
-					break;
-
+				// 矩形（四周型）环绕
 				case WrapType.Square:
-					// TODO 矩形环绕
-					break;
-
-				case WrapType.Polygon:
-					// TODO 多边形环绕
-					break;
-
-				default:
-					// 处理浮动（anchor）
-					if (posX.align == 'left' || posX.align == 'right') {
-						result.cssStyle["float"] = posX.align;
-						// 计算DrawML对象相对于文字的上下左右间距；仅在浮动、文字环绕模式下有效；
-						result.cssStyle["margin-left"] = xml.lengthAttr(node, "distL", LengthUsage.Emu);
-						result.cssStyle["margin-right"] = xml.lengthAttr(node, "distR", LengthUsage.Emu);
-						result.cssStyle["margin-top"] = xml.lengthAttr(node, "distT", LengthUsage.Emu);
-						result.cssStyle["margin-bottom"] = xml.lengthAttr(node, "distB", LengthUsage.Emu);
+					// TODO 环绕位置bothSides、largest无法实现，目前仅支持left、right
+					result.cssStyle["float"] = wrapText === 'left' ? "right" : "left";
+					// 注意兼容性
+					if (posY.offset) {
+						// 计算距离顶部的inset
+						let inset_top = convertLength(posY.origin - distance.distT, LengthUsage.Emu);
+						result.cssStyle["margin-top"] = inset_top;
+						result.cssStyle["shape-outside"] = `inset(${inset_top} 0 0 0)`;
 					}
+
+					switch (wrapText) {
+						case "left":
+							// TODO 计算有误：页面width - 页面的padding - posX.offset - Drawing对象width - Drawing对象padding-right
+							// result.cssStyle["margin-right"] = posX.offset;
+							break;
+						case "right":
+							result.cssStyle["margin-left"] = posX.offset;
+							break;
+						case "largest":
+
+							break;
+						case "bothSides":
+
+							break;
+					}
+					// DrawML对象与文字的上下间距
+					result.cssStyle["box-sizing"] = "content-box";
+					result.cssStyle["padding-top"] = distance.top;
+					result.cssStyle["padding-bottom"] = distance.bottom;
+					result.cssStyle["padding-left"] = distance.left;
+					result.cssStyle["padding-right"] = distance.right;
+
+					break;
+
+				// 穿越型环绕
+				case WrapType.Through:
+				// 紧密型环绕
+				case WrapType.Tight:
+					// TODO 环绕位置bothSides、largest无法实现，目前仅支持left、right
+					result.cssStyle["float"] = wrapText === 'left' ? "right" : "left";
+					// 根据多边形设置环绕
+					let { polygonData } = result.props;
+					result.cssStyle["shape-outside"] = `polygon(${polygonData})`;
+					// TODO shape-margin目前4个方位只能设置统一的数值.暂时采用最小值
+					let margin = Math.min(distance.distL, distance.distR, distance.distT, distance.distB);
+					// 设置环绕margin
+					result.cssStyle["shape-margin"] = convertLength(margin, LengthUsage.Emu);
+
+					switch (wrapText) {
+						case "left":
+							result.cssStyle["margin-top"] = posY.offset;
+							// TODO 计算有误：页面width - 页面的padding - posX.offset - Drawing对象width - Drawing对象padding-right
+							// result.cssStyle["margin-right"] = posX.offset;
+							break;
+						case "right":
+							result.cssStyle["margin-top"] = posY.offset;
+							result.cssStyle["margin-left"] = posX.offset;
+							break;
+						case "largest":
+
+							break;
+						case "bothSides":
+
+							break;
+					}
+					break;
 			}
 		}
-		// 设置横轴、纵轴的属性
-		result.props.posX = posX;
-		result.props.posY = posY;
 
 		return result;
+	}
+
+	/*
+	* 多边形端点数据
+	* Office Open XML将X和Y属性解释为固定坐标空间（21600x21600）中的坐标，每个坐标点在x轴和y轴上都有对应的值，范围从0到21599。
+	* 固定坐标空间 => 实际坐标空间：
+	* 实际坐标X = 固定坐标X(EMU) * 图形的Width / 21600
+	* 实际坐标Y = 固定坐标Y(EMU) * 图形的Height / 21600
+	*/
+	parsePolygon(node: Element, target: OpenXmlElement) {
+		let polygon = [];
+		let { wrapText, extent: { width, height }, distance: { distL, distT, distR, distB }, posX: { origin: left }, posY: { origin: top } } = target.props;
+
+		xmlUtil.foreach(node, (elem) => {
+			// 原始值，单位：EMU
+			let origin_x = xml.intAttr(elem, 'x', 0);
+			let origin_y = xml.intAttr(elem, 'y', 0);
+			// 实际坐标
+			let real_x, real_y;
+			// 根据wrapText，转换为实际坐标
+			switch (wrapText) {
+				case "left":
+					real_x = origin_x * width / 21600;
+					real_y = origin_y * height / 21600 + top;
+					break;
+				case "right":
+					real_x = origin_x * width / 21600 + left;
+					real_y = origin_y * height / 21600 + top;
+					break;
+				case "largest":
+
+					break;
+				case "bothSides":
+
+					break;
+			}
+
+			let x = convertLength(real_x, LengthUsage.Emu);
+			let y = convertLength(real_y, LengthUsage.Emu);
+			let point = `${x} ${y}`;
+			polygon.push(point);
+		});
+		target.props.polygonData = polygon.join(',');
 	}
 
 	parseGraphic(elem: Element): OpenXmlElement {
@@ -1073,6 +1183,7 @@ export class DocumentParser {
 				// shape图形
 				case "wsp":
 					return this.parseShape(n);
+				// 图片
 				case "pic":
 					return this.parsePicture(n);
 			}
@@ -1106,25 +1217,28 @@ export class DocumentParser {
 	}
 
 	// 图形属性
-	parseShapeProperties(node: Element, shape: OpenXmlElement) {
+	parseShapeProperties(node: Element, target: OpenXmlElement) {
+
 		for (let n of xml.elements(node)) {
 			switch (n.localName) {
 				case "xfrm":
 					// 水平翻转
 					let flipH = xml.boolAttr(n, "flipH");
 					if (flipH) {
-						shape.cssStyle["transform"] = 'scaleX(-1)';
+						target.cssStyle["transform"] = 'scaleX(-1)';
 					}
 					// 垂直翻转
 					let flipV = xml.boolAttr(n, "flipV");
 					if (flipV) {
-						shape.cssStyle["transform"] = 'scaleY(-1)';
+						target.cssStyle["transform"] = 'scaleY(-1)';
 					}
 					// 旋转角度
 					let degree = xml.lengthAttr(n, "rot", LengthUsage.degree);
 					if (degree) {
-						shape.cssStyle["transform"] = `rotate(${degree})`;
+						target.cssStyle["transform"] = `rotate(${degree})`;
 					}
+					// 子元素
+					this.parseTransform2D(n, target);
 					break;
 				case "custGeom":
 				case "prstGeom":
@@ -1148,36 +1262,96 @@ export class DocumentParser {
 	// 解析图片
 	parsePicture(elem: Element): IDomImage {
 		let result = <IDomImage>{ type: DomType.Image, src: "", cssStyle: {} };
-		let blipFill = xml.element(elem, "blipFill");
-		let blip = xml.element(blipFill, "blip");
-
-		result.src = xml.attr(blip, "embed");
-
-		let spPr = xml.element(elem, "spPr");
-		let xfrm = xml.element(spPr, "xfrm");
-
-		// 图片旋转角度
-		let degree = xml.lengthAttr(xfrm, "rot", LengthUsage.degree);
-		if (degree) {
-			result.cssStyle["transform"] = `rotate(${degree})`;
-		}
-		result.cssStyle["position"] = "relative";
-
-		for (let n of xml.elements(xfrm)) {
+		for (let n of xml.elements(elem)) {
 			switch (n.localName) {
-				case "ext":
-					result.cssStyle["width"] = xml.lengthAttr(n, "cx", LengthUsage.Emu);
-					result.cssStyle["height"] = xml.lengthAttr(n, "cy", LengthUsage.Emu);
+				case "nvPicPr":
+					break;
+				case "blipFill":
+					this.parseBlipFill(n, result);
 					break;
 
-				case "off":
-					result.cssStyle["left"] = xml.lengthAttr(n, "x", LengthUsage.Emu);
-					result.cssStyle["top"] = xml.lengthAttr(n, "y", LengthUsage.Emu);
+				case "spPr":
+					this.parseShapeProperties(n, result)
 					break;
 			}
 		}
 
+		result.cssStyle["position"] = "relative";
+
 		return result;
+	}
+
+	// 2D变换
+	parseTransform2D(node: Element, target: OpenXmlElement) {
+		for (let n of xml.elements(node)) {
+			switch (n.localName) {
+				case "ext":
+					target.cssStyle["width"] = xml.lengthAttr(n, "cx", LengthUsage.Emu);
+					target.cssStyle["height"] = xml.lengthAttr(n, "cy", LengthUsage.Emu);
+					break;
+
+				case "off":
+					target.cssStyle["left"] = xml.lengthAttr(n, "x", LengthUsage.Emu);
+					target.cssStyle["top"] = xml.lengthAttr(n, "y", LengthUsage.Emu);
+					break;
+			}
+		}
+	}
+
+	// 图像填充
+	parseBlipFill(node: Element, target: IDomImage) {
+		// 图像填充
+		for (let n of xml.elements(node)) {
+			switch (n.localName) {
+				case "blip":
+					// embed属性：图片地址
+					target.src = xml.attr(n, "embed");
+					// 图片填充效果
+					this.parseBlip(n, target);
+					break;
+				case "srcRect":
+
+					break;
+
+				case "stretch":
+					break;
+
+				case "tile":
+					break;
+			}
+		}
+	}
+
+	// 图片填充效果
+	parseBlip(node: Element, target: OpenXmlElement) {
+		for (let n of xml.elements(node)) {
+			switch (n.localName) {
+				case "alphaBiLevel":
+
+					break;
+				case "alphaCeiling":
+
+					break;
+				case "alphaFloor":
+
+					break;
+				case "alphaInv":
+
+					break;
+				case "alphaMod":
+
+					break;
+				case "alphaModFix":
+					let opacity = xml.lengthAttr(n, 'amt', LengthUsage.Opacity);
+					target.cssStyle["opacity"] = opacity;
+					break;
+				default:
+					if (this.options.debug)
+						console.warn(`DOCX: Unknown document element: ${n.localName}`);
+					break;
+
+			}
+		}
 	}
 
 	parseTable(node: Element): WmlTable {
@@ -1644,6 +1818,7 @@ export class DocumentParser {
 
 		if (firstLine) style["text-indent"] = firstLine;
 		if (hanging) style["text-indent"] = `-${hanging}`;
+		// 段落缩进，通过padding实现
 		if (left || start) style["padding-left"] = left || start;
 		if (right || end) style["padding-right"] = right || end;
 	}
@@ -1774,6 +1949,12 @@ class xmlUtil {
 	static sizeValue(node: Element, type: LengthUsageType = LengthUsage.Dxa) {
 		return convertLength(node.textContent, type);
 	}
+
+	static text_to_int(node: Element, defaultValue: number = 0): number {
+		let textContent: string = node.textContent;
+		return textContent ? parseInt(textContent) : defaultValue;
+	}
+
 }
 
 class values {

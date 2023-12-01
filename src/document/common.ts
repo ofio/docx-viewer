@@ -1,5 +1,5 @@
-import {XmlParser} from "../parser/xml-parser";
-import {computePixelToPoint} from "../javascript";
+import { XmlParser } from "../parser/xml-parser";
+import { computePixelToPoint } from "../javascript";
 
 export const ns = {
 	wordml: "http://schemas.openxmlformats.org/wordprocessingml/2006/main",
@@ -28,22 +28,23 @@ export const LengthUsage: Record<string, LengthUsageType> = {
 
 	// Windows系统默认是96dpi，Apple系统默认是72dpi。pt = 1/72(英寸), px = 1/dpi(英寸)
 	// 目前只考虑Windows系统，px = pt * 96 / 72 ;
-	Px: {mul: 1 / 15, unit: "px"},
-	Dxa: {mul: 0.05, unit: "pt"}, // 单位：twips，twentieth = 1/20
-	Emu: {mul: 1 / 12700, unit: "pt"},
-	FontSize: {mul: 0.5, unit: "pt"},
-	Border: {mul: 0.125, unit: "pt"},
-	Point: {mul: 1, unit: "pt"},
-	Percent: {mul: 0.02, unit: "%"},
-	LineHeight: {mul: 1 / 240, unit: ""},
-	VmlEmu: {mul: 1 / 12700, unit: ""},
-	degree: {mul: 1 / 60000, unit: "deg"},
+	Px: { mul: 1 / 15, unit: "px" },
+	Dxa: { mul: 0.05, unit: "pt" }, // 单位：twips，twentieth = 1/20
+	Emu: { mul: 1 / 12700, unit: "pt" },
+	FontSize: { mul: 0.5, unit: "pt" },
+	Border: { mul: 0.125, unit: "pt" },
+	Point: { mul: 1, unit: "pt" },
+	Percent: { mul: 0.02, unit: "%" },
+	LineHeight: { mul: 1 / 240, unit: "" },
+	Opacity: { mul: 1 / 100000, unit: "" },
+	VmlEmu: { mul: 1 / 12700, unit: "" },
+	degree: { mul: 1 / 60000, unit: "deg" },
 }
 
 export function convertLength(val: string | number, usage: LengthUsageType = LengthUsage.Dxa): string {
 	//"simplified" docx documents use pt's as units
 	// undefined类型
-	if (!val) {
+	if (val === undefined) {
 		return undefined;
 	}
 	// number类型

@@ -838,6 +838,16 @@ class DocumentParser {
         let allowOverlap = xml_parser_1.default.boolAttr(node, "allowOverlap");
         let simplePos = xml_parser_1.default.boolAttr(node, "simplePos");
         let relativeHeight = xml_parser_1.default.intAttr(node, "relativeHeight", 1);
+        let distance = {
+            left: xml_parser_1.default.lengthAttr(node, "distL", common_1.LengthUsage.Emu),
+            right: xml_parser_1.default.lengthAttr(node, "distR", common_1.LengthUsage.Emu),
+            top: xml_parser_1.default.lengthAttr(node, "distT", common_1.LengthUsage.Emu),
+            bottom: xml_parser_1.default.lengthAttr(node, "distB", common_1.LengthUsage.Emu),
+            distL: xml_parser_1.default.intAttr(node, "distL", 0),
+            distR: xml_parser_1.default.intAttr(node, "distR", 0),
+            distT: xml_parser_1.default.intAttr(node, "distT", 0),
+            distB: xml_parser_1.default.intAttr(node, "distB", 0),
+        };
         let result = {
             type: dom_1.DomType.Drawing,
             children: [],
@@ -850,17 +860,21 @@ class DocumentParser {
                 behindDoc,
                 allowOverlap,
                 simplePos,
-                relativeHeight
+                relativeHeight,
+                distance,
+                extent: { width: 0, height: 0 }
             },
         };
-        let posX = { relative: "page", align: null, offset: "0" };
-        let posY = { relative: "page", align: null, offset: "0" };
+        let posX = { relative: "page", align: "left", offset: "0", origin: 0, };
+        let posY = { relative: "page", align: "top", offset: "0", origin: 0, };
         for (let n of xml_parser_1.default.elements(node)) {
             switch (n.localName) {
                 case "simplePos":
                     if (simplePos) {
                         posX.offset = xml_parser_1.default.lengthAttr(n, "x", common_1.LengthUsage.Emu);
                         posY.offset = xml_parser_1.default.lengthAttr(n, "y", common_1.LengthUsage.Emu);
+                        posX.origin = xml_parser_1.default.intAttr(n, "x", 0);
+                        posY.origin = xml_parser_1.default.intAttr(n, "y", 0);
                     }
                     break;
                 case "positionH":
@@ -873,7 +887,9 @@ class DocumentParser {
                         }
                         if (offsetNode) {
                             posX.offset = xmlUtil.sizeValue(offsetNode, common_1.LengthUsage.Emu);
+                            posX.origin = xmlUtil.text_to_int(offsetNode, 0);
                         }
+                        result.props.posX = posX;
                     }
                     break;
                 case "positionV":
@@ -886,12 +902,16 @@ class DocumentParser {
                         }
                         if (offsetNode) {
                             posY.offset = xmlUtil.sizeValue(offsetNode, common_1.LengthUsage.Emu);
+                            posY.origin = xmlUtil.text_to_int(offsetNode, 0);
                         }
+                        result.props.posY = posY;
                     }
                     break;
                 case "extent":
                     result.cssStyle["width"] = xml_parser_1.default.lengthAttr(n, "cx", common_1.LengthUsage.Emu);
                     result.cssStyle["height"] = xml_parser_1.default.lengthAttr(n, "cy", common_1.LengthUsage.Emu);
+                    result.props.extent.width = xml_parser_1.default.intAttr(n, "cx", 0);
+                    result.props.extent.height = xml_parser_1.default.intAttr(n, "cy", 0);
                     break;
                 case "effectExtent":
                     break;
@@ -907,17 +927,16 @@ class DocumentParser {
                 case "wrapNone":
                     result.props.wrapType = dom_1.WrapType.None;
                     break;
-                case "wrapTight":
-                    result.props.wrapType = dom_1.WrapType.Tight;
-                    break;
-                case "wrapThrough":
-                    result.props.wrapType = dom_1.WrapType.Through;
-                    break;
                 case "wrapSquare":
                     result.props.wrapType = dom_1.WrapType.Square;
+                    result.props.wrapText = xml_parser_1.default.attr(n, "wrapText");
                     break;
-                case "wrapPolygon":
-                    result.props.wrapType = dom_1.WrapType.Polygon;
+                case "wrapThrough":
+                case "wrapTight":
+                    result.props.wrapType = dom_1.WrapType.Tight;
+                    result.props.wrapText = xml_parser_1.default.attr(n, "wrapText");
+                    let polygonNode = xml_parser_1.default.element(n, "wrapPolygon");
+                    this.parsePolygon(polygonNode, result);
                     break;
             }
         }
@@ -925,62 +944,121 @@ class DocumentParser {
             result.props.wrapType = dom_1.WrapType.Inline;
         }
         if (node.localName === "anchor") {
-            result.cssStyle["z-index"] = relativeHeight;
+            result.cssStyle["position"] = "relative";
+            if (behindDoc) {
+                result.cssStyle["z-index"] = -1;
+            }
+            else {
+                result.cssStyle["z-index"] = relativeHeight;
+            }
             if (this.options.ignoreImageWrap) {
                 result.props.wrapType = dom_1.WrapType.TopAndBottom;
             }
+            let { wrapText } = result.props;
             switch (result.props.wrapType) {
                 case dom_1.WrapType.TopAndBottom:
-                    result.cssStyle['position'] = 'absolute';
+                    result.cssStyle['float'] = 'left';
+                    result.cssStyle['width'] = "100%";
                     if (posX.align) {
                         result.cssStyle['text-align'] = posX.align;
-                        result.cssStyle['width'] = "100%";
                     }
                     if (posX.offset) {
-                        result.cssStyle["left"] = posX.offset;
+                        result.cssStyle["transform"] = `translate(${posX.offset},0)`;
                     }
                     if (posY.offset) {
-                        result.cssStyle["top"] = posY.offset;
+                        let inset_top = (0, common_1.convertLength)(posY.origin - distance.distT, common_1.LengthUsage.Emu);
+                        result.cssStyle["margin-top"] = inset_top;
+                        result.cssStyle["shape-outside"] = `inset(${inset_top} 0 0 0)`;
                     }
-                    result.cssStyle["margin-top"] = xml_parser_1.default.lengthAttr(node, "distT", common_1.LengthUsage.Emu);
-                    result.cssStyle["margin-bottom"] = xml_parser_1.default.lengthAttr(node, "distB", common_1.LengthUsage.Emu);
+                    result.cssStyle["box-sizing"] = "content-box";
+                    result.cssStyle["padding-top"] = distance.top;
+                    result.cssStyle["padding-bottom"] = distance.bottom;
                     break;
                 case dom_1.WrapType.None:
-                    result.cssStyle['display'] = 'inline';
                     result.cssStyle['position'] = 'absolute';
-                    result.cssStyle["width"] = "0px";
-                    result.cssStyle["height"] = "0px";
                     if (posX.offset) {
                         result.cssStyle["left"] = posX.offset;
                     }
                     if (posY.offset) {
                         result.cssStyle["top"] = posY.offset;
                     }
-                    if (behindDoc) {
-                        result.cssStyle["z-index"] = -1;
-                    }
-                    break;
-                case dom_1.WrapType.Tight:
-                    break;
-                case dom_1.WrapType.Through:
                     break;
                 case dom_1.WrapType.Square:
-                    break;
-                case dom_1.WrapType.Polygon:
-                    break;
-                default:
-                    if (posX.align == 'left' || posX.align == 'right') {
-                        result.cssStyle["float"] = posX.align;
-                        result.cssStyle["margin-left"] = xml_parser_1.default.lengthAttr(node, "distL", common_1.LengthUsage.Emu);
-                        result.cssStyle["margin-right"] = xml_parser_1.default.lengthAttr(node, "distR", common_1.LengthUsage.Emu);
-                        result.cssStyle["margin-top"] = xml_parser_1.default.lengthAttr(node, "distT", common_1.LengthUsage.Emu);
-                        result.cssStyle["margin-bottom"] = xml_parser_1.default.lengthAttr(node, "distB", common_1.LengthUsage.Emu);
+                    result.cssStyle["float"] = wrapText === 'left' ? "right" : "left";
+                    if (posY.offset) {
+                        let inset_top = (0, common_1.convertLength)(posY.origin - distance.distT, common_1.LengthUsage.Emu);
+                        result.cssStyle["margin-top"] = inset_top;
+                        result.cssStyle["shape-outside"] = `inset(${inset_top} 0 0 0)`;
                     }
+                    switch (wrapText) {
+                        case "left":
+                            break;
+                        case "right":
+                            result.cssStyle["margin-left"] = posX.offset;
+                            break;
+                        case "largest":
+                            break;
+                        case "bothSides":
+                            break;
+                    }
+                    result.cssStyle["box-sizing"] = "content-box";
+                    result.cssStyle["padding-top"] = distance.top;
+                    result.cssStyle["padding-bottom"] = distance.bottom;
+                    result.cssStyle["padding-left"] = distance.left;
+                    result.cssStyle["padding-right"] = distance.right;
+                    break;
+                case dom_1.WrapType.Through:
+                case dom_1.WrapType.Tight:
+                    result.cssStyle["float"] = wrapText === 'left' ? "right" : "left";
+                    let { polygonData } = result.props;
+                    result.cssStyle["shape-outside"] = `polygon(${polygonData})`;
+                    let margin = Math.min(distance.distL, distance.distR, distance.distT, distance.distB);
+                    result.cssStyle["shape-margin"] = (0, common_1.convertLength)(margin, common_1.LengthUsage.Emu);
+                    switch (wrapText) {
+                        case "left":
+                            result.cssStyle["margin-top"] = posY.offset;
+                            break;
+                        case "right":
+                            result.cssStyle["margin-top"] = posY.offset;
+                            result.cssStyle["margin-left"] = posX.offset;
+                            break;
+                        case "largest":
+                            break;
+                        case "bothSides":
+                            break;
+                    }
+                    break;
             }
         }
-        result.props.posX = posX;
-        result.props.posY = posY;
         return result;
+    }
+    parsePolygon(node, target) {
+        let polygon = [];
+        let { wrapText, extent: { width, height }, distance: { distL, distT, distR, distB }, posX: { origin: left }, posY: { origin: top } } = target.props;
+        xmlUtil.foreach(node, (elem) => {
+            let origin_x = xml_parser_1.default.intAttr(elem, 'x', 0);
+            let origin_y = xml_parser_1.default.intAttr(elem, 'y', 0);
+            let real_x, real_y;
+            switch (wrapText) {
+                case "left":
+                    real_x = origin_x * width / 21600;
+                    real_y = origin_y * height / 21600 + top;
+                    break;
+                case "right":
+                    real_x = origin_x * width / 21600 + left;
+                    real_y = origin_y * height / 21600 + top;
+                    break;
+                case "largest":
+                    break;
+                case "bothSides":
+                    break;
+            }
+            let x = (0, common_1.convertLength)(real_x, common_1.LengthUsage.Emu);
+            let y = (0, common_1.convertLength)(real_y, common_1.LengthUsage.Emu);
+            let point = `${x} ${y}`;
+            polygon.push(point);
+        });
+        target.props.polygonData = polygon.join(',');
     }
     parseGraphic(elem) {
         let graphicData = xml_parser_1.default.element(elem, "graphicData");
@@ -1011,22 +1089,23 @@ class DocumentParser {
         }
         return null;
     }
-    parseShapeProperties(node, shape) {
+    parseShapeProperties(node, target) {
         for (let n of xml_parser_1.default.elements(node)) {
             switch (n.localName) {
                 case "xfrm":
                     let flipH = xml_parser_1.default.boolAttr(n, "flipH");
                     if (flipH) {
-                        shape.cssStyle["transform"] = 'scaleX(-1)';
+                        target.cssStyle["transform"] = 'scaleX(-1)';
                     }
                     let flipV = xml_parser_1.default.boolAttr(n, "flipV");
                     if (flipV) {
-                        shape.cssStyle["transform"] = 'scaleY(-1)';
+                        target.cssStyle["transform"] = 'scaleY(-1)';
                     }
                     let degree = xml_parser_1.default.lengthAttr(n, "rot", common_1.LengthUsage.degree);
                     if (degree) {
-                        shape.cssStyle["transform"] = `rotate(${degree})`;
+                        target.cssStyle["transform"] = `rotate(${degree})`;
                     }
+                    this.parseTransform2D(n, target);
                     break;
                 case "custGeom":
                 case "prstGeom":
@@ -1048,29 +1127,74 @@ class DocumentParser {
     }
     parsePicture(elem) {
         let result = { type: dom_1.DomType.Image, src: "", cssStyle: {} };
-        let blipFill = xml_parser_1.default.element(elem, "blipFill");
-        let blip = xml_parser_1.default.element(blipFill, "blip");
-        result.src = xml_parser_1.default.attr(blip, "embed");
-        let spPr = xml_parser_1.default.element(elem, "spPr");
-        let xfrm = xml_parser_1.default.element(spPr, "xfrm");
-        let degree = xml_parser_1.default.lengthAttr(xfrm, "rot", common_1.LengthUsage.degree);
-        if (degree) {
-            result.cssStyle["transform"] = `rotate(${degree})`;
-        }
-        result.cssStyle["position"] = "relative";
-        for (let n of xml_parser_1.default.elements(xfrm)) {
+        for (let n of xml_parser_1.default.elements(elem)) {
             switch (n.localName) {
-                case "ext":
-                    result.cssStyle["width"] = xml_parser_1.default.lengthAttr(n, "cx", common_1.LengthUsage.Emu);
-                    result.cssStyle["height"] = xml_parser_1.default.lengthAttr(n, "cy", common_1.LengthUsage.Emu);
+                case "nvPicPr":
                     break;
-                case "off":
-                    result.cssStyle["left"] = xml_parser_1.default.lengthAttr(n, "x", common_1.LengthUsage.Emu);
-                    result.cssStyle["top"] = xml_parser_1.default.lengthAttr(n, "y", common_1.LengthUsage.Emu);
+                case "blipFill":
+                    this.parseBlipFill(n, result);
+                    break;
+                case "spPr":
+                    this.parseShapeProperties(n, result);
                     break;
             }
         }
+        result.cssStyle["position"] = "relative";
         return result;
+    }
+    parseTransform2D(node, target) {
+        for (let n of xml_parser_1.default.elements(node)) {
+            switch (n.localName) {
+                case "ext":
+                    target.cssStyle["width"] = xml_parser_1.default.lengthAttr(n, "cx", common_1.LengthUsage.Emu);
+                    target.cssStyle["height"] = xml_parser_1.default.lengthAttr(n, "cy", common_1.LengthUsage.Emu);
+                    break;
+                case "off":
+                    target.cssStyle["left"] = xml_parser_1.default.lengthAttr(n, "x", common_1.LengthUsage.Emu);
+                    target.cssStyle["top"] = xml_parser_1.default.lengthAttr(n, "y", common_1.LengthUsage.Emu);
+                    break;
+            }
+        }
+    }
+    parseBlipFill(node, target) {
+        for (let n of xml_parser_1.default.elements(node)) {
+            switch (n.localName) {
+                case "blip":
+                    target.src = xml_parser_1.default.attr(n, "embed");
+                    this.parseBlip(n, target);
+                    break;
+                case "srcRect":
+                    break;
+                case "stretch":
+                    break;
+                case "tile":
+                    break;
+            }
+        }
+    }
+    parseBlip(node, target) {
+        for (let n of xml_parser_1.default.elements(node)) {
+            switch (n.localName) {
+                case "alphaBiLevel":
+                    break;
+                case "alphaCeiling":
+                    break;
+                case "alphaFloor":
+                    break;
+                case "alphaInv":
+                    break;
+                case "alphaMod":
+                    break;
+                case "alphaModFix":
+                    let opacity = xml_parser_1.default.lengthAttr(n, 'amt', common_1.LengthUsage.Opacity);
+                    target.cssStyle["opacity"] = opacity;
+                    break;
+                default:
+                    if (this.options.debug)
+                        console.warn(`DOCX: Unknown document element: ${n.localName}`);
+                    break;
+            }
+        }
     }
     parseTable(node) {
         let result = { type: dom_1.DomType.Table, children: [] };
@@ -1536,6 +1660,10 @@ class xmlUtil {
     static sizeValue(node, type = common_1.LengthUsage.Dxa) {
         return (0, common_1.convertLength)(node.textContent, type);
     }
+    static text_to_int(node, defaultValue = 0) {
+        let textContent = node.textContent;
+        return textContent ? parseInt(textContent) : defaultValue;
+    }
 }
 class values {
     static themeValue(c, attr) {
@@ -1939,11 +2067,12 @@ exports.LengthUsage = {
     Point: { mul: 1, unit: "pt" },
     Percent: { mul: 0.02, unit: "%" },
     LineHeight: { mul: 1 / 240, unit: "" },
+    Opacity: { mul: 1 / 100000, unit: "" },
     VmlEmu: { mul: 1 / 12700, unit: "" },
     degree: { mul: 1 / 60000, unit: "deg" },
 };
 function convertLength(val, usage = exports.LengthUsage.Dxa) {
-    if (!val) {
+    if (val === undefined) {
         return undefined;
     }
     if (typeof val === 'number') {
@@ -2670,7 +2799,7 @@ class HtmlRendererSync {
     renderDefaultStyle() {
         let c = this.className;
         let styleText = `
-			.${c}-wrapper { background: gray; padding: 30px; padding-bottom: 0px; display: flex; flex-flow: column; align-items: center; line-height:1.5; font-weight:normal; } 
+			.${c}-wrapper { background: gray; padding: 30px; padding-bottom: 0px; display: flex; flex-flow: column; align-items: center; line-height:normal; font-weight:normal; } 
 			.${c}-wrapper>section.${c} { background: white; box-shadow: 0 0 10px rgba(0, 0, 0, 0.5); margin-bottom: 30px; }
 			.${c} { color: black; hyphens: auto; }
 			section.${c} { box-sizing: border-box; display: flex; flex-flow: column nowrap; position: relative; overflow: hidden; }
@@ -2683,6 +2812,7 @@ class HtmlRendererSync {
 			.${c} span { white-space: pre-wrap; overflow-wrap: break-word; }
 			.${c} a { color: inherit; text-decoration: inherit; }
 			.${c} img, ${c} svg { vertical-align: baseline; }
+			.${c} .clearfix::after { content: ""; display: block; line-height: 0; clear: both; }
 		`;
         return createStyleElement(styleText);
     }
@@ -3496,8 +3626,9 @@ class HtmlRendererSync {
             }
             return result;
         }, []);
-        let heights = drawMLs.map((item) => { var _a; return parseFloat((_a = item === null || item === void 0 ? void 0 : item.cssStyle) === null || _a === void 0 ? void 0 : _a.height); });
-        oParagraph.style.paddingBottom = Math.max(...heights) + 'pt';
+        if (drawMLs.length) {
+            oParagraph.classList.add('clearfix');
+        }
         oParagraph.style.position = 'relative';
         if (parent) {
             let is_overflow = await this.appendChildren(parent, oParagraph);

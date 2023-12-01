@@ -28,6 +28,7 @@ export function serializeXmlString(elem: Node): string {
 }
 
 export class XmlParser {
+	// 查找xml元素的多个子元素
     elements(elem: Element, localName: string = null): Element[] {
         const result = [];
 

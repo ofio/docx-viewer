@@ -173,7 +173,7 @@ export class HtmlRendererSync {
 	renderDefaultStyle() {
 		let c = this.className;
 		let styleText = `
-			.${c}-wrapper { background: gray; padding: 30px; padding-bottom: 0px; display: flex; flex-flow: column; align-items: center; line-height:1.5; font-weight:normal; } 
+			.${c}-wrapper { background: gray; padding: 30px; padding-bottom: 0px; display: flex; flex-flow: column; align-items: center; line-height:normal; font-weight:normal; } 
 			.${c}-wrapper>section.${c} { background: white; box-shadow: 0 0 10px rgba(0, 0, 0, 0.5); margin-bottom: 30px; }
 			.${c} { color: black; hyphens: auto; }
 			section.${c} { box-sizing: border-box; display: flex; flex-flow: column nowrap; position: relative; overflow: hidden; }
@@ -186,6 +186,7 @@ export class HtmlRendererSync {
 			.${c} span { white-space: pre-wrap; overflow-wrap: break-word; }
 			.${c} a { color: inherit; text-decoration: inherit; }
 			.${c} img, ${c} svg { vertical-align: baseline; }
+			.${c} .clearfix::after { content: ""; display: block; line-height: 0; clear: both; }
 		`;
 
 		return createStyleElement(styleText);
@@ -1330,7 +1331,8 @@ export class HtmlRendererSync {
 			oParagraph.classList.add(this.numberingClass(numbering.id, numbering.level));
 		}
 
-		// TODO 子代元素（Run）=> 孙代元素（Drawing）,可能有n个drawML对象
+		// TODO 子代元素（Run）=> 孙代元素（Drawing）,可能有n个drawML对象。目前仅考虑一个DrawML的情况，多个DrawML对象定位存在bug
+		// 只筛选出上下型环绕
 		let drawMLs = elem.children.reduce((result, run) => {
 			let drawML = run?.children?.filter((child: WmlDrawing) => child.type === DomType.Drawing && child.props.wrapType === WrapType.TopAndBottom)
 			if (drawML?.length) {
@@ -1338,14 +1340,11 @@ export class HtmlRendererSync {
 			}
 			return result
 		}, []);
-
-		// n个DrawML对象中高度的最大值；
-		let heights = drawMLs.map((item) => parseFloat(item?.cssStyle?.height));
-
-		// 上下环绕，设置其padding-bottom
-		oParagraph.style.paddingBottom = Math.max(...heights) + 'pt';
-
-		// TODO 目前仅考虑一个DrawML的情况，多个DrawML对象定位存在bug
+		// 仅在上下型环绕清除浮动
+		if (drawMLs.length) {
+			oParagraph.classList.add('clearfix');
+		}
+		// 后代元素定位参照物
 		oParagraph.style.position = 'relative';
 
 		// 如果拥有父级
