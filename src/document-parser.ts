@@ -897,13 +897,13 @@ export class DocumentParser {
 				simplePos,
 				relativeHeight,
 				distance,
-				extent: { width: 0, height: 0 }
+				extent: {},
 			},
 		};
 		// 横轴定位
-		let posX = { relative: "page", align: "left", offset: "0", origin: 0, };
+		let posX = { relative: "page", align: "left", offset: "0pt", origin: 0, };
 		// 纵轴定位
-		let posY = { relative: "page", align: "top", offset: "0", origin: 0, };
+		let posY = { relative: "page", align: "top", offset: "0pt", origin: 0, };
 
 		for (let n of xml.elements(node)) {
 			switch (n.localName) {
@@ -959,10 +959,15 @@ export class DocumentParser {
 
 				// drawing外框尺寸
 				case "extent":
-					result.cssStyle["width"] = xml.lengthAttr(n, "cx", LengthUsage.Emu);
-					result.cssStyle["height"] = xml.lengthAttr(n, "cy", LengthUsage.Emu);
-					result.props.extent.width = xml.intAttr(n, "cx", 0);
-					result.props.extent.height = xml.intAttr(n, "cy", 0);
+					let origin_width = xml.intAttr(n, "cx", 0);
+					let origin_height = xml.intAttr(n, "cy", 0);
+					let width = xml.lengthAttr(n, "cx", LengthUsage.Emu);
+					let height = xml.lengthAttr(n, "cy", LengthUsage.Emu);
+
+					result.cssStyle["width"] = width;
+					result.cssStyle["height"] = height;
+
+					result.props.extent = { width, height, origin_width, origin_height };
 					break;
 
 				// 特效占据空间
@@ -1021,25 +1026,22 @@ export class DocumentParser {
 				result.props.wrapType = WrapType.TopAndBottom;
 			}
 			// 文本环绕位置：bothSides、largest、left、right
-			let { wrapText } = result.props;
+			let { wrapText, wrapType, extent } = result.props;
 
-			switch (result.props.wrapType) {
+			switch (wrapType) {
 				// 顶部底部文字环绕
 				case WrapType.TopAndBottom:
 					result.cssStyle['float'] = 'left';
 					result.cssStyle['width'] = "100%";
-					if (posX.align) {
-						result.cssStyle['text-align'] = posX.align;
-					}
-					if (posX.offset) {
-						result.cssStyle["transform"] = `translate(${posX.offset},0)`;
-					}
-					if (posY.offset) {
-						// 计算距离顶部的inset
-						let inset_top = convertLength(posY.origin - distance.distT, LengthUsage.Emu);
-						result.cssStyle["margin-top"] = inset_top;
-						result.cssStyle["shape-outside"] = `inset(${inset_top} 0 0 0)`;
-					}
+					// 水平对齐方式，目前仅支持left、right、center
+					result.cssStyle['text-align'] = posX.align;
+					// 横轴位移补偿
+					result.cssStyle["transform"] = `translate(${posX.offset},0)`;
+					// 垂直方向，纵轴位移
+					result.cssStyle["margin-top"] = `calc(${posY.offset} - ${distance.top})`;
+					// 计算距离顶部的inset
+					result.cssStyle["shape-outside"] = `inset(calc(${posY.offset} - ${distance.top}) 0 0 0)`;
+					// TODO 图片位于文字中间，定位计算错误
 					// DrawML对象与文字的上下间距
 					result.cssStyle["box-sizing"] = "content-box";
 					result.cssStyle["padding-top"] = distance.top;
@@ -1049,14 +1051,18 @@ export class DocumentParser {
 				// 衬于文字下方、浮于文字上方
 				case WrapType.None:
 					result.cssStyle['position'] = 'absolute';
-
-					if (posX.offset) {
-						result.cssStyle["left"] = posX.offset;
+					// 水平对齐方式，目前仅支持left、right、center
+					switch (posX.align) {
+						case "left":
+						case "right":
+							result.cssStyle[posX.align] = posX.offset;
+							break;
+						case "center":
+							result.cssStyle["left"] = "50%";
+							result.cssStyle["transform"] = "translateX(-50%)";
 					}
-
-					if (posY.offset) {
-						result.cssStyle["top"] = posY.offset;
-					}
+					// 垂直方向，纵轴位移
+					result.cssStyle["top"] = posY.offset;
 
 					break;
 
@@ -1064,27 +1070,47 @@ export class DocumentParser {
 				case WrapType.Square:
 					// TODO 环绕位置bothSides、largest无法实现，目前仅支持left、right
 					result.cssStyle["float"] = wrapText === 'left' ? "right" : "left";
-					// 注意兼容性
-					if (posY.offset) {
-						// 计算距离顶部的inset
-						let inset_top = convertLength(posY.origin - distance.distT, LengthUsage.Emu);
-						result.cssStyle["margin-top"] = inset_top;
-						result.cssStyle["shape-outside"] = `inset(${inset_top} 0 0 0)`;
-					}
-
+					// 垂直方向，纵轴位移
+					result.cssStyle["margin-top"] = `calc(${posY.offset} - ${distance.top})`;
+					// 计算距离顶部的inset
+					result.cssStyle["shape-outside"] = `inset(calc(${posY.offset} - ${distance.top}) 0 0 0)`;
+					// wrapText：文字所在的一侧
 					switch (wrapText) {
 						case "left":
-							// TODO 计算有误：页面width - 页面的padding - posX.offset - Drawing对象width - Drawing对象padding-right
-							// result.cssStyle["margin-right"] = posX.offset;
+							// 水平对齐方式，目前仅支持left、right、center
+							switch (posX.align) {
+								case "left":
+									// 计算公式：段落width - posX.offset - Drawing对象width - Drawing对象padding-right
+									result.cssStyle["margin-right"] = `calc(100% - ${extent.width} - ${posX.offset} - ${distance.right})`;
+									break;
+								case "right":
+									result.cssStyle["margin-right"] = `calc(${posX.offset} - ${distance.right})`;
+									break;
+								case "center":
+									result.cssStyle["margin-right"] = `calc( 50% - (${extent.width} - ${posX.offset}) / 2 - ${distance.right} )`;
+							}
 							break;
 						case "right":
-							result.cssStyle["margin-left"] = posX.offset;
+							// 水平对齐方式，目前仅支持left、right、center
+							switch (posX.align) {
+								case "left":
+									result.cssStyle["margin-left"] = `calc(${posX.offset} - ${distance.left})`;
+									break;
+								case "right":
+									// 计算公式：段落width - posX.offset - Drawing对象width - Drawing对象padding-right
+									result.cssStyle["margin-left"] = `calc(100% - ${extent.width} - ${posX.offset} - ${distance.left})`;
+									result.cssStyle["margin-right"] = `calc(${posX.offset} - ${distance.right})`;
+									break;
+								case "center":
+									result.cssStyle["margin-left"] = `calc( 50% - (${extent.width} - ${posX.offset} ) / 2 - ${distance.left} )`;
+							}
+
 							break;
 						case "largest":
-							result.cssStyle["margin-left"] = posX.offset;
+							console.warn("wrap text width largest is not supported！")
 							break;
 						case "bothSides":
-							result.cssStyle["margin-left"] = posX.offset;
+							console.warn("wrap text width bothSides is not supported！")
 							break;
 					}
 					// DrawML对象与文字的上下间距
@@ -1105,6 +1131,7 @@ export class DocumentParser {
 					// 根据多边形设置环绕
 					let { polygonData } = result.props;
 					result.cssStyle["shape-outside"] = `polygon(${polygonData})`;
+
 					// TODO shape-margin目前4个方位只能设置统一的数值.暂时采用最小值
 					let margin = Math.min(distance.distL, distance.distR, distance.distT, distance.distB);
 					// 设置环绕margin
@@ -1113,7 +1140,7 @@ export class DocumentParser {
 					switch (wrapText) {
 						case "left":
 							result.cssStyle["margin-top"] = posY.offset;
-							// TODO 计算有误：页面width - 页面的padding - posX.offset - Drawing对象width - Drawing对象padding-right
+							// TODO 计算有误：段落width - posX.offset - Drawing对象width - Drawing对象padding-right
 							// result.cssStyle["margin-right"] = posX.offset;
 							break;
 						case "right":
@@ -1121,10 +1148,10 @@ export class DocumentParser {
 							result.cssStyle["margin-left"] = posX.offset;
 							break;
 						case "largest":
-							result.cssStyle["margin-left"] = posX.offset;
+							console.warn("wrap text width largest is not supported！")
 							break;
 						case "bothSides":
-							result.cssStyle["margin-left"] = posX.offset;
+							console.warn("wrap text width bothSides is not supported！")
 							break;
 					}
 					break;
@@ -1143,23 +1170,23 @@ export class DocumentParser {
 	*/
 	parsePolygon(node: Element, target: OpenXmlElement) {
 		let polygon = [];
-		let { wrapText, extent: { width, height }, posX: { origin: left }, posY: { origin: top } } = target.props;
+		let { wrapText, extent: { origin_width, origin_height }, posX: { origin: left }, posY: { origin: top } } = target.props;
 
 		xmlUtil.foreach(node, (elem) => {
 			// 原始值，单位：EMU
 			let origin_x = xml.intAttr(elem, 'x', 0);
 			let origin_y = xml.intAttr(elem, 'y', 0);
 			// 实际坐标
-			let real_x, real_y;
+			let real_x: number, real_y: number;
 			// 根据wrapText，转换为实际坐标
 			switch (wrapText) {
 				case "left":
-					real_x = origin_x * width / 21600;
-					real_y = origin_y * height / 21600 + top;
+					real_x = origin_x * origin_width / 21600;
+					real_y = origin_y * origin_height / 21600 + top;
 					break;
 				case "right":
-					real_x = origin_x * width / 21600 + left;
-					real_y = origin_y * height / 21600 + top;
+					real_x = origin_x * origin_width / 21600 + left;
+					real_y = origin_y * origin_height / 21600 + top;
 					break;
 				case "largest":
 

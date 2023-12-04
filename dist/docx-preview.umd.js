@@ -865,11 +865,11 @@ class DocumentParser {
                 simplePos,
                 relativeHeight,
                 distance,
-                extent: { width: 0, height: 0 }
+                extent: {},
             },
         };
-        let posX = { relative: "page", align: "left", offset: "0", origin: 0, };
-        let posY = { relative: "page", align: "top", offset: "0", origin: 0, };
+        let posX = { relative: "page", align: "left", offset: "0pt", origin: 0, };
+        let posY = { relative: "page", align: "top", offset: "0pt", origin: 0, };
         for (let n of xml_parser_1.default.elements(node)) {
             switch (n.localName) {
                 case "simplePos":
@@ -911,10 +911,13 @@ class DocumentParser {
                     }
                     break;
                 case "extent":
-                    result.cssStyle["width"] = xml_parser_1.default.lengthAttr(n, "cx", common_1.LengthUsage.Emu);
-                    result.cssStyle["height"] = xml_parser_1.default.lengthAttr(n, "cy", common_1.LengthUsage.Emu);
-                    result.props.extent.width = xml_parser_1.default.intAttr(n, "cx", 0);
-                    result.props.extent.height = xml_parser_1.default.intAttr(n, "cy", 0);
+                    let origin_width = xml_parser_1.default.intAttr(n, "cx", 0);
+                    let origin_height = xml_parser_1.default.intAttr(n, "cy", 0);
+                    let width = xml_parser_1.default.lengthAttr(n, "cx", common_1.LengthUsage.Emu);
+                    let height = xml_parser_1.default.lengthAttr(n, "cy", common_1.LengthUsage.Emu);
+                    result.cssStyle["width"] = width;
+                    result.cssStyle["height"] = height;
+                    result.props.extent = { width, height, origin_width, origin_height };
                     break;
                 case "effectExtent":
                     break;
@@ -957,53 +960,67 @@ class DocumentParser {
             if (this.options.ignoreImageWrap) {
                 result.props.wrapType = dom_1.WrapType.TopAndBottom;
             }
-            let { wrapText } = result.props;
-            switch (result.props.wrapType) {
+            let { wrapText, wrapType, extent } = result.props;
+            switch (wrapType) {
                 case dom_1.WrapType.TopAndBottom:
                     result.cssStyle['float'] = 'left';
                     result.cssStyle['width'] = "100%";
-                    if (posX.align) {
-                        result.cssStyle['text-align'] = posX.align;
-                    }
-                    if (posX.offset) {
-                        result.cssStyle["transform"] = `translate(${posX.offset},0)`;
-                    }
-                    if (posY.offset) {
-                        let inset_top = (0, common_1.convertLength)(posY.origin - distance.distT, common_1.LengthUsage.Emu);
-                        result.cssStyle["margin-top"] = inset_top;
-                        result.cssStyle["shape-outside"] = `inset(${inset_top} 0 0 0)`;
-                    }
+                    result.cssStyle['text-align'] = posX.align;
+                    result.cssStyle["transform"] = `translate(${posX.offset},0)`;
+                    result.cssStyle["margin-top"] = `calc(${posY.offset} - ${distance.top})`;
+                    result.cssStyle["shape-outside"] = `inset(calc(${posY.offset} - ${distance.top}) 0 0 0)`;
                     result.cssStyle["box-sizing"] = "content-box";
                     result.cssStyle["padding-top"] = distance.top;
                     result.cssStyle["padding-bottom"] = distance.bottom;
                     break;
                 case dom_1.WrapType.None:
                     result.cssStyle['position'] = 'absolute';
-                    if (posX.offset) {
-                        result.cssStyle["left"] = posX.offset;
+                    switch (posX.align) {
+                        case "left":
+                        case "right":
+                            result.cssStyle[posX.align] = posX.offset;
+                            break;
+                        case "center":
+                            result.cssStyle["left"] = "50%";
+                            result.cssStyle["transform"] = "translateX(-50%)";
                     }
-                    if (posY.offset) {
-                        result.cssStyle["top"] = posY.offset;
-                    }
+                    result.cssStyle["top"] = posY.offset;
                     break;
                 case dom_1.WrapType.Square:
                     result.cssStyle["float"] = wrapText === 'left' ? "right" : "left";
-                    if (posY.offset) {
-                        let inset_top = (0, common_1.convertLength)(posY.origin - distance.distT, common_1.LengthUsage.Emu);
-                        result.cssStyle["margin-top"] = inset_top;
-                        result.cssStyle["shape-outside"] = `inset(${inset_top} 0 0 0)`;
-                    }
+                    result.cssStyle["margin-top"] = `calc(${posY.offset} - ${distance.top})`;
+                    result.cssStyle["shape-outside"] = `inset(calc(${posY.offset} - ${distance.top}) 0 0 0)`;
                     switch (wrapText) {
                         case "left":
+                            switch (posX.align) {
+                                case "left":
+                                    result.cssStyle["margin-right"] = `calc(100% - ${extent.width} - ${posX.offset} - ${distance.right})`;
+                                    break;
+                                case "right":
+                                    result.cssStyle["margin-right"] = `calc(${posX.offset} - ${distance.right})`;
+                                    break;
+                                case "center":
+                                    result.cssStyle["margin-right"] = `calc( 50% - (${extent.width} - ${posX.offset}) / 2 - ${distance.right} )`;
+                            }
                             break;
                         case "right":
-                            result.cssStyle["margin-left"] = posX.offset;
+                            switch (posX.align) {
+                                case "left":
+                                    result.cssStyle["margin-left"] = `calc(${posX.offset} - ${distance.left})`;
+                                    break;
+                                case "right":
+                                    result.cssStyle["margin-left"] = `calc(100% - ${extent.width} - ${posX.offset} - ${distance.left})`;
+                                    result.cssStyle["margin-right"] = `calc(${posX.offset} - ${distance.right})`;
+                                    break;
+                                case "center":
+                                    result.cssStyle["margin-left"] = `calc( 50% - (${extent.width} - ${posX.offset} ) / 2 - ${distance.left} )`;
+                            }
                             break;
                         case "largest":
-                            result.cssStyle["margin-left"] = posX.offset;
+                            console.warn("wrap text width largest is not supported！");
                             break;
                         case "bothSides":
-                            result.cssStyle["margin-left"] = posX.offset;
+                            console.warn("wrap text width bothSides is not supported！");
                             break;
                     }
                     result.cssStyle["box-sizing"] = "content-box";
@@ -1028,10 +1045,10 @@ class DocumentParser {
                             result.cssStyle["margin-left"] = posX.offset;
                             break;
                         case "largest":
-                            result.cssStyle["margin-left"] = posX.offset;
+                            console.warn("wrap text width largest is not supported！");
                             break;
                         case "bothSides":
-                            result.cssStyle["margin-left"] = posX.offset;
+                            console.warn("wrap text width bothSides is not supported！");
                             break;
                     }
                     break;
@@ -1041,7 +1058,7 @@ class DocumentParser {
     }
     parsePolygon(node, target) {
         let polygon = [];
-        let { wrapText, extent: { width, height }, posX: { origin: left }, posY: { origin: top } } = target.props;
+        let { wrapText, extent: { origin_width, origin_height }, posX: { origin: left }, posY: { origin: top } } = target.props;
         xmlUtil.foreach(node, (elem) => {
             var _a, _b;
             let origin_x = xml_parser_1.default.intAttr(elem, 'x', 0);
@@ -1049,12 +1066,12 @@ class DocumentParser {
             let real_x, real_y;
             switch (wrapText) {
                 case "left":
-                    real_x = origin_x * width / 21600;
-                    real_y = origin_y * height / 21600 + top;
+                    real_x = origin_x * origin_width / 21600;
+                    real_y = origin_y * origin_height / 21600 + top;
                     break;
                 case "right":
-                    real_x = origin_x * width / 21600 + left;
-                    real_y = origin_y * height / 21600 + top;
+                    real_x = origin_x * origin_width / 21600 + left;
+                    real_y = origin_y * origin_height / 21600 + top;
                     break;
                 case "largest":
                     break;
