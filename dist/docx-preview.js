@@ -3623,11 +3623,12 @@ class HtmlRendererSync {
     async renderParagraph(elem, parent) {
         var _a, _b, _c, _d;
         let oParagraph = createElement("p");
-        let style = this.findStyle(elem.styleName);
-        (_a = elem.tabs) !== null && _a !== void 0 ? _a : (elem.tabs = (_b = style === null || style === void 0 ? void 0 : style.paragraphProps) === null || _b === void 0 ? void 0 : _b.tabs);
+        oParagraph.dataset.uuid = (0, utils_1.uuid)();
         this.renderClass(elem, oParagraph);
         this.renderStyleValues(elem.cssStyle, oParagraph);
         this.renderCommonProperties(oParagraph.style, elem);
+        let style = this.findStyle(elem.styleName);
+        (_a = elem.tabs) !== null && _a !== void 0 ? _a : (elem.tabs = (_b = style === null || style === void 0 ? void 0 : style.paragraphProps) === null || _b === void 0 ? void 0 : _b.tabs);
         let numbering = (_c = elem.numbering) !== null && _c !== void 0 ? _c : (_d = style === null || style === void 0 ? void 0 : style.paragraphProps) === null || _d === void 0 ? void 0 : _d.numbering;
         if (numbering) {
             oParagraph.classList.add(this.numberingClass(numbering.id, numbering.level));
@@ -3688,6 +3689,7 @@ class HtmlRendererSync {
     }
     async renderTable(elem, parent) {
         let oTable = createElement("table");
+        oTable.dataset.uuid = (0, utils_1.uuid)();
         this.tableCellPositions.push(this.currentCellPosition);
         this.tableVerticalMerges.push(this.currentVerticalMerge);
         this.currentVerticalMerge = {};

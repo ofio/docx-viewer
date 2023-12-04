@@ -1317,13 +1317,17 @@ export class HtmlRendererSync {
 	async renderParagraph(elem: WmlParagraph, parent?: HTMLElement | Element) {
 		// 创建段落元素
 		let oParagraph = createElement("p");
-
+		// 生成段落的uuid标识，
+		oParagraph.dataset.uuid = uuid();
+		// 渲染class
+		this.renderClass(elem, oParagraph);
+		// 渲染style
+		this.renderStyleValues(elem.cssStyle, oParagraph);
+		// 渲染常规--字体、颜色
+		this.renderCommonProperties(oParagraph.style, elem);
+		// 查找段落内置样式class
 		let style = this.findStyle(elem.styleName);
 		elem.tabs ??= style?.paragraphProps?.tabs;  //TODO
-
-		this.renderClass(elem, oParagraph);
-		this.renderStyleValues(elem.cssStyle, oParagraph);
-		this.renderCommonProperties(oParagraph.style, elem);
 		// 列表序号
 		let numbering = elem.numbering ?? style?.paragraphProps?.numbering;
 
@@ -1410,6 +1414,8 @@ export class HtmlRendererSync {
 
 	async renderTable(elem: WmlTable, parent?: HTMLElement | Element) {
 		let oTable = createElement("table");
+		// 生成表格的uuid标识，
+		oTable.dataset.uuid = uuid();
 
 		this.tableCellPositions.push(this.currentCellPosition);
 		this.tableVerticalMerges.push(this.currentVerticalMerge);
