@@ -1016,11 +1016,8 @@ class DocumentParser {
                                     result.cssStyle["margin-left"] = `calc( 50% - (${extent.width} - ${posX.offset} ) / 2 - ${distance.left} )`;
                             }
                             break;
-                        case "largest":
-                            console.warn("wrap text width largest is not supported！");
-                            break;
-                        case "bothSides":
-                            console.warn("wrap text width bothSides is not supported！");
+                        default:
+                            console.warn(`text wrap picture on ${wrapText} is not supported！`);
                             break;
                     }
                     result.cssStyle["box-sizing"] = "content-box";
@@ -1034,21 +1031,34 @@ class DocumentParser {
                     result.cssStyle["float"] = wrapText === 'left' ? "right" : "left";
                     let { polygonData } = result.props;
                     result.cssStyle["shape-outside"] = `polygon(${polygonData})`;
-                    let margin = Math.min(distance.distL, distance.distR, distance.distT, distance.distB);
-                    result.cssStyle["shape-margin"] = (0, common_1.convertLength)(margin, common_1.LengthUsage.Emu);
+                    result.cssStyle["margin-top"] = posY.offset;
                     switch (wrapText) {
                         case "left":
-                            result.cssStyle["margin-top"] = posY.offset;
+                            switch (posX.align) {
+                                case "left":
+                                    result.cssStyle["margin-right"] = `calc(100% - ${extent.width} - ${posX.offset})`;
+                                    break;
+                                case "right":
+                                    result.cssStyle["margin-right"] = posX.offset;
+                                    break;
+                                case "center":
+                                    result.cssStyle["margin-right"] = `calc( 50% - (${extent.width} - ${posX.offset}) / 2 )`;
+                            }
                             break;
                         case "right":
-                            result.cssStyle["margin-top"] = posY.offset;
-                            result.cssStyle["margin-left"] = posX.offset;
+                            switch (posX.align) {
+                                case "left":
+                                    result.cssStyle["margin-left"] = posX.offset;
+                                    break;
+                                case "right":
+                                    result.cssStyle["margin-left"] = `calc(100% - ${extent.width} - ${posX.offset})`;
+                                    break;
+                                case "center":
+                                    result.cssStyle["margin-left"] = `calc( 50% - (${extent.width} - ${posX.offset} ) / 2 )`;
+                            }
                             break;
-                        case "largest":
-                            console.warn("wrap text width largest is not supported！");
-                            break;
-                        case "bothSides":
-                            console.warn("wrap text width bothSides is not supported！");
+                        default:
+                            console.warn(`text wrap picture on ${wrapText} is not supported！`);
                             break;
                     }
                     break;
@@ -1058,29 +1068,66 @@ class DocumentParser {
     }
     parsePolygon(node, target) {
         let polygon = [];
-        let { wrapText, extent: { origin_width, origin_height }, posX: { origin: left }, posY: { origin: top } } = target.props;
+        let { wrapText, distance, extent, posX, posY } = target.props;
         xmlUtil.foreach(node, (elem) => {
-            var _a, _b;
+            var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m;
             let origin_x = xml_parser_1.default.intAttr(elem, 'x', 0);
             let origin_y = xml_parser_1.default.intAttr(elem, 'y', 0);
             let real_x, real_y;
+            let point_x, point_y;
+            let revise_x, revise_y;
             switch (wrapText) {
                 case "left":
-                    real_x = origin_x * origin_width / 21600;
-                    real_y = origin_y * origin_height / 21600 + top;
+                    switch (posX.align) {
+                        case "left":
+                            real_x = origin_x * extent.origin_width / 21600 - distance.distL;
+                            real_y = origin_y * extent.origin_height / 21600 + posY.origin;
+                            revise_x = (_a = (0, common_1.convertLength)(real_x, common_1.LengthUsage.Emu)) !== null && _a !== void 0 ? _a : "0pt";
+                            revise_y = (_b = (0, common_1.convertLength)(real_y, common_1.LengthUsage.Emu)) !== null && _b !== void 0 ? _b : "0pt";
+                            break;
+                        case "right":
+                            real_x = origin_x * extent.origin_width / 21600 + posX.origin - distance.distL;
+                            real_y = origin_y * extent.origin_height / 21600 + posY.origin;
+                            revise_x = (_c = (0, common_1.convertLength)(real_x, common_1.LengthUsage.Emu)) !== null && _c !== void 0 ? _c : "0pt";
+                            revise_y = (_d = (0, common_1.convertLength)(real_y, common_1.LengthUsage.Emu)) !== null && _d !== void 0 ? _d : "0pt";
+                            break;
+                        case "center":
+                            real_x = origin_x * extent.origin_width / 21600 + posX.origin - distance.distL;
+                            real_y = origin_y * extent.origin_height / 21600 + posY.origin;
+                            revise_x = (_e = (0, common_1.convertLength)(real_x, common_1.LengthUsage.Emu)) !== null && _e !== void 0 ? _e : "0pt";
+                            revise_y = (_f = (0, common_1.convertLength)(real_y, common_1.LengthUsage.Emu)) !== null && _f !== void 0 ? _f : "0pt";
+                    }
                     break;
                 case "right":
-                    real_x = origin_x * origin_width / 21600 + left;
-                    real_y = origin_y * origin_height / 21600 + top;
+                    switch (posX.align) {
+                        case "left":
+                            real_x = origin_x * extent.origin_width / 21600 + posX.origin + distance.distR;
+                            real_y = origin_y * extent.origin_height / 21600 + posY.origin;
+                            revise_x = (_g = (0, common_1.convertLength)(real_x, common_1.LengthUsage.Emu)) !== null && _g !== void 0 ? _g : "0pt";
+                            revise_y = (_h = (0, common_1.convertLength)(real_y, common_1.LengthUsage.Emu)) !== null && _h !== void 0 ? _h : "0pt";
+                            break;
+                        case "right":
+                            real_x = origin_x * extent.origin_width / 21600 + posX.origin + distance.distR;
+                            real_y = origin_y * extent.origin_height / 21600 + posY.origin;
+                            point_x = (_j = (0, common_1.convertLength)(real_x, common_1.LengthUsage.Emu)) !== null && _j !== void 0 ? _j : "0pt";
+                            point_y = (_k = (0, common_1.convertLength)(real_y, common_1.LengthUsage.Emu)) !== null && _k !== void 0 ? _k : "0pt";
+                            revise_x = `calc(100% + ${point_x} - ${extent.width})`;
+                            revise_y = point_y;
+                            break;
+                        case "center":
+                            real_x = origin_x * extent.origin_width / 21600 + posX.origin + distance.distR;
+                            real_y = origin_y * extent.origin_height / 21600 + posY.origin;
+                            point_x = (_l = (0, common_1.convertLength)(real_x, common_1.LengthUsage.Emu)) !== null && _l !== void 0 ? _l : "0pt";
+                            point_y = (_m = (0, common_1.convertLength)(real_y, common_1.LengthUsage.Emu)) !== null && _m !== void 0 ? _m : "0pt";
+                            revise_x = `calc(50% + ${point_x})`;
+                            revise_y = point_y;
+                    }
                     break;
-                case "largest":
-                    break;
-                case "bothSides":
+                default:
+                    console.warn(`text wrap picture on ${wrapText} is not supported！`);
                     break;
             }
-            let x = (_a = (0, common_1.convertLength)(real_x, common_1.LengthUsage.Emu)) !== null && _a !== void 0 ? _a : 0;
-            let y = (_b = (0, common_1.convertLength)(real_y, common_1.LengthUsage.Emu)) !== null && _b !== void 0 ? _b : 0;
-            let point = `${x} ${y}`;
+            let point = `${revise_x} ${revise_y}`;
             polygon.push(point);
         });
         target.props.polygonData = polygon.join(',');

@@ -1106,11 +1106,8 @@ export class DocumentParser {
 							}
 
 							break;
-						case "largest":
-							console.warn("wrap text width largest is not supported！")
-							break;
-						case "bothSides":
-							console.warn("wrap text width bothSides is not supported！")
+						default:
+							console.warn(`text wrap picture on ${wrapText} is not supported！`)
 							break;
 					}
 					// DrawML对象与文字的上下间距
@@ -1132,26 +1129,43 @@ export class DocumentParser {
 					let { polygonData } = result.props;
 					result.cssStyle["shape-outside"] = `polygon(${polygonData})`;
 
-					// TODO shape-margin目前4个方位只能设置统一的数值.暂时采用最小值
-					let margin = Math.min(distance.distL, distance.distR, distance.distT, distance.distB);
-					// 设置环绕margin
-					result.cssStyle["shape-margin"] = convertLength(margin, LengthUsage.Emu);
+					// TODO shape-margin目前4个方位只能设置统一的数值.暂时无法采用
+
+					// 垂直方向，纵轴位移
+					// TODO 存在上下padding时，定位错误
+					result.cssStyle["margin-top"] = posY.offset;
 
 					switch (wrapText) {
 						case "left":
-							result.cssStyle["margin-top"] = posY.offset;
-							// TODO 计算有误：段落width - posX.offset - Drawing对象width - Drawing对象padding-right
-							// result.cssStyle["margin-right"] = posX.offset;
+							// 水平对齐方式，目前仅支持left、right、center
+							switch (posX.align) {
+								case "left":
+									// 计算公式：段落width - posX.offset - Drawing对象width
+									result.cssStyle["margin-right"] = `calc(100% - ${extent.width} - ${posX.offset})`;
+									break;
+								case "right":
+									result.cssStyle["margin-right"] = posX.offset;
+									break;
+								case "center":
+									result.cssStyle["margin-right"] = `calc( 50% - (${extent.width} - ${posX.offset}) / 2 )`;
+							}
 							break;
 						case "right":
-							result.cssStyle["margin-top"] = posY.offset;
-							result.cssStyle["margin-left"] = posX.offset;
+							// 水平对齐方式，目前仅支持left、right、center
+							switch (posX.align) {
+								case "left":
+									result.cssStyle["margin-left"] = posX.offset;
+									break;
+								case "right":
+									// 计算公式：段落width - posX.offset - Drawing对象width
+									result.cssStyle["margin-left"] = `calc(100% - ${extent.width} - ${posX.offset})`;
+									break;
+								case "center":
+									result.cssStyle["margin-left"] = `calc( 50% - (${extent.width} - ${posX.offset} ) / 2 )`;
+							}
 							break;
-						case "largest":
-							console.warn("wrap text width largest is not supported！")
-							break;
-						case "bothSides":
-							console.warn("wrap text width bothSides is not supported！")
+						default:
+							console.warn(`text wrap picture on ${wrapText} is not supported！`)
 							break;
 					}
 					break;
@@ -1170,35 +1184,93 @@ export class DocumentParser {
 	*/
 	parsePolygon(node: Element, target: OpenXmlElement) {
 		let polygon = [];
-		let { wrapText, extent: { origin_width, origin_height }, posX: { origin: left }, posY: { origin: top } } = target.props;
+		let { wrapText, distance, extent, posX, posY } = target.props;
 
 		xmlUtil.foreach(node, (elem) => {
 			// 原始值，单位：EMU
 			let origin_x = xml.intAttr(elem, 'x', 0);
 			let origin_y = xml.intAttr(elem, 'y', 0);
-			// 实际坐标
+			// 实际坐标，单位EMU
 			let real_x: number, real_y: number;
-			// 根据wrapText，转换为实际坐标
+			// Point坐标，单位pt
+			let point_x: string, point_y: string;
+			// 修正坐标，补偿横向位移
+			let revise_x: string, revise_y: string;
+			/*
+			* 根据wrapText，转换坐标
+			* TODO 多边形：纵轴外边距暂时忽略，横轴补偿distance。当多边形超出DrawWrapper的范围时，补偿会被忽略，导致不准确
+			*/
 			switch (wrapText) {
 				case "left":
-					real_x = origin_x * origin_width / 21600;
-					real_y = origin_y * origin_height / 21600 + top;
+					// 水平对齐方式，目前仅支持left、right、center
+					switch (posX.align) {
+						case "left":
+							// 实际坐标
+							real_x = origin_x * extent.origin_width / 21600 - distance.distL;
+							real_y = origin_y * extent.origin_height / 21600 + posY.origin;
+							// 修正坐标
+							revise_x = convertLength(real_x, LengthUsage.Emu) ?? "0pt";
+							revise_y = convertLength(real_y, LengthUsage.Emu) ?? "0pt";
+							break;
+						case "right":
+							// 实际坐标
+							real_x = origin_x * extent.origin_width / 21600 + posX.origin - distance.distL;
+							real_y = origin_y * extent.origin_height / 21600 + posY.origin;
+							// 修正坐标
+							revise_x = convertLength(real_x, LengthUsage.Emu) ?? "0pt";
+							revise_y = convertLength(real_y, LengthUsage.Emu) ?? "0pt";
+							break;
+						case "center":
+							// 实际坐标
+							real_x = origin_x * extent.origin_width / 21600 + posX.origin - distance.distL;
+							real_y = origin_y * extent.origin_height / 21600 + posY.origin;
+							// 修正坐标
+							revise_x = convertLength(real_x, LengthUsage.Emu) ?? "0pt";
+							revise_y = convertLength(real_y, LengthUsage.Emu) ?? "0pt";
+					}
 					break;
 				case "right":
-					real_x = origin_x * origin_width / 21600 + left;
-					real_y = origin_y * origin_height / 21600 + top;
-					break;
-				case "largest":
+					// 水平对齐方式，目前仅支持left、right、center
+					switch (posX.align) {
+						case "left":
+							// 实际坐标
+							real_x = origin_x * extent.origin_width / 21600 + posX.origin + distance.distR;
+							real_y = origin_y * extent.origin_height / 21600 + posY.origin;
+							// 修正坐标
+							revise_x = convertLength(real_x, LengthUsage.Emu) ?? "0pt";
+							revise_y = convertLength(real_y, LengthUsage.Emu) ?? "0pt";
+							break;
+						case "right":
+							// 实际坐标
+							real_x = origin_x * extent.origin_width / 21600 + posX.origin + distance.distR;
+							real_y = origin_y * extent.origin_height / 21600 + posY.origin;
+							// Point坐标
+							point_x = convertLength(real_x, LengthUsage.Emu) ?? "0pt";
+							point_y = convertLength(real_y, LengthUsage.Emu) ?? "0pt";
+							// 修正坐标，横轴补偿distance
+							revise_x = `calc(100% + ${point_x} - ${extent.width})`;
+							revise_y = point_y;
+
+							break;
+						case "center":
+							// 实际坐标
+							real_x = origin_x * extent.origin_width / 21600 + posX.origin + distance.distR;
+							real_y = origin_y * extent.origin_height / 21600 + posY.origin;
+							// Point坐标
+							point_x = convertLength(real_x, LengthUsage.Emu) ?? "0pt";
+							point_y = convertLength(real_y, LengthUsage.Emu) ?? "0pt";
+							// 修正坐标，横轴补偿distance
+							revise_x = `calc(50% + ${point_x})`;
+							revise_y = point_y;
+					}
 
 					break;
-				case "bothSides":
-
+				default:
+					console.warn(`text wrap picture on ${wrapText} is not supported！`)
 					break;
 			}
 
-			let x = convertLength(real_x, LengthUsage.Emu) ?? 0;
-			let y = convertLength(real_y, LengthUsage.Emu) ?? 0;
-			let point = `${x} ${y}`;
+			let point = `${revise_x} ${revise_y}`;
 			polygon.push(point);
 		});
 		target.props.polygonData = polygon.join(',');
