@@ -1,4 +1,4 @@
-import * as JSZip from "jszip";
+import JSZip from 'jszip';
 import { parseXmlString, XmlParser } from "../parser/xml-parser";
 import { splitPath } from "../utils";
 import { parseRelationships, Relationship } from "./relationship";
@@ -7,7 +7,7 @@ export interface OpenXmlPackageOptions {
     trimXmlDeclaration: boolean,
     keepOrigin: boolean,
 }
-// 
+//
 export class OpenXmlPackage {
     xmlParser: XmlParser = new XmlParser();
 
