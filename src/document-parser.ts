@@ -1712,7 +1712,7 @@ export class DocumentParser {
 					break;
 
 				case "smallCaps":
-					style["text-transform"] = xml.boolAttr(c, "val", true) ? "lowercase" : "none";
+					style["font-variant"] = xml.boolAttr(c, "val", true) ? "small-caps" : "none";
 					break;
 
 				case "u":
