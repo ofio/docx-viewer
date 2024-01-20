@@ -4,7 +4,7 @@ export interface Relationship {
     id: string,
     type: RelationshipTypes | string,
     target: string
-    targetMode: "" | "External" | string 
+    targetMode: "" | "External" | string
 }
 
 export enum RelationshipTypes {
@@ -25,6 +25,7 @@ export enum RelationshipTypes {
     ExtendedProperties = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/extended-properties",
     CoreProperties = "http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties",
 	CustomProperties = "http://schemas.openxmlformats.org/package/2006/relationships/metadata/custom-properties",
+    Comments = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/comments"
 }
 
 export function parseRelationships(root: Element, xml: XmlParser): Relationship[] {

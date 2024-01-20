@@ -1,4 +1,3 @@
-import { DocumentParser } from "../document-parser";
 import { Length } from "../document/common";
 import { XmlParser } from "../parser/xml-parser";
 
@@ -15,7 +14,7 @@ export interface NoteProperties {
 }
 
 export function parseSettings(elem: Element, xml: XmlParser) {
-	var result = {} as WmlSettings; 
+	var result = {} as WmlSettings;
 
 	for (let el of xml.elements(elem)) {
 		switch(el.localName) {
@@ -32,16 +31,16 @@ export function parseSettings(elem: Element, xml: XmlParser) {
 export function parseNoteProperties(elem: Element, xml: XmlParser) {
 	var result = {
 		defaultNoteIds: []
-	} as NoteProperties; 
+	} as NoteProperties;
 
 	for (let el of xml.elements(elem)) {
 		switch(el.localName) {
-			case "numFmt": 
+			case "numFmt":
 				result.nummeringFormat = xml.attr(el, "val");
 				break;
 
-			case "footnote": 
-			case "endnote": 
+			case "footnote":
+			case "endnote":
 				result.defaultNoteIds.push(xml.attr(el, "id"));
 				break;
 		}

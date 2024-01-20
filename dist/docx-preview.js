@@ -23,6 +23,7 @@
         RelationshipTypes["ExtendedProperties"] = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/extended-properties";
         RelationshipTypes["CoreProperties"] = "http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties";
         RelationshipTypes["CustomProperties"] = "http://schemas.openxmlformats.org/package/2006/relationships/metadata/custom-properties";
+        RelationshipTypes["Comments"] = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/comments";
     })(RelationshipTypes || (RelationshipTypes = {}));
     function parseRelationships(root, xml) {
         return xml.elements(root).map(e => ({
@@ -814,6 +815,10 @@
         DomType["Inserted"] = "inserted";
         DomType["Deleted"] = "deleted";
         DomType["DeletedText"] = "deletedText";
+        DomType["Comment"] = "comment";
+        DomType["CommentReference"] = "commentReference";
+        DomType["CommentRangeStart"] = "commentRangeStart";
+        DomType["CommentRangeEnd"] = "commentRangeEnd";
     })(DomType || (DomType = {}));
     class OpenXmlElementBase {
         constructor() {
@@ -1122,6 +1127,17 @@
         }
     }
 
+    class CommentsPart extends Part {
+        constructor(pkg, path, parser) {
+            super(pkg, path);
+            this._documentParser = parser;
+        }
+        parseXml(root) {
+            this.comments = this._documentParser.parseComments(root);
+            this.commentMap = keyBy(this.comments, x => x.id);
+        }
+    }
+
     const topLevelRels = [
         { type: RelationshipTypes.OfficeDocument, target: "word/document.xml" },
         { type: RelationshipTypes.ExtendedProperties, target: "docProps/app.xml" },
@@ -1193,6 +1209,9 @@
                     break;
                 case RelationshipTypes.Settings:
                     this.settingsPart = part = new SettingsPart(this._package, path);
+                    break;
+                case RelationshipTypes.Comments:
+                    this.commentsPart = part = new CommentsPart(this._package, path, this._parser);
                     break;
             }
             if (part == null)
@@ -1357,6 +1376,34 @@
         return val.split(",");
     }
 
+    class WmlComment extends OpenXmlElementBase {
+        constructor() {
+            super(...arguments);
+            this.type = DomType.Comment;
+        }
+    }
+    class WmlCommentReference extends OpenXmlElementBase {
+        constructor(id) {
+            super();
+            this.id = id;
+            this.type = DomType.CommentReference;
+        }
+    }
+    class WmlCommentRangeStart extends OpenXmlElementBase {
+        constructor(id) {
+            super();
+            this.id = id;
+            this.type = DomType.CommentRangeStart;
+        }
+    }
+    class WmlCommentRangeEnd extends OpenXmlElementBase {
+        constructor(id) {
+            super();
+            this.id = id;
+            this.type = DomType.CommentRangeEnd;
+        }
+    }
+
     var autos = {
         shd: "inherit",
         color: "black",
@@ -1412,6 +1459,19 @@
                 node.noteType = globalXmlParser.attr(el, "type");
                 node.children = this.parseBodyElements(el);
                 result.push(node);
+            }
+            return result;
+        }
+        parseComments(xmlDoc) {
+            let result = [];
+            for (let el of globalXmlParser.elements(xmlDoc, "comment")) {
+                const item = new WmlComment();
+                item.id = globalXmlParser.attr(el, "id");
+                item.author = globalXmlParser.attr(el, "author");
+                item.initials = globalXmlParser.attr(el, "initials");
+                item.date = globalXmlParser.attr(el, "date");
+                item.children = this.parseBodyElements(el);
+                result.push(item);
             }
             return result;
         }
@@ -1767,6 +1827,12 @@
                     case "bookmarkEnd":
                         wmlParagraph.children.push(parseBookmarkEnd(el, globalXmlParser));
                         break;
+                    case "commentRangeStart":
+                        wmlParagraph.children.push(new WmlCommentRangeStart(globalXmlParser.attr(el, "id")));
+                        break;
+                    case "commentRangeEnd":
+                        wmlParagraph.children.push(new WmlCommentRangeEnd(globalXmlParser.attr(el, "id")));
+                        break;
                     case "oMath":
                     case "oMathPara":
                         wmlParagraph.children.push(this.parseMathElement(el));
@@ -1855,6 +1921,9 @@
                             type: DomType.DeletedText,
                             text: c.textContent
                         });
+                        break;
+                    case "commentReference":
+                        result.children.push(new WmlCommentReference(globalXmlParser.attr(c, "id")));
                         break;
                     case "fldSimple":
                         result.children.push({
@@ -4644,7 +4713,7 @@
             if (this.options.renderFooters) {
                 await this.renderHeaderFooterRef(sectProps.footerRefs, sectProps, pageIndex, isFirstSection, sectionElement);
             }
-            let contentElement = createElement("article");
+            let contentElement = this.createSectionContent(sectProps);
             if (this.options.breakPages) {
                 contentElement.style.height = sectProps.contentSize.height;
             }
@@ -4675,16 +4744,20 @@
                         oSection.style.minHeight = props.pageSize.height;
                     }
                 }
-                if (props.columns && props.columns.numberOfColumns) {
-                    oSection.style.columnCount = `${props.columns.numberOfColumns}`;
-                    oSection.style.columnGap = props.columns.space;
-                    if (props.columns.separator) {
-                        oSection.style.columnRule = "1px solid black";
-                    }
-                }
             }
             this.wrapper.appendChild(oSection);
             return oSection;
+        }
+        createSectionContent(props) {
+            const oArticle = createElement("article");
+            if (props.columns && props.columns.numberOfColumns) {
+                oArticle.style.columnCount = `${props.columns.numberOfColumns}`;
+                oArticle.style.columnGap = props.columns.space;
+                if (props.columns.separator) {
+                    oArticle.style.columnRule = "1px solid black";
+                }
+            }
+            return oArticle;
         }
         async renderHeaderFooterRef(refs, props, pageIndex, firstOfSection, parent) {
             if (!refs)
@@ -4814,6 +4887,24 @@
                     oNode = createElement("wbr");
                     if (parent) {
                         await this.appendChildren(parent, oNode);
+                    }
+                    break;
+                case DomType.CommentRangeStart:
+                    oNode = this.renderCommentRangeStart(elem);
+                    if (parent) {
+                        appendChildren(parent, oNode);
+                    }
+                    break;
+                case DomType.CommentRangeEnd:
+                    oNode = this.renderCommentRangeEnd(elem);
+                    if (parent) {
+                        appendChildren(parent, oNode);
+                    }
+                    break;
+                case DomType.CommentReference:
+                    oNode = this.renderCommentReference(elem);
+                    if (parent) {
+                        appendChildren(parent, oNode);
                     }
                     break;
                 case DomType.Footer:
@@ -5308,6 +5399,27 @@
                 oDeletedText = null;
             }
             return oDeletedText;
+        }
+        renderCommentRangeStart(commentStart) {
+            if (!this.options.experimental) {
+                return null;
+            }
+            return document.createComment(`start of comment #${commentStart.id}`);
+        }
+        renderCommentRangeEnd(commentEnd) {
+            if (!this.options.experimental) {
+                return null;
+            }
+            return document.createComment(`end of comment #${commentEnd.id}`);
+        }
+        renderCommentReference(commentRef) {
+            if (!this.options.experimental) {
+                return null;
+            }
+            const comment = this.document.commentsPart?.commentMap[commentRef.id];
+            if (!comment)
+                return null;
+            return document.createComment(`comment #${comment.id} by ${comment.author} on ${comment.date}`);
         }
         async renderHeaderFooter(elem, tagName) {
             let oElement = createElement(tagName);

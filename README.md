@@ -1,17 +1,19 @@
 [![npm version](https://badge.fury.io/js/docx-preview.svg)](https://www.npmjs.com/package/docx-preview-sync)
 
-# docxjs
-
+# docx-preview-sync
 Docx rendering library
 
 Demo - https://volodymyrbaydalka.github.io/docxjs/
+
+Goal
+----
+Goal of this project is to render/convert DOCX document into HTML document with keeping HTML semantic as much as possible.
+That means library is limited by HTML capabilities (for example google docx render document on canvas as an image).
 
 Usage
 -----
 
 ```html
-<!--optional polyfill for promise-->
-<script src="https://unpkg.com/promise-polyfill/dist/polyfill.min.js"></script>
 <!--lib uses jszip-->
 <script src="https://unpkg.com/jszip/dist/jszip.min.js"></script>
 <script src="docx-preview.min.js"></script>
@@ -32,6 +34,7 @@ API
 ---
 
 ```ts
+// renders document into specified element
 renderAsync(
     document: Blob | ArrayBuffer | Uint8Array, // could be any type that supported by JSZip.loadAsync
     bodyContainer: HTMLElement, //element to render document content,
@@ -53,7 +56,25 @@ renderAsync(
         renderFootnotes: true, //enables footnotes rendering
         renderEndnotes: true, //enables endnotes rendering
         debug: boolean = false, //enables additional logging
-    }): Promise<any>
+    }): Promise<WordDocument>
+
+/// ==== experimental / internal API ===
+// this API could be used to modify document before rendering
+// renderAsync = praseAsync + renderDocument
+
+// parse document and return internal document object
+praseAsync(
+    document: Blob | ArrayBuffer | Uint8Array,
+    options: Options
+): Promise<WordDocument>
+
+// render internal document object into specified container
+renderDocument(
+    wordDocument: WordDocument,
+    bodyContainer: HTMLElement,
+    styleContainer: HTMLElement,
+    options: Options
+): Promise<void>
 ```
 
 Thumbnails, TOC and etc.

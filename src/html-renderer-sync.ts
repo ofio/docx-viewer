@@ -32,6 +32,7 @@ import { ThemePart } from './theme/theme-part';
 import { BaseHeaderFooterPart } from './header-footer/parts';
 import { Part } from './common/part';
 import { VmlElement } from './vml/vml';
+import { WmlCommentRangeStart, WmlCommentReference } from './comments/elements';
 
 let ns = {
 	html: "http://www.w3.org/1999/xhtml",
@@ -46,7 +47,7 @@ interface CellPos {
 
 type CellVerticalMergeType = Record<number, HTMLTableCellElement>;
 
-interface Node_DOM extends Node {
+interface Node_DOM extends Node, Comment, CharacterData {
 	dataset: DOMStringMap;
 }
 
@@ -816,7 +817,7 @@ export class HtmlRendererSync {
 		// TODO 分栏情况下，有可能一个section一种分栏，在分节符（continuous）情况下，一个section拥有多种分栏；
 
 		// section内容Article元素
-		let contentElement = createElement("article");
+		let contentElement = this.createSectionContent(sectProps);
 		// 根据options.breakPages，设置article的高度
 		if (this.options.breakPages) {
 			// 切分页面，高度固定
@@ -860,20 +861,27 @@ export class HtmlRendererSync {
 					oSection.style.minHeight = props.pageSize.height;
 				}
 			}
-			// 多列布局
-			if (props.columns && props.columns.numberOfColumns) {
-				oSection.style.columnCount = `${props.columns.numberOfColumns}`;
-				oSection.style.columnGap = props.columns.space;
-
-				if (props.columns.separator) {
-					oSection.style.columnRule = "1px solid black";
-				}
-			}
 		}
 		// 插入生成的section
 		this.wrapper.appendChild(oSection);
 
 		return oSection;
+	}
+
+	// 多列布局
+	createSectionContent(props: SectionProperties): HTMLElement {
+		const oArticle = createElement("article");
+
+		if (props.columns && props.columns.numberOfColumns) {
+			oArticle.style.columnCount = `${props.columns.numberOfColumns}`;
+			oArticle.style.columnGap = props.columns.space;
+
+			if (props.columns.separator) {
+				oArticle.style.columnRule = "1px solid black";
+			}
+		}
+
+		return oArticle;
 	}
 
 	// TODO 分页不准确，页脚页码混乱
@@ -1025,6 +1033,27 @@ export class HtmlRendererSync {
 				oNode = createElement("wbr");
 				if (parent) {
 					await this.appendChildren(parent, oNode);
+				}
+				break;
+			case DomType.CommentRangeStart:
+				oNode = this.renderCommentRangeStart(elem);
+				// 作为子元素插入,忽略溢出检测
+				if (parent) {
+					appendChildren(parent, oNode);
+				}
+				break;
+			case DomType.CommentRangeEnd:
+				oNode = this.renderCommentRangeEnd(elem);
+				// 作为子元素插入,忽略溢出检测
+				if (parent) {
+					appendChildren(parent, oNode);
+				}
+				break;
+			case DomType.CommentReference:
+				oNode = this.renderCommentReference(elem);
+				// 作为子元素插入,忽略溢出检测
+				if (parent) {
+					appendChildren(parent, oNode);
 				}
 				break;
 			case DomType.Footer:
@@ -1700,6 +1729,36 @@ export class HtmlRendererSync {
 			oDeletedText = null;
 		}
 		return oDeletedText;
+	}
+
+	// 注释开始
+	renderCommentRangeStart(commentStart: WmlCommentRangeStart) {
+		if (!this.options.experimental) {
+			return null;
+		}
+
+		return document.createComment(`start of comment #${commentStart.id}`);
+	}
+	// 注释结束
+	renderCommentRangeEnd(commentEnd: WmlCommentRangeStart) {
+		if (!this.options.experimental) {
+			return null;
+		}
+
+		return document.createComment(`end of comment #${commentEnd.id}`);
+	}
+	// 注释
+	renderCommentReference(commentRef: WmlCommentReference) {
+		if (!this.options.experimental) {
+			return null;
+		}
+
+		const comment = this.document.commentsPart?.commentMap[commentRef.id];
+
+		if (!comment)
+			return null;
+
+		return document.createComment(`comment #${comment.id} by ${comment.author} on ${comment.date}`);
 	}
 
 	// 渲染页眉页脚

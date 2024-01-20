@@ -27,6 +27,7 @@ import { WmlFieldChar, WmlFieldSimple, WmlInstructionText } from './document/fie
 import { convertLength, LengthUsage, LengthUsageType } from './document/common';
 import { parseVmlElement } from './vml/vml';
 import { uuid } from "./utils";
+import { WmlComment, WmlCommentRangeEnd, WmlCommentRangeStart, WmlCommentReference } from './comments/elements';
 
 export var autos = {
 	shd: "inherit",
@@ -102,6 +103,22 @@ export class DocumentParser {
 			node.noteType = xml.attr(el, "type");
 			node.children = this.parseBodyElements(el);
 			result.push(node);
+		}
+
+		return result;
+	}
+
+	parseComments(xmlDoc: Element): any[] {
+		let result = [];
+
+		for (let el of xml.elements(xmlDoc, "comment")) {
+			const item = new WmlComment();
+			item.id = xml.attr(el, "id");
+			item.author = xml.attr(el, "author");
+			item.initials = xml.attr(el, "initials");
+			item.date = xml.attr(el, "date");
+			item.children = this.parseBodyElements(el);
+			result.push(item);
 		}
 
 		return result;
@@ -535,6 +552,14 @@ export class DocumentParser {
 					wmlParagraph.children.push(parseBookmarkEnd(el, xml));
 					break;
 
+				case "commentRangeStart":
+					wmlParagraph.children.push(new WmlCommentRangeStart(xml.attr(el, "id")));
+					break;
+
+				case "commentRangeEnd":
+					wmlParagraph.children.push(new WmlCommentRangeEnd(xml.attr(el, "id")));
+					break;
+
 				case "oMath":
 				case "oMathPara":
 					wmlParagraph.children.push(this.parseMathElement(el));
@@ -651,6 +676,10 @@ export class DocumentParser {
 						type: DomType.DeletedText,
 						text: c.textContent
 					});
+					break;
+
+				case "commentReference":
+					result.children.push(new WmlCommentReference(xml.attr(c, "id")));
 					break;
 
 				case "fldSimple":

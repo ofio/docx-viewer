@@ -55,7 +55,11 @@ export enum DomType {
 	VmlElement = "vmlElement",
 	Inserted = "inserted",
 	Deleted = "deleted",
-	DeletedText = "deletedText"
+	DeletedText = "deletedText",
+	Comment = "comment",
+	CommentReference = "commentReference",
+	CommentRangeStart = "commentRangeStart",
+	CommentRangeEnd = "commentRangeEnd"
 }
 
 export interface OpenXmlElement {

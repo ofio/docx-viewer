@@ -44,6 +44,5 @@
   ],
   "type": "module",
   "module": "dist/docx-preview.min.mjs",
-  "main": "dist/docx-preview.min.js",
   "types": "dist/docx-preview.d.ts"
 }

@@ -1,4 +1,3 @@
-import { NumberingPicBullet } from "../document/dom";
 import { ParagraphProperties, parseParagraphProperties } from "../document/paragraph";
 import { parseRunProperties, RunProperties } from "../document/run";
 import { XmlParser } from "../parser/xml-parser";
@@ -55,7 +54,7 @@ export function parseNumberingPart(elem: Element, xml: XmlParser): NumberingPart
         abstractNumberings: [],
         bulletPictures: []
     }
-    
+
     for (let e of xml.elements(elem)) {
         switch (e.localName) {
             case "num":

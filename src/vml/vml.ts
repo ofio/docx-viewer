@@ -2,7 +2,6 @@ import { DocumentParser } from '../document-parser';
 import { convertLength, LengthUsage } from '../document/common';
 import { OpenXmlElementBase, DomType } from '../document/dom';
 import xml from '../parser/xml-parser';
-import { formatCssRules, parseCssRules } from '../utils';
 
 export class VmlElement extends OpenXmlElementBase {
 	type: DomType = DomType.VmlElement;
