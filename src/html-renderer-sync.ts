@@ -1,7 +1,7 @@
 import { WordDocument } from './word-document';
 import {
 	DomType,
-	IDomImage,
+	WmlImage,
 	IDomNumbering,
 	OpenXmlElement,
 	WmlBreak,
@@ -33,6 +33,10 @@ import { BaseHeaderFooterPart } from './header-footer/parts';
 import { Part } from './common/part';
 import { VmlElement } from './vml/vml';
 import { WmlCommentRangeStart, WmlCommentReference } from './comments/elements';
+import Konva from 'konva';
+import type { Stage } from "konva/lib/Stage";
+import type { Layer } from "konva/lib/Layer";
+import type { Group } from "konva/lib/Group";
 
 let ns = {
 	html: "http://www.w3.org/1999/xhtml",
@@ -86,6 +90,11 @@ export class HtmlRendererSync {
 	// 当前制表位
 	currentTabs: any[] = [];
 	tabsTimeout: any = 0;
+
+	// Konva框架--stage元素
+	konva_stage: Stage;
+	// Konva框架--layer元素
+	konva_layer: Layer;
 
 	/**
 	 * Object对象 => HTML标签
@@ -163,6 +172,8 @@ export class HtmlRendererSync {
 		} else {
 			this.wrapper = bodyContainer;
 		}
+		// 生成Canvas画布元素--Konva框架
+		this.renderKonva();
 		// 主文档--内容
 		await this.renderSections(document.documentPart.body);
 
@@ -993,7 +1004,7 @@ export class HtmlRendererSync {
 				oNode = await this.renderDrawing(elem as WmlDrawing, parent);
 				break;
 			case DomType.Image:
-				oNode = await this.renderImage(elem as IDomImage, parent);
+				oNode = await this.renderImage(elem as WmlImage, parent);
 				break;
 			case DomType.BookmarkStart:
 				oNode = this.renderBookmarkStart(elem as WmlBookmarkStart);
@@ -1603,21 +1614,121 @@ export class HtmlRendererSync {
 	}
 
 	// 渲染图片，默认转换blob--异步
-	async renderImage(elem: IDomImage, parent?: HTMLElement | Element) {
-		let oImage = createElement("img");
-
+	async renderImage(elem: WmlImage, parent?: HTMLElement | Element) {
+		// 判断是否需要canvas转换
+		let { is_clip, is_transform } = elem.props;
+		// Image元素
+		let oImage = new Image();
+		// 渲染style样式
 		this.renderStyleValues(elem.cssStyle, oImage);
-
-		if (this.document) {
-			oImage.src = await this.document.loadDocumentImage(elem.src, this.currentPart)
+		// 图片资源地址，base64/blob类型
+		let source: string = await this.document.loadDocumentImage(elem.src, this.currentPart);
+		if (is_clip || is_transform) {
+			// canvas转换
+			oImage.src = await this.transformImage(elem, source);
+		} else {
+			// 直接使用原图片
+			oImage.src = source;
 		}
-
 		// 作为子元素插入，执行溢出检测
 		if (parent) {
 			oImage.dataset.overflow = await this.appendChildren(parent, oImage);
 		}
 
 		return oImage;
+	}
+
+	// 生成Konva框架--元素
+	renderKonva() {
+		// 创建konva容器元素
+		const oContainer = createElement('div');
+		oContainer.id = 'konva-container';
+		// 插入页面底部
+		document.body.appendChild(oContainer);
+		// 创建Stage元素
+		this.konva_stage = new Konva.Stage({ container: 'konva-container' });
+		// 创建Layer元素
+		this.konva_layer = new Konva.Layer({ listening: false });
+		// 添加Stage元素
+		this.konva_stage.add(this.konva_layer);
+	}
+
+	// canvas画布转换，处理旋转、裁剪、翻转等情况
+	async transformImage(elem: WmlImage, source: string): Promise<string> {
+		console.log(elem.props);
+		let { width, height, is_clip, clip, is_transform, transform } = elem.props;
+		// 图片实例
+		const img = new Image();
+		// 设置图片源
+		img.src = source;
+		// 等待图片解码
+		await img.decode();
+		// 图片原始尺寸
+		let { naturalWidth, naturalHeight } = img;
+		// 显示Stage
+		this.konva_stage.visible(true);
+		// 设置Stage宽高
+		this.konva_stage.width(naturalWidth);
+		this.konva_stage.height(naturalHeight);
+		// 设置Layer配置
+		this.konva_layer.removeChildren();
+		// 创建Group元素
+		let group: Group = new Konva.Group();
+		// 图片加载成功后创建Image
+		const image = new Konva.Image({
+			image: img,
+			x: naturalWidth / 2,
+			y: naturalHeight / 2,
+			width: naturalWidth,
+			height: naturalHeight,
+			// 旋转中心
+			offset: {
+				x: naturalWidth / 2,
+				y: naturalHeight / 2,
+			},
+		});
+		// 计算裁剪参数
+		if (is_clip) {
+			let { left, right, top, bottom } = clip.path;
+			let x = naturalWidth * left;
+			let y = naturalHeight * top;
+			let width = naturalWidth * (1 - left - right);
+			let height = naturalHeight * (1 - top - bottom);
+			image.crop({ x, y, width, height });
+			image.size({ width, height });
+		}
+		// transform变换
+		if (is_transform) {
+			for (const key in transform) {
+				switch (key) {
+					case 'scaleX':
+						image.scaleX(transform[key]);
+						break;
+					case 'scaleY':
+						image.scaleY(transform[key]);
+						break;
+					case 'rotate':
+						image.rotation(transform[key]);
+						break;
+				}
+			}
+		}
+		// Group添加Image图片
+		group.add(image);
+		// 添加Group元素
+		this.konva_layer.add(group);
+		// 导出装换之后的图片
+		let result: string | PromiseLike<string>;
+		if (this.options.useBase64URL) {
+			result = group.toDataURL();
+		} else {
+			const blob = await group.toBlob() as Blob;
+			result = URL.createObjectURL(blob);
+		}
+		// 隐藏Stage
+		this.konva_stage.visible(false);
+
+		return result;
 	}
 
 	// 渲染书签，主要用于定位，导航
@@ -1739,6 +1850,7 @@ export class HtmlRendererSync {
 
 		return document.createComment(`start of comment #${commentStart.id}`);
 	}
+
 	// 注释结束
 	renderCommentRangeEnd(commentEnd: WmlCommentRangeStart) {
 		if (!this.options.experimental) {
@@ -1747,6 +1859,7 @@ export class HtmlRendererSync {
 
 		return document.createComment(`end of comment #${commentEnd.id}`);
 	}
+
 	// 注释
 	renderCommentReference(commentRef: WmlCommentReference) {
 		if (!this.options.experimental) {

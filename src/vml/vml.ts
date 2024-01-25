@@ -119,7 +119,7 @@ function parsePoint(val: string): string[] {
 
 function convertPath(path: string): string {
 	return path.replace(/([mlxe])|([-\d]+)|([,])/g, (m) => {
-		if (/[-\d]/.test(m)) return convertLength(m, LengthUsage.VmlEmu);
+		if (/[-\d]/.test(m)) return convertLength(m, LengthUsage.VmlEmu) as string;
 		if (/[ml,]/.test(m)) return m;
 
 		return '';

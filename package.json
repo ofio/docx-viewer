@@ -17,9 +17,12 @@
     "url": "git+https://github.com/luotuo19880328/docx-preview-sync.git"
   },
   "dependencies": {
-    "jszip": ">=3.0.0"
+    "jszip": ">=3.0.0",
+    "konva": "^9.3.1"
   },
   "devDependencies": {
+    "@rollup/plugin-run": "^3.0.2",
+    "@rollup/plugin-strip": "^3.0.4",
     "@rollup/plugin-terser": "^0.4.4",
     "@rollup/plugin-typescript": "^11.1.6",
     "diff": "^5.0.0",
@@ -29,6 +32,7 @@
     "karma-firefox-launcher": "^2.1.2",
     "karma-jasmine": "^5.0.0",
     "rollup": "^4.9.5",
+    "rollup-plugin-node-externals": "^6.1.2",
     "tslib": "^2.4.0",
     "typescript": "^5.3.3"
   },

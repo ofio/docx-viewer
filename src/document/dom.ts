@@ -126,7 +126,7 @@ export interface WmlTableCell extends OpenXmlElement {
 	span?: number;
 }
 
-export interface IDomImage extends OpenXmlElement {
+export interface WmlImage extends OpenXmlElement {
 	src: string;
 }
 

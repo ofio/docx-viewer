@@ -27,36 +27,40 @@ export const LengthUsage: Record<string, LengthUsageType> = {
 
 	// Windows系统默认是96dpi，Apple系统默认是72dpi。pt = 1/72(英寸), px = 1/dpi(英寸)
 	// 目前只考虑Windows系统，px = pt * 96 / 72 ;
-	Px: { mul: 1 / 15, unit: "px" },
+	Px: { mul: 1 / 9525, unit: "px" },
 	Dxa: { mul: 0.05, unit: "pt" }, // 单位：twips，twentieth = 1/20
 	Emu: { mul: 1 / 12700, unit: "pt" },
 	FontSize: { mul: 0.5, unit: "pt" },
 	Border: { mul: 0.125, unit: "pt" },
 	Point: { mul: 1, unit: "pt" },
-	Percent: { mul: 0.02, unit: "%" },
+	RelativeRect: { mul: 1 / 100000, unit: "" }, // 单位：百分比
+	TablePercent: { mul: 0.02, unit: "%" },
 	LineHeight: { mul: 1 / 240, unit: "" },
 	Opacity: { mul: 1 / 100000, unit: "" },
 	VmlEmu: { mul: 1 / 12700, unit: "" },
-	degree: { mul: 1 / 60000, unit: "deg" },
+	degree: { mul: 1 / 60000, unit: "deg" }, // 单位：度
 }
 
-export function convertLength(val: string | number, usage: LengthUsageType = LengthUsage.Dxa): string {
+// 单位转换
+export function convertLength(val: string | number, usage: LengthUsageType = LengthUsage.Dxa, unit: boolean = true): string | number {
 	//"simplified" docx documents use pt's as units
-	// undefined、null类型
+	// 处理undefined，返回null类型，将不会生成CSS样式;
 	if (!val) {
 		return null;
 	}
 	// number类型
 	if (typeof val === 'number') {
-		return `${(val * usage.mul).toFixed(2)}${usage.unit}`;
+		let result: number = val * usage.mul;
+		return unit ? `${result.toFixed(2)}${usage.unit}` : result;
 	}
-
 	// 默认不转换如下单位：px、pt、%
-	if (/.+(p[xt]|[%])$/.test(val)) {
+	if (/.+(p[xt]|%)$/.test(val)) {
 		return val;
 	}
 	// 字符串类型
-	return `${(parseInt(val) * usage.mul).toFixed(2)}${usage.unit}`;
+	let result: number = parseFloat(val) * usage.mul;
+	return unit ? `${result.toFixed(2)}${usage.unit}` : result;
+
 }
 
 export function convertBoolean(v: string, defaultValue = false): boolean {

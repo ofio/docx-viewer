@@ -177,8 +177,8 @@ export function parseSectionProperties(elem: Element, xml: XmlParser = globalXml
     let {left, right, top, bottom} = origin.pageMargins;
 
     section.contentSize = {
-        width: convertLength(width - left - right),
-        height: convertLength(height - top - bottom),
+        width: convertLength(width - left - right) as string,
+        height: convertLength(height - top - bottom) as string,
     }
 
     return section;

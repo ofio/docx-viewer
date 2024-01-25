@@ -1,21 +1,4 @@
-import {
-	DomType,
-	IDomImage,
-	IDomNumbering,
-	NumberingPicBullet,
-	OpenXmlElement,
-	WmlBreak,
-	WrapType,
-	WmlDrawing,
-	WmlHyperlink,
-	WmlNoteReference,
-	WmlSymbol,
-	WmlTable,
-	WmlTableCell,
-	WmlTableColumn,
-	WmlTableRow,
-	WmlText
-} from './document/dom';
+import { DomType, IDomNumbering, NumberingPicBullet, OpenXmlElement, WmlBreak, WmlDrawing, WmlHyperlink, WmlImage, WmlNoteReference, WmlSymbol, WmlTable, WmlTableCell, WmlTableColumn, WmlTableRow, WmlText, WrapType } from './document/dom';
 import { DocumentElement } from './document/document';
 import { parseParagraphProperties, parseParagraphProperty, WmlParagraph } from './document/paragraph';
 import { parseSectionProperties, SectionProperties } from './document/section';
@@ -929,10 +912,18 @@ export class DocumentParser {
 				extent: {},
 			},
 		};
+
+		interface Position {
+			relative: string;
+			align: string;
+			offset: string;
+			origin: number;
+		}
+
 		// 横轴定位
-		let posX = { relative: "page", align: "left", offset: "0pt", origin: 0, };
+		let posX: Position = { relative: "page", align: "left", offset: "0pt", origin: 0, };
 		// 纵轴定位
-		let posY = { relative: "page", align: "top", offset: "0pt", origin: 0, };
+		let posY: Position = { relative: "page", align: "top", offset: "0pt", origin: 0, };
 
 		for (let n of xml.elements(node)) {
 			switch (n.localName) {
@@ -959,7 +950,7 @@ export class DocumentParser {
 
 						if (offsetNode) {
 							posX.offset = xmlUtil.sizeValue(offsetNode, LengthUsage.Emu);
-							posX.origin = xmlUtil.text_to_int(offsetNode, 0);
+							posX.origin = xmlUtil.parseTextContent(offsetNode);
 						}
 						// 设置横轴的属性
 						result.props.posX = posX;
@@ -979,7 +970,7 @@ export class DocumentParser {
 
 						if (offsetNode) {
 							posY.offset = xmlUtil.sizeValue(offsetNode, LengthUsage.Emu);
-							posY.origin = xmlUtil.text_to_int(offsetNode, 0);
+							posY.origin = xmlUtil.parseTextContent(offsetNode);
 						}
 						// 设置纵轴的属性
 						result.props.posY = posY;
@@ -988,19 +979,26 @@ export class DocumentParser {
 
 				// drawing外框尺寸
 				case "extent":
-					let origin_width = xml.intAttr(n, "cx", 0);
-					let origin_height = xml.intAttr(n, "cy", 0);
-					let width = xml.lengthAttr(n, "cx", LengthUsage.Emu);
-					let height = xml.lengthAttr(n, "cy", LengthUsage.Emu);
-
-					result.cssStyle["width"] = width;
-					result.cssStyle["height"] = height;
-
-					result.props.extent = { width, height, origin_width, origin_height };
+					result.props.extent = {
+						width: xml.lengthAttr(n, "cx", LengthUsage.Emu),
+						height: xml.lengthAttr(n, "cy", LengthUsage.Emu),
+						origin_width: xml.intAttr(n, "cx", 0),
+						origin_height: xml.intAttr(n, "cy", 0),
+					};
 					break;
 
 				// 特效占据空间
 				case "effectExtent":
+					result.props.effectExtent = {
+						top: xml.lengthAttr(n, "t", LengthUsage.Emu),
+						bottom: xml.lengthAttr(n, "b", LengthUsage.Emu),
+						left: xml.lengthAttr(n, "l", LengthUsage.Emu),
+						right: xml.lengthAttr(n, "r", LengthUsage.Emu),
+						origin_top: xml.intAttr(n, "t", 0),
+						origin_bottom: xml.intAttr(n, "b", 0),
+						origin_left: xml.intAttr(n, "l", 0),
+						origin_right: xml.intAttr(n, "r", 0),
+					};
 					break;
 
 				// 图片
@@ -1036,6 +1034,13 @@ export class DocumentParser {
 					break;
 			}
 		}
+		// 重新计算DrawWrapper的空间
+		let { extent, effectExtent } = result.props;
+		let real_width = extent.origin_width + effectExtent.origin_left + effectExtent.origin_right;
+		let real_height = extent.origin_height + effectExtent.origin_top + effectExtent.origin_bottom;
+		result.cssStyle["width"] = convertLength(real_width, LengthUsage.Emu);
+		result.cssStyle["height"] = convertLength(real_height, LengthUsage.Emu);
+		console.log(result)
 		// 内联（inline）--嵌入型环绕
 		if (node.localName === "inline") {
 			result.props.wrapType = WrapType.Inline;
@@ -1222,9 +1227,9 @@ export class DocumentParser {
 			// 实际坐标，单位EMU
 			let real_x: number, real_y: number;
 			// Point坐标，单位pt
-			let point_x: string, point_y: string;
+			let point_x: string | number, point_y: string | number;
 			// 修正坐标，补偿横向位移
-			let revise_x: string, revise_y: string;
+			let revise_x: string | number, revise_y: string | number;
 			/*
 			* 根据wrapText，转换坐标
 			* TODO 多边形：纵轴外边距暂时忽略，横轴补偿distance。当多边形超出DrawWrapper的范围时，补偿会被忽略，导致不准确
@@ -1353,20 +1358,24 @@ export class DocumentParser {
 		for (let n of xml.elements(node)) {
 			switch (n.localName) {
 				case "xfrm":
+					// 注意：存在多种变换组合的情况,需要统一合并处理
 					// 水平翻转
 					let flipH = xml.boolAttr(n, "flipH");
 					if (flipH) {
-						target.cssStyle["transform"] = 'scaleX(-1)';
+						target.props.is_transform = true;
+						target.props.transform.scaleX = -1;
 					}
 					// 垂直翻转
 					let flipV = xml.boolAttr(n, "flipV");
 					if (flipV) {
-						target.cssStyle["transform"] = 'scaleY(-1)';
+						target.props.is_transform = true;
+						target.props.transform.scaleY = -1;
 					}
 					// 旋转角度
-					let degree = xml.lengthAttr(n, "rot", LengthUsage.degree);
+					let degree = xml.numberAttr(n, "rot", LengthUsage.degree, 0);
 					if (degree) {
-						target.cssStyle["transform"] = `rotate(${degree})`;
+						target.props.is_transform = true;
+						target.props.transform.rotate = degree;
 					}
 					// 子元素
 					this.parseTransform2D(n, target);
@@ -1391,8 +1400,18 @@ export class DocumentParser {
 	}
 
 	// 解析图片
-	parsePicture(elem: Element): IDomImage {
-		let result = <IDomImage>{ type: DomType.Image, src: "", cssStyle: {} };
+	parsePicture(elem: Element): WmlImage {
+		let result: WmlImage = {
+			type: DomType.Image,
+			src: "",
+			cssStyle: {},
+			props: {
+				is_clip: false,
+				clip: {},
+				is_transform: false,
+				transform: {},
+			}
+		};
 		for (let n of xml.elements(elem)) {
 			switch (n.localName) {
 				case "nvPicPr":
@@ -1407,8 +1426,6 @@ export class DocumentParser {
 			}
 		}
 
-		result.cssStyle["position"] = "relative";
-
 		return result;
 	}
 
@@ -1416,11 +1433,31 @@ export class DocumentParser {
 	parseTransform2D(node: Element, target: OpenXmlElement) {
 		for (let n of xml.elements(node)) {
 			switch (n.localName) {
+				// 变换之前的宽高，实际上无效
 				case "ext":
-					target.cssStyle["width"] = xml.lengthAttr(n, "cx", LengthUsage.Emu);
-					target.cssStyle["height"] = xml.lengthAttr(n, "cy", LengthUsage.Emu);
+					let { is_transform, transform } = target.props;
+					let origin_width = xml.intAttr(n, "cx", 0);
+					let origin_height = xml.intAttr(n, "cy", 0);
+					// 实际的宽高，单位emu
+					let width: number;
+					let height: number;
+					// 根据旋转角度，重新计算宽高
+					if (transform?.rotate) {
+						// 换算为数字角度，单位：弧度，注意可能产生负值，-1
+						let angel = Math.PI * transform.rotate / 180;
+						width = Math.abs(origin_width * Math.cos(angel) + origin_height * Math.sin(angel));
+						height = Math.abs(origin_width * Math.sin(angel) + origin_height * Math.cos(angel));
+					} else {
+						// 无旋转
+						width = origin_width;
+						height = origin_height;
+					}
+					target.props.width = convertLength(width, LengthUsage.Px, false);
+					target.props.height = convertLength(height, LengthUsage.Px, false);
+					target.cssStyle["width"] = convertLength(width, LengthUsage.Emu, true);
+					target.cssStyle["height"] = convertLength(height, LengthUsage.Emu, true);
 					break;
-
+				// 变换之后的偏移量，实际上无效
 				case "off":
 					target.cssStyle["left"] = xml.lengthAttr(n, "x", LengthUsage.Emu);
 					target.cssStyle["top"] = xml.lengthAttr(n, "y", LengthUsage.Emu);
@@ -1430,23 +1467,32 @@ export class DocumentParser {
 	}
 
 	// 图像填充
-	parseBlipFill(node: Element, target: IDomImage) {
+	parseBlipFill(node: Element, target: WmlImage) {
 		// 图像填充
 		for (let n of xml.elements(node)) {
 			switch (n.localName) {
+				// 填充效果
 				case "blip":
 					// embed属性：图片地址
 					target.src = xml.attr(n, "embed");
 					// 图片填充效果
 					this.parseBlip(n, target);
 					break;
+				// 源矩形裁剪
 				case "srcRect":
-
+					// 距离源图片的4方位间距，单位百分比（%）
+					let left = xml.numberAttr(n, "l", LengthUsage.RelativeRect, 0);
+					let right = xml.numberAttr(n, "r", LengthUsage.RelativeRect, 0);
+					let top = xml.numberAttr(n, "t", LengthUsage.RelativeRect, 0);
+					let bottom = xml.numberAttr(n, "b", LengthUsage.RelativeRect, 0);
+					// 裁剪路径
+					target.props.is_clip = [left, right, top, bottom].some((item) => item !== 0);
+					target.props.clip.type = 'inset';
+					target.props.clip.path = { top, right, bottom, left };
 					break;
-
 				case "stretch":
 					break;
-
+				// 平铺
 				case "tile":
 					break;
 			}
@@ -1472,6 +1518,7 @@ export class DocumentParser {
 				case "alphaMod":
 
 					break;
+				// 透明度
 				case "alphaModFix":
 					let opacity = xml.lengthAttr(n, 'amt', LengthUsage.Opacity);
 					target.cssStyle["opacity"] = opacity;
@@ -2077,15 +2124,14 @@ class xmlUtil {
 		return themeColor ? `var(--docx-${themeColor}-color)` : defValue;
 	}
 
-	static sizeValue(node: Element, type: LengthUsageType = LengthUsage.Dxa) {
-		return convertLength(node.textContent, type);
+	static sizeValue(node: Element, type: LengthUsageType = LengthUsage.Dxa): string {
+		return convertLength(node.textContent, type) as string;
 	}
 
-	static text_to_int(node: Element, defaultValue: number = 0): number {
+	static parseTextContent(node: Element, defaultValue: number = 0): number {
 		let textContent: string = node.textContent;
 		return textContent ? parseInt(textContent) : defaultValue;
 	}
-
 }
 
 class values {
@@ -2101,7 +2147,7 @@ class values {
 			case "dxa":
 				break;
 			case "pct":
-				type = LengthUsage.Percent;
+				type = LengthUsage.TablePercent;
 				break;
 			case "auto":
 				return "auto";
