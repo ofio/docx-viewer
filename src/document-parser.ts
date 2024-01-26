@@ -123,6 +123,7 @@ export class DocumentParser {
 		return {
 			type: DomType.Document,
 			children: this.parseBodyElements(xbody),
+			sections: [],
 			props,
 			cssStyle: background ? this.parseBackground(background) : {},
 		};
@@ -1040,7 +1041,6 @@ export class DocumentParser {
 		let real_height = extent.origin_height + effectExtent.origin_top + effectExtent.origin_bottom;
 		result.cssStyle["width"] = convertLength(real_width, LengthUsage.Emu);
 		result.cssStyle["height"] = convertLength(real_height, LengthUsage.Emu);
-		console.log(result)
 		// 内联（inline）--嵌入型环绕
 		if (node.localName === "inline") {
 			result.props.wrapType = WrapType.Inline;
@@ -1435,7 +1435,7 @@ export class DocumentParser {
 			switch (n.localName) {
 				// 变换之前的宽高，实际上无效
 				case "ext":
-					let { is_transform, transform } = target.props;
+					let { transform } = target.props;
 					let origin_width = xml.intAttr(n, "cx", 0);
 					let origin_height = xml.intAttr(n, "cy", 0);
 					// 实际的宽高，单位emu

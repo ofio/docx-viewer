@@ -603,6 +603,12 @@ export class HtmlRendererSync {
 		}
 	}
 
+	/*
+	* section与page概念区别
+	* 章节(section)是根据内容的逻辑结构和组织来划分的，不同章节设置独立的格式。
+	* 页面是文档实际呈现的物理单位，而章节则是逻辑上的分割点。
+	*/
+
 	// 根据section切分页面
 	splitBySection(elements: OpenXmlElement[]): Section[] {
 		// 当前操作section，elements数组包含子元素
@@ -770,6 +776,8 @@ export class HtmlRendererSync {
 			// 不分页则，只有一个section
 			sections = [{ sectProps: document.props, elements: document.children, is_split: false }];
 		}
+		// 缓存分页的结果
+		document.sections = sections;
 		// 前一个节属性，判断分节符的第一个section
 		let prevProps = null;
 		// 遍历生成每一个section
@@ -879,19 +887,19 @@ export class HtmlRendererSync {
 		return oSection;
 	}
 
-	// 多列布局
+	// 多列分栏布局
 	createSectionContent(props: SectionProperties): HTMLElement {
+		// 指代页面page，HTML5缺少page，以article代替
 		const oArticle = createElement("article");
-
-		if (props.columns && props.columns.numberOfColumns) {
-			oArticle.style.columnCount = `${props.columns.numberOfColumns}`;
-			oArticle.style.columnGap = props.columns.space;
-
-			if (props.columns.separator) {
-				oArticle.style.columnRule = "1px solid black";
-			}
+		let { count, space, separator } = props?.columns;
+		// 设置多列样式
+		if (count > 1) {
+			oArticle.style.columnCount = `${count}`;
+			oArticle.style.columnGap = space;
 		}
-
+		if (separator) {
+			oArticle.style.columnRule = "1px solid black";
+		}
 		return oArticle;
 	}
 
@@ -1655,7 +1663,6 @@ export class HtmlRendererSync {
 
 	// canvas画布转换，处理旋转、裁剪、翻转等情况
 	async transformImage(elem: WmlImage, source: string): Promise<string> {
-		console.log(elem.props);
 		let { width, height, is_clip, clip, is_transform, transform } = elem.props;
 		// 图片实例
 		const img = new Image();

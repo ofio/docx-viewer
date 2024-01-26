@@ -784,8 +784,8 @@ export class HtmlRenderer {
 				}
 			}
 
-			if (props.columns && props.columns.numberOfColumns) {
-				oSection.style.columnCount = `${props.columns.numberOfColumns}`;
+			if (props.columns && props.columns.count) {
+				oSection.style.columnCount = `${props.columns.count}`;
 				oSection.style.columnGap = props.columns.space;
 
 				if (props.columns.separator) {

@@ -10,7 +10,7 @@ export interface Column {
 
 export interface Columns {
     space: Length;
-    numberOfColumns: number;
+    count: number;
     separator: boolean;
     equalWidth: boolean;
     columns: Column[];
@@ -186,7 +186,7 @@ export function parseSectionProperties(elem: Element, xml: XmlParser = globalXml
 
 function parseColumns(elem: Element, xml: XmlParser): Columns {
     return {
-        numberOfColumns: xml.intAttr(elem, "num"),
+        count: xml.intAttr(elem, "num"),
         space: xml.lengthAttr(elem, "space"),
         separator: xml.boolAttr(elem, "sep"),
         equalWidth: xml.boolAttr(elem, "equalWidth", true),

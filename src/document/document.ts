@@ -1,6 +1,7 @@
 import { OpenXmlElement } from "./dom";
-import { SectionProperties } from "./section";
+import { Section, SectionProperties } from "./section";
 
 export interface DocumentElement extends OpenXmlElement {
+	sections: Section[];
     props: SectionProperties;
 }
