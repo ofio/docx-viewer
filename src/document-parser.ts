@@ -1537,16 +1537,16 @@ export class DocumentParser {
 
 		xmlUtil.foreach(node, c => {
 			switch (c.localName) {
-				case "tr":
-					result.children.push(this.parseTableRow(c));
+				case "tblPr":
+					this.parseTableProperties(c, result);
 					break;
 
 				case "tblGrid":
 					result.columns = this.parseTableColumns(c);
 					break;
 
-				case "tblPr":
-					this.parseTableProperties(c, result);
+				case "tr":
+					result.children.push(this.parseTableRow(c));
 					break;
 			}
 		});
@@ -1561,6 +1561,10 @@ export class DocumentParser {
 			switch (n.localName) {
 				case "gridCol":
 					result.push({ width: xml.lengthAttr(n, "w") });
+					break;
+				// TODO 网格修订信息
+				case "tblGridChange":
+
 					break;
 			}
 		});
@@ -2173,7 +2177,7 @@ class values {
 	}
 
 	static valueOfTblLayout(c: Element) {
-		let type = xml.attr(c, "val");
+		let type = xml.attr(c, "type");
 		return type == "fixed" ? "fixed" : "auto";
 	}
 
