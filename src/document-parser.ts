@@ -118,12 +118,12 @@ export class DocumentParser {
 			props = parseSectionProperties(sectPr, xml);
 		}
 		// 生成唯一uuid标识
-		props.uuid = uuid();
+		props.sectionId = uuid();
 
 		return {
 			type: DomType.Document,
 			children: this.parseBodyElements(xbody),
-			sections: [],
+			pages: [],
 			props,
 			cssStyle: background ? this.parseBackground(background) : {},
 		};

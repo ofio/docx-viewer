@@ -1,14 +1,31 @@
 import { WordDocument } from './word-document';
-import { DomType, WmlTable, IDomNumbering, WmlHyperlink, WmlImage, OpenXmlElement, WmlTableColumn, WmlTableCell, WmlText, WmlSymbol, WmlBreak, WmlNoteReference } from './document/dom';
+import {
+	DomType,
+	WmlImage,
+	IDomNumbering,
+	OpenXmlElement,
+	WmlBreak,
+	WmlDrawing,
+	WmlHyperlink,
+	WmlNoteReference,
+	WmlSymbol,
+	WmlTable,
+	WmlTableCell,
+	WmlTableColumn,
+	WmlTableRow,
+	WmlText,
+	WrapType,
+} from './document/dom';
 import { CommonProperties } from './document/common';
 import { Options } from './docx-preview';
 import { DocumentElement } from './document/document';
 import { WmlParagraph } from './document/paragraph';
-import { asArray, escapeClassName, isString, keyBy, mergeDeep } from './utils';
+import { asArray, escapeClassName, isString, keyBy, mergeDeep, uuid } from './utils';
 import { computePixelToPoint, updateTabStop } from './javascript';
 import { FontTablePart } from './font-table/font-table';
-import { FooterHeaderReference, SectionProperties, Section } from './document/section';
-import { WmlRun, RunProperties } from './document/run';
+import { FooterHeaderReference, SectionProperties, SectionType } from './document/section';
+import { Page, PageProps } from './document/page';
+import { RunProperties, WmlRun } from './document/run';
 import { WmlBookmarkStart } from './document/bookmarks';
 import { IDomStyle } from './document/style';
 import { WmlBaseNote, WmlFootnote } from './notes/elements';
@@ -16,11 +33,17 @@ import { ThemePart } from './theme/theme-part';
 import { BaseHeaderFooterPart } from './header-footer/parts';
 import { Part } from './common/part';
 import { VmlElement } from './vml/vml';
+import { WmlCommentRangeStart, WmlCommentReference } from './comments/elements';
+import Konva from 'konva';
+import type { Stage } from 'konva/lib/Stage';
+import type { Layer } from 'konva/lib/Layer';
+import type { Group } from 'konva/lib/Group';
 
 const ns = {
-	svg: "http://www.w3.org/2000/svg",
-	mathML: "http://www.w3.org/1998/Math/MathML"
-}
+	html: 'http://www.w3.org/1999/xhtml',
+	svg: 'http://www.w3.org/2000/svg',
+	mathML: 'http://www.w3.org/1998/Math/MathML',
+};
 
 interface CellPos {
 	col: number;
@@ -28,6 +51,16 @@ interface CellPos {
 }
 
 type CellVerticalMergeType = Record<number, HTMLTableCellElement>;
+
+interface Node_DOM extends Node, Comment, CharacterData {
+	dataset: DOMStringMap;
+}
+
+enum Overflow {
+	TRUE = 'true',
+	FALSE = 'false',
+	UNKNOWN = 'undetected',
+}
 
 // HTML渲染器
 
@@ -39,6 +72,10 @@ export class HtmlRenderer {
 	options: Options;
 	styleMap: Record<string, IDomStyle> = {};
 	currentPart: Part = null;
+	wrapper: HTMLElement;
+
+	// 当前操作的Page
+	currentPage: Page;
 
 	tableVerticalMerges: CellVerticalMergeType[] = [];
 	currentVerticalMerge: CellVerticalMergeType = null;
@@ -55,6 +92,11 @@ export class HtmlRenderer {
 	// 当前制表位
 	currentTabs: any[] = [];
 	tabsTimeout: any = 0;
+
+	// Konva框架--stage元素
+	konva_stage: Stage;
+	// Konva框架--layer元素
+	konva_layer: Layer;
 
 	/**
 	 * Object对象 => HTML标签
@@ -74,6 +116,8 @@ export class HtmlRenderer {
 		this.rootSelector = options.inWrapper ? `.${this.className}-wrapper` : ':root';
 		// 文档CSS样式
 		this.styleMap = null;
+		// 主体容器
+		this.wrapper = bodyContainer;
 		// styleContainer== null，styleContainer = bodyContainer
 		styleContainer = styleContainer || bodyContainer;
 
@@ -124,11 +168,11 @@ export class HtmlRenderer {
 			this.defaultTabSize = document.settingsPart.settings?.defaultTabStop;
 		}
 		// 主文档--内容
-		let sectionElements = this.renderSections(document.documentPart.body);
+		let pageElements = this.renderPages(document.documentPart.body);
 		if (this.options.inWrapper) {
-			bodyContainer.appendChild(this.renderWrapper(sectionElements));
+			bodyContainer.appendChild(this.renderWrapper(pageElements));
 		} else {
-			appendChildren(bodyContainer, sectionElements);
+			appendChildren(bodyContainer, pageElements);
 		}
 
 		// 刷新制表符
@@ -141,7 +185,7 @@ export class HtmlRenderer {
 		let styleText = `
 			.${c}-wrapper { background: gray; padding: 30px; padding-bottom: 0px; display: flex; flex-flow: column; align-items: center; } 
 			.${c}-wrapper>section.${c} { background: white; box-shadow: 0 0 10px rgba(0, 0, 0, 0.5); margin-bottom: 30px; }
-			.${c} { color: black; hyphens: auto; }
+			.${c} { color: black; hyphens: auto; text-underline-position: from-font; }
 			section.${c} { box-sizing: border-box; display: flex; flex-flow: column nowrap; position: relative; overflow: hidden; }
             section.${c}>header { position: absolute; top: 0; z-index: 1; display: flex; align-items: flex-end; }
 			section.${c}>article { z-index: 1; }
@@ -151,6 +195,8 @@ export class HtmlRenderer {
 			.${c} p { margin: 0pt; min-height: 1em; }
 			.${c} span { white-space: pre-wrap; overflow-wrap: break-word; }
 			.${c} a { color: inherit; text-decoration: inherit; }
+			.${c} img, ${c} svg { vertical-align: baseline; }
+			.${c} .clearfix::after { content: ""; display: block; line-height: 0; clear: both; }
 		`;
 
 		return createStyleElement(styleText);
@@ -233,21 +279,24 @@ export class HtmlRenderer {
 			if (style.linked) {
 				let linkedStyle = style.linked && stylesMap[style.linked];
 
-				if (linkedStyle)
+				if (linkedStyle) {
 					subStyles = subStyles.concat(linkedStyle.styles);
-				else if (this.options.debug)
+				} else if (this.options.debug) {
 					console.warn(`Can't find linked style ${style.linked}`);
+				}
 			}
 
 			for (const subStyle of subStyles) {
 				//TODO temporary disable modificators until test it well
 				let selector = `${style.target ?? ''}.${style.cssName}`; //${subStyle.mod ?? ''}
 
-				if (style.target != subStyle.target)
+				if (style.target != subStyle.target) {
 					selector += ` ${subStyle.target}`;
+				}
 
-				if (defaultStyles[style.target] == style)
+				if (defaultStyles[style.target] == style) {
 					selector = `.${this.className} ${style.target}, ` + selector;
+				}
 
 				styleText += this.styleToString(selector, subStyle.values);
 			}
@@ -332,14 +381,16 @@ export class HtmlRenderer {
 		let result = `${selectors} {\r\n`;
 
 		for (const key in values) {
-			if (key.startsWith('$'))
+			if (key.startsWith('$')) {
 				continue;
+			}
 
 			result += `  ${key}: ${values[key]};\r\n`;
 		}
 
-		if (cssText)
+		if (cssText) {
 			result += cssText;
+		}
 
 		return result + "}\r\n";
 	}
@@ -556,40 +607,47 @@ export class HtmlRenderer {
 		}
 	}
 
-	// 根据section切分页面
-	splitBySection(elements: OpenXmlElement[]): Section[] {
-		// 当前操作section，elements数组包含子元素
-		let current_section = { sectProps: null, elements: [], is_split: false, };
-		// 切分出的所有sections
-		let sections = [current_section];
+	/*
+	 * section与page概念区别
+	 * 章节(section)是根据内容的逻辑结构和组织来划分的，不同章节设置独立的格式。
+	 * 页面是文档实际呈现的物理单位，而章节则是逻辑上的分割点。
+	 */
 
-		for (let elem of elements) {
-			// 添加elem进入当前操作section
-			current_section.elements.push(elem);
+	// 根据分页符拆分页面
+	splitPage(elements: OpenXmlElement[]): Page[] {
+		// 当前操作page，elements数组包含子元素
+		let current_page: Page = new Page({} as PageProps);
+		// 切分出的所有pages
+		const pages: Page[] = [current_page];
+
+		for (const elem of elements) {
+			// 标记顶层元素的层级level
+			elem.level = 1;
+			// 添加elem进入当前操作page
+			current_page.elements.push(elem);
 
 			/* 段落基本结构：paragraph => run => text... */
 			if (elem.type == DomType.Paragraph) {
 				const p = elem as WmlParagraph;
 				// 节属性，代表分节符
-				let sectProps = p.sectionProps;
-
-				/*
-					检测段落是否默认存在强制分页符
-				*/
-
+				const sectProps: SectionProperties = p.sectionProps;
+				// 节属性生成唯一uuid，每一个节中page均是同一个uuid，代表属于同一个节
+				if (sectProps) {
+					sectProps.sectionId = uuid();
+				}
 				// 查找内置默认段落样式
 				const default_paragraph_style = this.findStyle(p.styleName);
 
-				// 段落内置样式之前存在强制分页符
+				// 检测段落内置样式是否存在段前分页符
 				if (default_paragraph_style?.paragraphProps?.pageBreakBefore) {
-					// 标记当前section已拆分
-					current_section.is_split = true;
-					// 保存当前section的sectionProps
-					current_section.sectProps = sectProps;
-					// 重置新的section
-					current_section = { sectProps: null, elements: [], is_split: false };
-					// 添加新section
-					sections.push(current_section);
+					// 标记当前page已拆分
+					current_page.isSplit = true;
+					// 保存当前page的sectionProps
+					current_page.sectProps = sectProps;
+					// 重置新的page
+					current_page = new Page({} as PageProps);
+					// 添加新page
+					pages.push(current_page);
 				}
 
 				// 段落部分Break索引
@@ -603,37 +661,68 @@ export class HtmlRenderer {
 					pBreakIndex = p.children.findIndex(r => {
 						// 计算Run Break索引
 						rBreakIndex = r.children?.findIndex((t: OpenXmlElement) => {
-							// 分页符、换行符、分栏符
+							// 如果不是分页符、换行符、分栏符
 							if (t.type != DomType.Break) {
 								return false;
 							}
 							// 默认忽略lastRenderedPageBreak，
 							if ((t as WmlBreak).break == "lastRenderedPageBreak") {
 								// 判断前一个p段落，
-								// 如果含有分页符、分节符，那它们一定位于上一个section，
-								// 如果前一个段落是普通段落，则代表文字过多超过一页，需要自动分页
-								return current_section.elements.length > 1 || !this.options.ignoreLastRenderedPageBreak;
+								// 如果含有分页符、分节符，那它们一定位于上一个page，数组为空；
+								// 如果前一个段落是普通段落，数组长度大于0，则代表文字过多超过一页，需要自动分页
+								return (current_page.elements.length > 2 || !this.options.ignoreLastRenderedPageBreak);
 							}
 							// 分页符
 							if ((t as WmlBreak).break === "page") {
 								return true;
 							}
 						});
-						rBreakIndex = rBreakIndex ?? -1
+						rBreakIndex = rBreakIndex ?? -1;
 						return rBreakIndex != -1;
 					});
 				}
-
-				// 段落中存在节属性sectProps/段落Break索引
-				if (sectProps || pBreakIndex != -1) {
-					// 标记当前section已拆分
-					current_section.is_split = true;
-					// 保存当前section的sectionProps
-					current_section.sectProps = sectProps;
-					// 重置新的section
-					current_section = { sectProps: null, elements: [], is_split: false };
-					// 添加新section
-					sections.push(current_section);
+				// 段落Break索引
+				if (pBreakIndex != -1) {
+					// 一般情况下，标记当前page：已拆分
+					current_page.isSplit = true;
+					// 检测分页符之前的所有元素是否存在表格
+					const exist_table: boolean = current_page.elements.some(
+						elem => elem.type === DomType.Table
+					);
+					// 存在表格
+					if (exist_table) {
+						// 表格可能需要计算之后拆分，标记当前page：未拆分
+						current_page.isSplit = false;
+					}
+					// 检测分页符之前的所有元素是否存在目录
+					let exist_TOC: boolean = current_page.elements.some((paragraph) => {
+						return paragraph.children.some((elem) => {
+							if (elem.type === DomType.Hyperlink) {
+								return (elem as WmlHyperlink)?.href?.includes('Toc')
+							}
+							return false;
+						});
+					});
+					// 	存在目录
+					if (exist_TOC) {
+						// 目录可能需要计算之后拆分，标记当前page：未拆分
+						current_page.isSplit = false;
+					}
+				}
+				/*
+				 *
+				 * 分页有两种情况：
+				 * 1、段落中存在节属性sectProps，且类型不是continuous/nextColumn
+				 * 2、段落存在Break索引
+				 *
+				 */
+				if (pBreakIndex != -1 || (sectProps && sectProps.type != SectionType.Continuous && sectProps.type != SectionType.NextColumn)) {
+					// 保存当前page的pageProps
+					current_page.sectProps = sectProps;
+					// 重置新的page
+					current_page = new Page({} as PageProps);
+					// 添加新page
+					pages.push(current_page);
 				}
 
 				// 根据段落Break索引，拆分Run部分
@@ -647,18 +736,24 @@ export class HtmlRenderer {
 						// 原始的Run
 						let origin_run = p.children;
 						// 切出Break索引后面的Run，创建新段落
-						let new_paragraph = { ...p, children: origin_run.slice(pBreakIndex) };
+						const new_paragraph: WmlParagraph = {
+							...p,
+							children: origin_run.slice(pBreakIndex),
+						};
 						// 保存Break索引前面的Run
 						p.children = origin_run.slice(0, pBreakIndex);
 						// 添加新段落
-						current_section.elements.push(new_paragraph);
+						current_page.elements.push(new_paragraph);
 
 						if (is_split) {
 							// Run下面原始的元素
-							let origin_elements = breakRun.children;
+							const origin_elements = breakRun.children;
 							// 切出Run Break索引前面的元素，创建新Run
-							let newRun = { ...breakRun, children: origin_elements.slice(0, rBreakIndex) };
-							// 将新Run放入上一个section的段落
+							const newRun = {
+								...breakRun,
+								children: origin_elements.slice(0, rBreakIndex),
+							};
+							// 将新Run放入上一个page的段落
 							p.children.push(newRun);
 							// 切出Run Break索引后面的元素
 							breakRun.children = origin_elements.slice(rBreakIndex);
@@ -667,75 +762,78 @@ export class HtmlRenderer {
 				}
 			}
 
-			// elem元素是表格，需要渲染过程中拆分section，标记:is_split
+			// elem元素是表格，需要渲染过程中拆分page
 			if (elem.type === DomType.Table) {
-
+				// 标记当前page：未拆分
+				current_page.isSplit = false;
 			}
-
 		}
-
-		// 处理所有section的section_props
+		// 一个节可能分好几个页，但是节属性sectionProps存在当前节中最后一段对应的 paragraph 元素的子元素。即：[null,null,null,setPr];
 		let currentSectProps = null;
-		// 倒序
-		for (let i = sections.length - 1; i >= 0; i--) {
-			if (sections[i].sectProps == null) {
-				sections[i].sectProps = currentSectProps;
+		// 倒序给每一页填充sectionProps，方便后期页面渲染
+		for (let i = pages.length - 1; i >= 0; i--) {
+			if (pages[i].sectProps == null) {
+				pages[i].sectProps = currentSectProps;
 			} else {
-				currentSectProps = sections[i].sectProps
+				currentSectProps = pages[i].sectProps;
 			}
 		}
-		return sections;
+		return pages;
 	}
 
-	// 生成所有的Page Section
-	renderSections(document: DocumentElement): HTMLElement[] {
+	// 生成所有的页面Page
+	renderPages(document: DocumentElement): HTMLElement[] {
 		const result = [];
 		// 生成页面parent父级关系
 		this.processElement(document);
 		// 根据options.breakPages，选择是否分页
-		let sections: Section[];
+		let pages: Page[];
 		if (this.options.breakPages) {
-			// 根据section切分页面
-			sections = this.splitBySection(document.children);
+			// 拆分页面
+			pages = this.splitPage(document.children);
 		} else {
-			// 不分页则，只有一个section
-			sections = [{ sectProps: document.props, elements: document.children, is_split: false }];
+			// 不分页则，只有一个page
+			pages = [new Page({ sectProps: document.props, elements: document.children, } as PageProps)];
 		}
+		// 缓存分页的结果
+		document.pages = pages;
+		// 前一个节属性，判断分节符的第一个page
 		let prevProps = null;
-		// 遍历生成每一个section
-		for (let i = 0, l = sections.length; i < l; i++) {
+		// 遍历生成每一个page
+		for (let i = 0; i < pages.length; i++) {
 			this.currentFootnoteIds = [];
-
-			const section: Section = sections[i];
-			// 页面属性
-			const props: SectionProperties = section.sectProps || document.props;
+			const page: Page = pages[i];
+			const { sectProps } = page;
+			// sectionProps属性不存在，则使用文档级别props;
+			let sectionProps = sectProps ?? document.props;
 			// 页码
 			let pageIndex = result.length;
-			// 是否第一个section
-			let isFirstSection = prevProps != props;
-			// 是否最后一个section
-			let isLastSection = i === (l - 1);
-			// 渲染单个section，有可能多个section
-			let sectionElement: HTMLElement[] = this.renderSection(section, props, document.cssStyle, pageIndex, isFirstSection, isLastSection);
+			// 是否本小节的第一个page
+			let isFirstPage = prevProps != sectProps;
+			// TODO 是否最后一个page,此时分页未完成，计算并不准确，影响到尾注的渲染
+			let isLastPage = i === pages.length - 1;
+			// 渲染单个page，有可能多个page
+			let pageElements: HTMLElement[] = this.renderPage(page, sectionProps, document.cssStyle, pageIndex, isFirstPage, isLastPage);
 
-			result.push(...sectionElement);
-			prevProps = props;
+			result.push(...pageElements);
+			// 存储前一个节属性
+			prevProps = sectProps;
 		}
 
 		return result;
 	}
 
-	// 生成单个section
-	renderSection(section: Section, props: SectionProperties, sectionStyle: Record<string, string>, pageIndex: number, isFirstSection: boolean, isLastSection: boolean): HTMLElement[] {
-		// 根据sectProps，创建section
-		const sectionElement = this.createSection(this.className, props);
-		// 给section添加style样式
-		this.renderStyleValues(sectionStyle, sectionElement);
-		// 渲染section页眉
+	// 生成单个page
+	renderPage(page: Page, props: SectionProperties, sectionStyle: Record<string, string>, pageIndex: number, isFirstPage: boolean, isLastPage: boolean): HTMLElement[] {
+		// 根据sectProps，创建page
+		const pageElement = this.createPage(this.className, props);
+		// 给page添加style样式
+		this.renderStyleValues(sectionStyle, pageElement);
+		// 渲染page页眉
 		if (this.options.renderHeaders) {
-			this.renderHeaderFooterRef(props.headerRefs, props, pageIndex, isFirstSection, sectionElement);
+			this.renderHeaderFooterRef(props.headerRefs, props, pageIndex, isFirstPage, pageElement);
 		}
-		// section主体内容
+		// page主体内容
 		let contentElement = createElement("article");
 		// 根据options.breakPages，设置article的高度
 		if (this.options.breakPages) {
@@ -744,65 +842,65 @@ export class HtmlRenderer {
 		}
 
 		// 生成article内容
-		this.renderElements(section.elements, contentElement);
-		// 放入section
-		sectionElement.appendChild(contentElement);
+		this.renderElements(page.elements, contentElement);
+		// 放入page
+		pageElement.appendChild(contentElement);
 
-		// 渲染section脚注
+		// 渲染page脚注
 		if (this.options.renderFootnotes) {
-			this.renderNotes(this.currentFootnoteIds, this.footnoteMap, sectionElement);
+			this.renderNotes(this.currentFootnoteIds, this.footnoteMap, pageElement);
 		}
-		// 渲染section尾注，判断最后一页
-		if (this.options.renderEndnotes && isLastSection) {
-			this.renderNotes(this.currentEndnoteIds, this.endnoteMap, sectionElement);
+		// 渲染page尾注，判断最后一页
+		if (this.options.renderEndnotes && isLastPage) {
+			this.renderNotes(this.currentEndnoteIds, this.endnoteMap, pageElement);
 		}
-		// 渲染section页脚
+		// 渲染page页脚
 		if (this.options.renderFooters) {
-			this.renderHeaderFooterRef(props.footerRefs, props, pageIndex, isFirstSection, sectionElement);
+			this.renderHeaderFooterRef(props.footerRefs, props, pageIndex, isFirstPage, pageElement);
 		}
-		return [sectionElement]
+		return [pageElement]
 	}
 
-	// 创建Page Section
-	createSection(className: string, props: SectionProperties) {
-		let oSection = createElement("section", { className });
+	// 创建Page
+	createPage(className: string, props: SectionProperties) {
+		let oPage = createElement("section", { className });
 
 		if (props) {
 			if (props.pageMargins) {
-				oSection.style.paddingLeft = props.pageMargins.left;
-				oSection.style.paddingRight = props.pageMargins.right;
-				oSection.style.paddingTop = props.pageMargins.top;
-				oSection.style.paddingBottom = props.pageMargins.bottom;
+				oPage.style.paddingLeft = props.pageMargins.left;
+				oPage.style.paddingRight = props.pageMargins.right;
+				oPage.style.paddingTop = props.pageMargins.top;
+				oPage.style.paddingBottom = props.pageMargins.bottom;
 			}
 
 			if (props.pageSize) {
 				if (!this.options.ignoreWidth) {
-					oSection.style.width = props.pageSize.width;
+					oPage.style.width = props.pageSize.width;
 				}
 				if (!this.options.ignoreHeight) {
-					oSection.style.minHeight = props.pageSize.height;
+					oPage.style.minHeight = props.pageSize.height;
 				}
 			}
 
 			if (props.columns && props.columns.count) {
-				oSection.style.columnCount = `${props.columns.count}`;
-				oSection.style.columnGap = props.columns.space;
+				oPage.style.columnCount = `${props.columns.count}`;
+				oPage.style.columnGap = props.columns.space;
 
 				if (props.columns.separator) {
-					oSection.style.columnRule = "1px solid black";
+					oPage.style.columnRule = "1px solid black";
 				}
 			}
 		}
 
-		return oSection;
+		return oPage;
 	}
 
 	// TODO 分页不准确，页脚页码混乱
 	// 渲染页眉/页脚的Ref
-	renderHeaderFooterRef(refs: FooterHeaderReference[], props: SectionProperties, page: number, firstOfSection: boolean, parent: HTMLElement) {
+	renderHeaderFooterRef(refs: FooterHeaderReference[], props: SectionProperties, page: number, isFirstPage: boolean, parent: HTMLElement) {
 		if (!refs) return;
 		// 查找奇数偶数的ref指向
-		let ref = (props.titlePage && firstOfSection ? refs.find(x => x.type == "first") : null)
+		let ref = (props.titlePage && isFirstPage ? refs.find(x => x.type == "first") : null)
 			?? (page % 2 == 1 ? refs.find(x => x.type == "even") : null)
 			?? refs.find(x => x.type == "default");
 
