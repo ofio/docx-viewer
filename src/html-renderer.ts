@@ -800,7 +800,7 @@ export class HtmlRenderer {
 		// 前一个节属性，判断分节符的第一个page
 		let prevProps = null;
 		// 遍历生成每一个page
-		for (let i = 0; i < pages.length; i++) {
+		for (let i = 0, l = pages.length; i < l; i++) {
 			this.currentFootnoteIds = [];
 			const page: Page = pages[i];
 			const { sectProps } = page;
@@ -809,9 +809,9 @@ export class HtmlRenderer {
 			// 页码
 			let pageIndex = result.length;
 			// 是否本小节的第一个page
-			let isFirstPage = prevProps != sectProps;
+			let isFirstPage = prevProps != sectionProps;
 			// TODO 是否最后一个page,此时分页未完成，计算并不准确，影响到尾注的渲染
-			let isLastPage = i === pages.length - 1;
+			let isLastPage = i === l - 1;
 			// 渲染单个page，有可能多个page
 			let pageElements: HTMLElement[] = this.renderPage(page, sectionProps, document.cssStyle, pageIndex, isFirstPage, isLastPage);
 

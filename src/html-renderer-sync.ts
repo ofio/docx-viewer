@@ -793,55 +793,57 @@ export class HtmlRendererSync {
 		// 根据options.breakPages，选择是否分页
 		let pages: Page[];
 		if (this.options.breakPages) {
-			// 拆分页面
+			// 根据分页符，初步拆分页面
 			pages = this.splitPage(document.children);
 		} else {
 			// 不分页则，只有一个page
 			pages = [new Page({ sectProps: document.props, elements: document.children, } as PageProps)];
 		}
-		// 缓存分页的结果
+		// 初步分页结果,缓存至body中
 		document.pages = pages;
 		// 前一个节属性，判断分节符的第一个page
 		let prevProps = null;
+		// 深拷贝初步分页结果，后续拆分操作将不断扩充数组，导致下面循环异常
+		let origin_pages = structuredClone(pages);
 		// 遍历生成每一个page
-		for (let i = 0; i < pages.length; i++) {
+		for (let i = 0; i < origin_pages.length; i++) {
 			this.currentFootnoteIds = [];
-			const page: Page = pages[i];
+			const page: Page = origin_pages[i];
 			const { sectProps } = page;
 			// sectionProps属性不存在，则使用文档级别props;
 			page.sectProps = sectProps ?? document.props;
 			// 是否本小节的第一个page
-			page.isFirstPage = prevProps != sectProps;
+			page.isFirstPage = prevProps != page.sectProps;
 			// TODO 是否最后一个page,此时分页未完成，计算并不准确，影响到尾注的渲染
-			page.isLastPage = i === pages.length - 1;
+			page.isLastPage = i === origin_pages.length - 1;
 			// 溢出检测默认不开启
 			page.checkingOverflow = false;
 			// 将上述数据存储在currentPage中
 			this.currentPage = page;
 			// 存储前一个节属性
-			prevProps = sectProps;
+			prevProps = page.sectProps;
 			// 渲染单个page
 			await this.renderPage();
 		}
+
 	}
 
 	// 生成单个page,如果发现超出一页，递归拆分出下一个page
 	async renderPage() {
-		// 当前操作的page
-		const page: Page = this.currentPage;
-		// 解构page中的属性
-		const { pageId, isSplit, sectProps, isFirstPage, isLastPage } = page;
+		// 解构当前操作的page中的属性
+		const { pageId, sectProps, elements, isFirstPage, isLastPage } = this.currentPage;
 		// 根据sectProps，创建page
 		const pageElement = this.createPage(this.className, sectProps);
-		// 标记page是否需要拆分
-		pageElement.dataset.splited = String(isSplit);
+
 		// 给page添加背景样式
 		this.renderStyleValues(
 			this.document.documentPart.body.cssStyle,
 			pageElement
 		);
+		// 已拆分的Pages数组
+		let pages = this.document.documentPart.body.pages;
 		// 计算当前Page的索引
-		let pageIndex = this.document.documentPart.body.pages.findIndex((page) => page.pageId === pageId);
+		let pageIndex = pages.findIndex((page) => page.pageId === pageId);
 		// 渲染page页眉
 		if (this.options.renderHeaders) {
 			await this.renderHeaderFooterRef(
@@ -898,7 +900,14 @@ export class HtmlRendererSync {
 		// 标识--开启溢出计算
 		this.currentPage.checkingOverflow = true;
 		// 生成article内容
-		await this.renderElements(page.elements, contentElement);
+		let is_overflow = await this.renderElements(elements, contentElement);
+		// 元素没有溢出Page
+		if (is_overflow === Overflow.FALSE) {
+			// 修改当前Page的状态
+			this.currentPage.isSplit = true;
+			// 替换当前page
+			pages[pageIndex] = this.currentPage;
+		}
 		// 标识--结束溢出计算
 		this.currentPage.checkingOverflow = false;
 	}
@@ -954,13 +963,20 @@ export class HtmlRendererSync {
 	// 渲染页眉/页脚的Ref
 	async renderHeaderFooterRef(refs: FooterHeaderReference[], props: SectionProperties, pageIndex: number, isFirstPage: boolean, parent: HTMLElement) {
 		if (!refs) return;
-		// 查找奇数偶数的ref指向
-		let ref = (props.titlePage && isFirstPage ? refs.find(x => x.type == "first") : null)
-			?? (pageIndex % 2 == 1 ? refs.find(x => x.type == "even") : null)
-			?? refs.find(x => x.type == "default");
-
+		// 根据首页、奇数、偶数类型，查找ref指向
+		let ref: FooterHeaderReference;
+		if (props.titlePage && isFirstPage) {
+			// 第一页
+			ref = refs.find(x => x.type == "first");
+		} else if (pageIndex % 2 == 1) {
+			// 注意，pageIndex从0开始，却代表第一页，此处判断条件确实对应偶数页
+			ref = refs.find(x => x.type == "even");
+		} else {
+			// 奇数页
+			ref = refs.find(x => x.type == "default");
+		}
 		// 查找ref对应的part部分
-		let part = ref && this.document.findPartByRelId(ref.id, this.document.documentPart) as BaseHeaderFooterPart;
+		let part = this.document.findPartByRelId(ref?.id, this.document.documentPart) as BaseHeaderFooterPart;
 
 		if (part) {
 			this.currentPart = part;
@@ -1350,7 +1366,7 @@ export class HtmlRendererSync {
 		appendChildren(parent, children);
 		// 是否溢出标识
 		let is_overflow = false;
-		let { pageId, sectProps, isSplit, contentElement, elementIndex, checkingOverflow, elements, } = this.currentPage;
+		let { pageId, sectProps, isSplit, contentElement, elementIndex, checkingOverflow, elements: origin_elements } = this.currentPage;
 		// 当前page已拆分，忽略溢出检测
 		if (isSplit) {
 			return Overflow.UNKNOWN;
@@ -1363,22 +1379,20 @@ export class HtmlRendererSync {
 			if (is_overflow) {
 				// 溢出元素 == row
 				if (xml_element?.type === DomType.Row) {
-					const table: OpenXmlElement = elements[elementIndex];
+					const table: OpenXmlElement = origin_elements[elementIndex];
 					// 溢出元素所在tr的索引;
 					const row_index = table.children.findIndex(
 						elem => elem === xml_element
 					);
 					// 查找表格中的table header，可能有多行
-					const table_headers = table.children.filter(
-						(row: WmlTableRow) => row.isHeader
-					);
+					const table_headers = table.children.filter((row: WmlTableRow) => row.isHeader);
 					// 删除table前面已经渲染的row，保留后续未渲染元素
 					table.children.splice(0, row_index);
 					// 填充table header
 					table.children = [...table_headers, ...table.children];
 				}
-				// 删除数组前面已经渲染的元素，保留后续为渲染元素
-				elements.splice(0, elementIndex);
+				// 根据elementIndex，保留后续元素，以备下一个Page渲染，保留原始数组前面已经渲染的元素
+				let elements = origin_elements.splice(elementIndex);
 				// 删除DOM中导致溢出的元素
 				removeElements(children, parent);
 				// 已拆分的Pages数组
@@ -1390,8 +1404,10 @@ export class HtmlRendererSync {
 				this.currentPage.checkingOverflow = false;
 				// 生成新的page，新Page的sectionProps沿用前一页的sectionProps
 				const page: Page = new Page({ sectProps, elements } as PageProps);
+				// 替换当前page
+				pages[pageIndex] = this.currentPage;
 				// 缓存新拆分出去的page
-				pages.splice(pageIndex, 0, page);
+				pages.splice(pageIndex + 1, 0, page);
 				// 覆盖current_page的属性
 				this.currentPage = page;
 				// 重启新一个page的渲染
