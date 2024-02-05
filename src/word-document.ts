@@ -1,4 +1,5 @@
 import { OutputType } from "jszip";
+import mime from './mime';
 
 import { DocumentParser } from './document-parser';
 import { Relationship, RelationshipTypes } from './common/relationship';
@@ -152,13 +153,13 @@ export class WordDocument {
 	}
 
 	async loadDocumentImage(id: string, part?: Part): Promise<string> {
-		const x = await this.loadResource(part ?? this.documentPart, id, "blob");
-		return this.blobToURL(x);
+		const blob = await this.loadResource(part ?? this.documentPart, id, "blob");
+		return this.blobToURL(blob);
 	}
 
 	async loadNumberingImage(id: string): Promise<string> {
-		const x = await this.loadResource(this.numberingPart, id, "blob");
-		return this.blobToURL(x);
+		const blob = await this.loadResource(this.numberingPart, id, "blob");
+		return this.blobToURL(blob);
 	}
 
 	async loadFont(id: string, key: string): Promise<string> {
@@ -189,9 +190,19 @@ export class WordDocument {
 		return rel ? resolvePath(rel.target, folder) : null;
 	}
 
-	private loadResource(part: Part, id: string, outputType: OutputType) {
+
+	private async loadResource(part: Part, id: string, outputType: OutputType) {
 		const path = this.getPathById(part, id);
-		return path ? this._package.load(path, outputType) : Promise.resolve(null);
+		// TODO 暂时使用文件扩展名推断MIME类型，实际上并不准确
+		let type = mime.getType(path);
+		if (path) {
+			// 图片类型在读取过程中丢失，jszip包的缺陷
+			let origin_blob = await this._package.load(path, outputType);
+			// 修改Blob中的type类型
+			return new Blob([origin_blob], { type });
+		} else {
+			return Promise.resolve(null);
+		}
 	}
 }
 
