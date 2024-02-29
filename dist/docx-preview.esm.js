@@ -6121,4 +6121,4 @@ async function renderSync(data, bodyContainer, styleContainer = null, userOption
 }
 
 export { defaultOptions, parseAsync, renderAsync, renderSync };
-//# sourceMappingURL=docx-preview.mjs.map
+//# sourceMappingURL=docx-preview.esm.js.map

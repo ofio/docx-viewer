@@ -47,6 +47,8 @@
     "dist"
   ],
   "type": "module",
-  "module": "dist/docx-preview.min.mjs",
+  "browser": "dist/docx-preview.esm.min.js",
+  "module": "dist/docx-preview.esm.min.js",
+  "main": "dist/docx-preview.min.js",
   "types": "dist/docx-preview.d.ts"
 }
