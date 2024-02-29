@@ -12,11 +12,11 @@
     "importHelpers": false,
     "esModuleInterop": true,
     "moduleResolution": "node",
-    "target": "ES2020",
+    "target": "es6",
     "outDir": "dist",
     "lib": [
-      "ES2017",
-      "dom"
+      "ESNext",
+      "DOM"
     ]
   },
   "exclude": [

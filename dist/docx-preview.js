@@ -4,11 +4,6 @@
     (global = typeof globalThis !== 'undefined' ? globalThis : global || self, factory(global.docx = {}, global.JSZip, global.Konva));
 })(this, (function (exports, JSZip, Konva) { 'use strict';
 
-    const types = {
-        "application/andrew-inset": ["ez"], "application/appinstaller": ["appinstaller"], "application/applixware": ["aw"], "application/appx": ["appx"], "application/appxbundle": ["appxbundle"], "application/atom+xml": ["atom"], "application/atomcat+xml": ["atomcat"], "application/atomdeleted+xml": ["atomdeleted"], "application/atomsvc+xml": ["atomsvc"], "application/atsc-dwd+xml": ["dwd"], "application/atsc-held+xml": ["held"], "application/atsc-rsat+xml": ["rsat"], "application/automationml-aml+xml": ["aml"], "application/automationml-amlx+zip": ["amlx"], "application/bdoc": ["bdoc"], "application/calendar+xml": ["xcs"], "application/ccxml+xml": ["ccxml"], "application/cdfx+xml": ["cdfx"], "application/cdmi-capability": ["cdmia"], "application/cdmi-container": ["cdmic"], "application/cdmi-domain": ["cdmid"], "application/cdmi-object": ["cdmio"], "application/cdmi-queue": ["cdmiq"], "application/cpl+xml": ["cpl"], "application/cu-seeme": ["cu"], "application/cwl": ["cwl"], "application/dash+xml": ["mpd"], "application/dash-patch+xml": ["mpp"], "application/davmount+xml": ["davmount"], "application/docbook+xml": ["dbk"], "application/dssc+der": ["dssc"], "application/dssc+xml": ["xdssc"], "application/ecmascript": ["ecma"], "application/emma+xml": ["emma"], "application/emotionml+xml": ["emotionml"], "application/epub+zip": ["epub"], "application/exi": ["exi"], "application/express": ["exp"], "application/fdf": ["fdf"], "application/fdt+xml": ["fdt"], "application/font-tdpfr": ["pfr"], "application/geo+json": ["geojson"], "application/gml+xml": ["gml"], "application/gpx+xml": ["gpx"], "application/gxf": ["gxf"], "application/gzip": ["gz"], "application/hjson": ["hjson"], "application/hyperstudio": ["stk"], "application/inkml+xml": ["ink", "inkml"], "application/ipfix": ["ipfix"], "application/its+xml": ["its"], "application/java-archive": ["jar", "war", "ear"], "application/java-serialized-object": ["ser"], "application/java-vm": ["class"], "application/javascript": ["*js"], "application/json": ["json", "map"], "application/json5": ["json5"], "application/jsonml+json": ["jsonml"], "application/ld+json": ["jsonld"], "application/lgr+xml": ["lgr"], "application/lost+xml": ["lostxml"], "application/mac-binhex40": ["hqx"], "application/mac-compactpro": ["cpt"], "application/mads+xml": ["mads"], "application/manifest+json": ["webmanifest"], "application/marc": ["mrc"], "application/marcxml+xml": ["mrcx"], "application/mathematica": ["ma", "nb", "mb"], "application/mathml+xml": ["mathml"], "application/mbox": ["mbox"], "application/media-policy-dataset+xml": ["mpf"], "application/mediaservercontrol+xml": ["mscml"], "application/metalink+xml": ["metalink"], "application/metalink4+xml": ["meta4"], "application/mets+xml": ["mets"], "application/mmt-aei+xml": ["maei"], "application/mmt-usd+xml": ["musd"], "application/mods+xml": ["mods"], "application/mp21": ["m21", "mp21"], "application/mp4": ["mp4", "mpg4", "mp4s", "m4p"], "application/msix": ["msix"], "application/msixbundle": ["msixbundle"], "application/msword": ["doc", "dot"], "application/mxf": ["mxf"], "application/n-quads": ["nq"], "application/n-triples": ["nt"], "application/node": ["cjs"], "application/octet-stream": ["bin", "dms", "lrf", "mar", "so", "dist", "distz", "pkg", "bpk", "dump", "elc", "deploy", "exe", "dll", "deb", "dmg", "iso", "img", "msi", "msp", "msm", "buffer"], "application/oda": ["oda"], "application/oebps-package+xml": ["opf"], "application/ogg": ["ogx"], "application/omdoc+xml": ["omdoc"], "application/onenote": ["onetoc", "onetoc2", "onetmp", "onepkg"], "application/oxps": ["oxps"], "application/p2p-overlay+xml": ["relo"], "application/patch-ops-error+xml": ["xer"], "application/pdf": ["pdf"], "application/pgp-encrypted": ["pgp"], "application/pgp-keys": ["asc"], "application/pgp-signature": ["sig", "*asc"], "application/pics-rules": ["prf"], "application/pkcs10": ["p10"], "application/pkcs7-mime": ["p7m", "p7c"], "application/pkcs7-signature": ["p7s"], "application/pkcs8": ["p8"], "application/pkix-attr-cert": ["ac"], "application/pkix-cert": ["cer"], "application/pkix-crl": ["crl"], "application/pkix-pkipath": ["pkipath"], "application/pkixcmp": ["pki"], "application/pls+xml": ["pls"], "application/postscript": ["ai", "eps", "ps"], "application/provenance+xml": ["provx"], "application/pskc+xml": ["pskcxml"], "application/raml+yaml": ["raml"], "application/rdf+xml": ["rdf", "owl"], "application/reginfo+xml": ["rif"], "application/relax-ng-compact-syntax": ["rnc"], "application/resource-lists+xml": ["rl"], "application/resource-lists-diff+xml": ["rld"], "application/rls-services+xml": ["rs"], "application/route-apd+xml": ["rapd"], "application/route-s-tsid+xml": ["sls"], "application/route-usd+xml": ["rusd"], "application/rpki-ghostbusters": ["gbr"], "application/rpki-manifest": ["mft"], "application/rpki-roa": ["roa"], "application/rsd+xml": ["rsd"], "application/rss+xml": ["rss"], "application/rtf": ["rtf"], "application/sbml+xml": ["sbml"], "application/scvp-cv-request": ["scq"], "application/scvp-cv-response": ["scs"], "application/scvp-vp-request": ["spq"], "application/scvp-vp-response": ["spp"], "application/sdp": ["sdp"], "application/senml+xml": ["senmlx"], "application/sensml+xml": ["sensmlx"], "application/set-payment-initiation": ["setpay"], "application/set-registration-initiation": ["setreg"], "application/shf+xml": ["shf"], "application/sieve": ["siv", "sieve"], "application/smil+xml": ["smi", "smil"], "application/sparql-query": ["rq"], "application/sparql-results+xml": ["srx"], "application/sql": ["sql"], "application/srgs": ["gram"], "application/srgs+xml": ["grxml"], "application/sru+xml": ["sru"], "application/ssdl+xml": ["ssdl"], "application/ssml+xml": ["ssml"], "application/swid+xml": ["swidtag"], "application/tei+xml": ["tei", "teicorpus"], "application/thraud+xml": ["tfi"], "application/timestamped-data": ["tsd"], "application/toml": ["toml"], "application/trig": ["trig"], "application/ttml+xml": ["ttml"], "application/ubjson": ["ubj"], "application/urc-ressheet+xml": ["rsheet"], "application/urc-targetdesc+xml": ["td"], "application/voicexml+xml": ["vxml"], "application/wasm": ["wasm"], "application/watcherinfo+xml": ["wif"], "application/widget": ["wgt"], "application/winhlp": ["hlp"], "application/wsdl+xml": ["wsdl"], "application/wspolicy+xml": ["wspolicy"], "application/xaml+xml": ["xaml"], "application/xcap-att+xml": ["xav"], "application/xcap-caps+xml": ["xca"], "application/xcap-diff+xml": ["xdf"], "application/xcap-el+xml": ["xel"], "application/xcap-ns+xml": ["xns"], "application/xenc+xml": ["xenc"], "application/xfdf": ["xfdf"], "application/xhtml+xml": ["xhtml", "xht"], "application/xliff+xml": ["xlf"], "application/xml": ["xml", "xsl", "xsd", "rng"], "application/xml-dtd": ["dtd"], "application/xop+xml": ["xop"], "application/xproc+xml": ["xpl"], "application/xslt+xml": ["*xsl", "xslt"], "application/xspf+xml": ["xspf"], "application/xv+xml": ["mxml", "xhvml", "xvml", "xvm"], "application/yang": ["yang"], "application/yin+xml": ["yin"], "application/zip": ["zip"], "audio/3gpp": ["*3gpp"], "audio/aac": ["adts", "aac"], "audio/adpcm": ["adp"], "audio/amr": ["amr"], "audio/basic": ["au", "snd"], "audio/midi": ["mid", "midi", "kar", "rmi"], "audio/mobile-xmf": ["mxmf"], "audio/mp3": ["*mp3"], "audio/mp4": ["m4a", "mp4a"], "audio/mpeg": ["mpga", "mp2", "mp2a", "mp3", "m2a", "m3a"], "audio/ogg": ["oga", "ogg", "spx", "opus"], "audio/s3m": ["s3m"], "audio/silk": ["sil"], "audio/wav": ["wav"], "audio/wave": ["*wav"], "audio/webm": ["weba"], "audio/xm": ["xm"], "font/collection": ["ttc"], "font/otf": ["otf"], "font/ttf": ["ttf"], "font/woff": ["woff"], "font/woff2": ["woff2"], "image/aces": ["exr"], "image/apng": ["apng"], "image/avci": ["avci"], "image/avcs": ["avcs"], "image/avif": ["avif"], "image/bmp": ["bmp", "dib"], "image/cgm": ["cgm"], "image/dicom-rle": ["drle"], "image/dpx": ["dpx"], "image/emf": ["emf"], "image/fits": ["fits"], "image/g3fax": ["g3"], "image/gif": ["gif"], "image/heic": ["heic"], "image/heic-sequence": ["heics"], "image/heif": ["heif"], "image/heif-sequence": ["heifs"], "image/hej2k": ["hej2"], "image/hsj2": ["hsj2"], "image/ief": ["ief"], "image/jls": ["jls"], "image/jp2": ["jp2", "jpg2"], "image/jpeg": ["jpeg", "jpg", "jpe"], "image/jph": ["jph"], "image/jphc": ["jhc"], "image/jpm": ["jpm", "jpgm"], "image/jpx": ["jpx", "jpf"], "image/jxr": ["jxr"], "image/jxra": ["jxra"], "image/jxrs": ["jxrs"], "image/jxs": ["jxs"], "image/jxsc": ["jxsc"], "image/jxsi": ["jxsi"], "image/jxss": ["jxss"], "image/ktx": ["ktx"], "image/ktx2": ["ktx2"], "image/png": ["png"], "image/sgi": ["sgi"], "image/svg+xml": ["svg", "svgz"], "image/t38": ["t38"], "image/tiff": ["tif", "tiff"], "image/tiff-fx": ["tfx"], "image/webp": ["webp"], "image/wmf": ["wmf"], "message/disposition-notification": ["disposition-notification"], "message/global": ["u8msg"], "message/global-delivery-status": ["u8dsn"], "message/global-disposition-notification": ["u8mdn"], "message/global-headers": ["u8hdr"], "message/rfc822": ["eml", "mime"], "model/3mf": ["3mf"], "model/gltf+json": ["gltf"], "model/gltf-binary": ["glb"], "model/iges": ["igs", "iges"], "model/jt": ["jt"], "model/mesh": ["msh", "mesh", "silo"], "model/mtl": ["mtl"], "model/obj": ["obj"], "model/prc": ["prc"], "model/step+xml": ["stpx"], "model/step+zip": ["stpz"], "model/step-xml+zip": ["stpxz"], "model/stl": ["stl"], "model/u3d": ["u3d"], "model/vrml": ["wrl", "vrml"], "model/x3d+binary": ["*x3db", "x3dbz"], "model/x3d+fastinfoset": ["x3db"], "model/x3d+vrml": ["*x3dv", "x3dvz"], "model/x3d+xml": ["x3d", "x3dz"], "model/x3d-vrml": ["x3dv"], "text/cache-manifest": ["appcache", "manifest"], "text/calendar": ["ics", "ifb"], "text/coffeescript": ["coffee", "litcoffee"], "text/css": ["css"], "text/csv": ["csv"], "text/html": ["html", "htm", "shtml"], "text/jade": ["jade"], "text/javascript": ["js", "mjs"], "text/jsx": ["jsx"], "text/less": ["less"], "text/markdown": ["md", "markdown"], "text/mathml": ["mml"], "text/mdx": ["mdx"], "text/n3": ["n3"], "text/plain": ["txt", "text", "conf", "def", "list", "log", "in", "ini"], "text/richtext": ["rtx"], "text/rtf": ["*rtf"], "text/sgml": ["sgml", "sgm"], "text/shex": ["shex"], "text/slim": ["slim", "slm"], "text/spdx": ["spdx"], "text/stylus": ["stylus", "styl"], "text/tab-separated-values": ["tsv"], "text/troff": ["t", "tr", "roff", "man", "me", "ms"], "text/turtle": ["ttl"], "text/uri-list": ["uri", "uris", "urls"], "text/vcard": ["vcard"], "text/vtt": ["vtt"], "text/wgsl": ["wgsl"], "text/xml": ["*xml"], "text/yaml": ["yaml", "yml"], "video/3gpp": ["3gp", "3gpp"], "video/3gpp2": ["3g2"], "video/h261": ["h261"], "video/h263": ["h263"], "video/h264": ["h264"], "video/iso.segment": ["m4s"], "video/jpeg": ["jpgv"], "video/jpm": ["*jpm", "*jpgm"], "video/mj2": ["mj2", "mjp2"], "video/mp2t": ["ts"], "video/mp4": ["*mp4", "mp4v", "*mpg4"], "video/mpeg": ["mpeg", "mpg", "mpe", "m1v", "m2v"], "video/ogg": ["ogv"], "video/quicktime": ["qt", "mov"], "video/webm": ["webm"]
-    };
-    Object.freeze(types);
-
     /******************************************************************************
     Copyright (c) Microsoft Corporation.
 
@@ -26,6 +21,16 @@
     /* global Reflect, Promise, SuppressedError, Symbol */
 
 
+    function __awaiter(thisArg, _arguments, P, generator) {
+        function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+        return new (P || (P = Promise))(function (resolve, reject) {
+            function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+            function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+            function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+            step((generator = generator.apply(thisArg, _arguments || [])).next());
+        });
+    }
+
     function __classPrivateFieldGet(receiver, state, kind, f) {
         if (kind === "a" && !f) throw new TypeError("Private accessor was defined without a getter");
         if (typeof state === "function" ? receiver !== state || !f : !state.has(receiver)) throw new TypeError("Cannot read private member from an object whose class did not declare it");
@@ -36,6 +41,11 @@
         var e = new Error(message);
         return e.name = "SuppressedError", e.error = error, e.suppressed = suppressed, e;
     };
+
+    const types = {
+        "application/andrew-inset": ["ez"], "application/appinstaller": ["appinstaller"], "application/applixware": ["aw"], "application/appx": ["appx"], "application/appxbundle": ["appxbundle"], "application/atom+xml": ["atom"], "application/atomcat+xml": ["atomcat"], "application/atomdeleted+xml": ["atomdeleted"], "application/atomsvc+xml": ["atomsvc"], "application/atsc-dwd+xml": ["dwd"], "application/atsc-held+xml": ["held"], "application/atsc-rsat+xml": ["rsat"], "application/automationml-aml+xml": ["aml"], "application/automationml-amlx+zip": ["amlx"], "application/bdoc": ["bdoc"], "application/calendar+xml": ["xcs"], "application/ccxml+xml": ["ccxml"], "application/cdfx+xml": ["cdfx"], "application/cdmi-capability": ["cdmia"], "application/cdmi-container": ["cdmic"], "application/cdmi-domain": ["cdmid"], "application/cdmi-object": ["cdmio"], "application/cdmi-queue": ["cdmiq"], "application/cpl+xml": ["cpl"], "application/cu-seeme": ["cu"], "application/cwl": ["cwl"], "application/dash+xml": ["mpd"], "application/dash-patch+xml": ["mpp"], "application/davmount+xml": ["davmount"], "application/docbook+xml": ["dbk"], "application/dssc+der": ["dssc"], "application/dssc+xml": ["xdssc"], "application/ecmascript": ["ecma"], "application/emma+xml": ["emma"], "application/emotionml+xml": ["emotionml"], "application/epub+zip": ["epub"], "application/exi": ["exi"], "application/express": ["exp"], "application/fdf": ["fdf"], "application/fdt+xml": ["fdt"], "application/font-tdpfr": ["pfr"], "application/geo+json": ["geojson"], "application/gml+xml": ["gml"], "application/gpx+xml": ["gpx"], "application/gxf": ["gxf"], "application/gzip": ["gz"], "application/hjson": ["hjson"], "application/hyperstudio": ["stk"], "application/inkml+xml": ["ink", "inkml"], "application/ipfix": ["ipfix"], "application/its+xml": ["its"], "application/java-archive": ["jar", "war", "ear"], "application/java-serialized-object": ["ser"], "application/java-vm": ["class"], "application/javascript": ["*js"], "application/json": ["json", "map"], "application/json5": ["json5"], "application/jsonml+json": ["jsonml"], "application/ld+json": ["jsonld"], "application/lgr+xml": ["lgr"], "application/lost+xml": ["lostxml"], "application/mac-binhex40": ["hqx"], "application/mac-compactpro": ["cpt"], "application/mads+xml": ["mads"], "application/manifest+json": ["webmanifest"], "application/marc": ["mrc"], "application/marcxml+xml": ["mrcx"], "application/mathematica": ["ma", "nb", "mb"], "application/mathml+xml": ["mathml"], "application/mbox": ["mbox"], "application/media-policy-dataset+xml": ["mpf"], "application/mediaservercontrol+xml": ["mscml"], "application/metalink+xml": ["metalink"], "application/metalink4+xml": ["meta4"], "application/mets+xml": ["mets"], "application/mmt-aei+xml": ["maei"], "application/mmt-usd+xml": ["musd"], "application/mods+xml": ["mods"], "application/mp21": ["m21", "mp21"], "application/mp4": ["mp4", "mpg4", "mp4s", "m4p"], "application/msix": ["msix"], "application/msixbundle": ["msixbundle"], "application/msword": ["doc", "dot"], "application/mxf": ["mxf"], "application/n-quads": ["nq"], "application/n-triples": ["nt"], "application/node": ["cjs"], "application/octet-stream": ["bin", "dms", "lrf", "mar", "so", "dist", "distz", "pkg", "bpk", "dump", "elc", "deploy", "exe", "dll", "deb", "dmg", "iso", "img", "msi", "msp", "msm", "buffer"], "application/oda": ["oda"], "application/oebps-package+xml": ["opf"], "application/ogg": ["ogx"], "application/omdoc+xml": ["omdoc"], "application/onenote": ["onetoc", "onetoc2", "onetmp", "onepkg"], "application/oxps": ["oxps"], "application/p2p-overlay+xml": ["relo"], "application/patch-ops-error+xml": ["xer"], "application/pdf": ["pdf"], "application/pgp-encrypted": ["pgp"], "application/pgp-keys": ["asc"], "application/pgp-signature": ["sig", "*asc"], "application/pics-rules": ["prf"], "application/pkcs10": ["p10"], "application/pkcs7-mime": ["p7m", "p7c"], "application/pkcs7-signature": ["p7s"], "application/pkcs8": ["p8"], "application/pkix-attr-cert": ["ac"], "application/pkix-cert": ["cer"], "application/pkix-crl": ["crl"], "application/pkix-pkipath": ["pkipath"], "application/pkixcmp": ["pki"], "application/pls+xml": ["pls"], "application/postscript": ["ai", "eps", "ps"], "application/provenance+xml": ["provx"], "application/pskc+xml": ["pskcxml"], "application/raml+yaml": ["raml"], "application/rdf+xml": ["rdf", "owl"], "application/reginfo+xml": ["rif"], "application/relax-ng-compact-syntax": ["rnc"], "application/resource-lists+xml": ["rl"], "application/resource-lists-diff+xml": ["rld"], "application/rls-services+xml": ["rs"], "application/route-apd+xml": ["rapd"], "application/route-s-tsid+xml": ["sls"], "application/route-usd+xml": ["rusd"], "application/rpki-ghostbusters": ["gbr"], "application/rpki-manifest": ["mft"], "application/rpki-roa": ["roa"], "application/rsd+xml": ["rsd"], "application/rss+xml": ["rss"], "application/rtf": ["rtf"], "application/sbml+xml": ["sbml"], "application/scvp-cv-request": ["scq"], "application/scvp-cv-response": ["scs"], "application/scvp-vp-request": ["spq"], "application/scvp-vp-response": ["spp"], "application/sdp": ["sdp"], "application/senml+xml": ["senmlx"], "application/sensml+xml": ["sensmlx"], "application/set-payment-initiation": ["setpay"], "application/set-registration-initiation": ["setreg"], "application/shf+xml": ["shf"], "application/sieve": ["siv", "sieve"], "application/smil+xml": ["smi", "smil"], "application/sparql-query": ["rq"], "application/sparql-results+xml": ["srx"], "application/sql": ["sql"], "application/srgs": ["gram"], "application/srgs+xml": ["grxml"], "application/sru+xml": ["sru"], "application/ssdl+xml": ["ssdl"], "application/ssml+xml": ["ssml"], "application/swid+xml": ["swidtag"], "application/tei+xml": ["tei", "teicorpus"], "application/thraud+xml": ["tfi"], "application/timestamped-data": ["tsd"], "application/toml": ["toml"], "application/trig": ["trig"], "application/ttml+xml": ["ttml"], "application/ubjson": ["ubj"], "application/urc-ressheet+xml": ["rsheet"], "application/urc-targetdesc+xml": ["td"], "application/voicexml+xml": ["vxml"], "application/wasm": ["wasm"], "application/watcherinfo+xml": ["wif"], "application/widget": ["wgt"], "application/winhlp": ["hlp"], "application/wsdl+xml": ["wsdl"], "application/wspolicy+xml": ["wspolicy"], "application/xaml+xml": ["xaml"], "application/xcap-att+xml": ["xav"], "application/xcap-caps+xml": ["xca"], "application/xcap-diff+xml": ["xdf"], "application/xcap-el+xml": ["xel"], "application/xcap-ns+xml": ["xns"], "application/xenc+xml": ["xenc"], "application/xfdf": ["xfdf"], "application/xhtml+xml": ["xhtml", "xht"], "application/xliff+xml": ["xlf"], "application/xml": ["xml", "xsl", "xsd", "rng"], "application/xml-dtd": ["dtd"], "application/xop+xml": ["xop"], "application/xproc+xml": ["xpl"], "application/xslt+xml": ["*xsl", "xslt"], "application/xspf+xml": ["xspf"], "application/xv+xml": ["mxml", "xhvml", "xvml", "xvm"], "application/yang": ["yang"], "application/yin+xml": ["yin"], "application/zip": ["zip"], "audio/3gpp": ["*3gpp"], "audio/aac": ["adts", "aac"], "audio/adpcm": ["adp"], "audio/amr": ["amr"], "audio/basic": ["au", "snd"], "audio/midi": ["mid", "midi", "kar", "rmi"], "audio/mobile-xmf": ["mxmf"], "audio/mp3": ["*mp3"], "audio/mp4": ["m4a", "mp4a"], "audio/mpeg": ["mpga", "mp2", "mp2a", "mp3", "m2a", "m3a"], "audio/ogg": ["oga", "ogg", "spx", "opus"], "audio/s3m": ["s3m"], "audio/silk": ["sil"], "audio/wav": ["wav"], "audio/wave": ["*wav"], "audio/webm": ["weba"], "audio/xm": ["xm"], "font/collection": ["ttc"], "font/otf": ["otf"], "font/ttf": ["ttf"], "font/woff": ["woff"], "font/woff2": ["woff2"], "image/aces": ["exr"], "image/apng": ["apng"], "image/avci": ["avci"], "image/avcs": ["avcs"], "image/avif": ["avif"], "image/bmp": ["bmp", "dib"], "image/cgm": ["cgm"], "image/dicom-rle": ["drle"], "image/dpx": ["dpx"], "image/emf": ["emf"], "image/fits": ["fits"], "image/g3fax": ["g3"], "image/gif": ["gif"], "image/heic": ["heic"], "image/heic-sequence": ["heics"], "image/heif": ["heif"], "image/heif-sequence": ["heifs"], "image/hej2k": ["hej2"], "image/hsj2": ["hsj2"], "image/ief": ["ief"], "image/jls": ["jls"], "image/jp2": ["jp2", "jpg2"], "image/jpeg": ["jpeg", "jpg", "jpe"], "image/jph": ["jph"], "image/jphc": ["jhc"], "image/jpm": ["jpm", "jpgm"], "image/jpx": ["jpx", "jpf"], "image/jxr": ["jxr"], "image/jxra": ["jxra"], "image/jxrs": ["jxrs"], "image/jxs": ["jxs"], "image/jxsc": ["jxsc"], "image/jxsi": ["jxsi"], "image/jxss": ["jxss"], "image/ktx": ["ktx"], "image/ktx2": ["ktx2"], "image/png": ["png"], "image/sgi": ["sgi"], "image/svg+xml": ["svg", "svgz"], "image/t38": ["t38"], "image/tiff": ["tif", "tiff"], "image/tiff-fx": ["tfx"], "image/webp": ["webp"], "image/wmf": ["wmf"], "message/disposition-notification": ["disposition-notification"], "message/global": ["u8msg"], "message/global-delivery-status": ["u8dsn"], "message/global-disposition-notification": ["u8mdn"], "message/global-headers": ["u8hdr"], "message/rfc822": ["eml", "mime"], "model/3mf": ["3mf"], "model/gltf+json": ["gltf"], "model/gltf-binary": ["glb"], "model/iges": ["igs", "iges"], "model/jt": ["jt"], "model/mesh": ["msh", "mesh", "silo"], "model/mtl": ["mtl"], "model/obj": ["obj"], "model/prc": ["prc"], "model/step+xml": ["stpx"], "model/step+zip": ["stpz"], "model/step-xml+zip": ["stpxz"], "model/stl": ["stl"], "model/u3d": ["u3d"], "model/vrml": ["wrl", "vrml"], "model/x3d+binary": ["*x3db", "x3dbz"], "model/x3d+fastinfoset": ["x3db"], "model/x3d+vrml": ["*x3dv", "x3dvz"], "model/x3d+xml": ["x3d", "x3dz"], "model/x3d-vrml": ["x3dv"], "text/cache-manifest": ["appcache", "manifest"], "text/calendar": ["ics", "ifb"], "text/coffeescript": ["coffee", "litcoffee"], "text/css": ["css"], "text/csv": ["csv"], "text/html": ["html", "htm", "shtml"], "text/jade": ["jade"], "text/javascript": ["js", "mjs"], "text/jsx": ["jsx"], "text/less": ["less"], "text/markdown": ["md", "markdown"], "text/mathml": ["mml"], "text/mdx": ["mdx"], "text/n3": ["n3"], "text/plain": ["txt", "text", "conf", "def", "list", "log", "in", "ini"], "text/richtext": ["rtx"], "text/rtf": ["*rtf"], "text/sgml": ["sgml", "sgm"], "text/shex": ["shex"], "text/slim": ["slim", "slm"], "text/spdx": ["spdx"], "text/stylus": ["stylus", "styl"], "text/tab-separated-values": ["tsv"], "text/troff": ["t", "tr", "roff", "man", "me", "ms"], "text/turtle": ["ttl"], "text/uri-list": ["uri", "uris", "urls"], "text/vcard": ["vcard"], "text/vtt": ["vtt"], "text/wgsl": ["wgsl"], "text/xml": ["*xml"], "text/yaml": ["yaml", "yml"], "video/3gpp": ["3gp", "3gpp"], "video/3gpp2": ["3g2"], "video/h261": ["h261"], "video/h263": ["h263"], "video/h264": ["h264"], "video/iso.segment": ["m4s"], "video/jpeg": ["jpgv"], "video/jpm": ["*jpm", "*jpgm"], "video/mj2": ["mj2", "mjp2"], "video/mp2t": ["ts"], "video/mp4": ["*mp4", "mp4v", "*mpg4"], "video/mpeg": ["mpeg", "mpg", "mpe", "m1v", "m2v"], "video/ogg": ["ogv"], "video/quicktime": ["qt", "mov"], "video/webm": ["webm"]
+    };
+    Object.freeze(types);
 
     var _Mime_extensionToType, _Mime_typeToExtension, _Mime_typeToExtensions;
     class Mime {
@@ -59,7 +69,7 @@
                 for (let extension of extensions) {
                     const starred = extension.startsWith('*');
                     extension = starred ? extension.slice(1) : extension;
-                    allExtensions?.add(extension);
+                    allExtensions === null || allExtensions === void 0 ? void 0 : allExtensions.add(extension);
                     if (first) {
                         __classPrivateFieldGet(this, _Mime_typeToExtension, "f").set(type, extension);
                     }
@@ -76,6 +86,7 @@
             return this;
         }
         getType(path) {
+            var _a;
             if (typeof path !== 'string')
                 return null;
             const last = path.replace(/^.*[/\\]/, '').toLowerCase();
@@ -84,18 +95,20 @@
             const hasDot = ext.length < last.length - 1;
             if (!hasDot && hasPath)
                 return null;
-            return __classPrivateFieldGet(this, _Mime_extensionToType, "f").get(ext) ?? null;
+            return (_a = __classPrivateFieldGet(this, _Mime_extensionToType, "f").get(ext)) !== null && _a !== void 0 ? _a : null;
         }
         getExtension(type) {
+            var _a, _b;
             if (typeof type !== 'string')
                 return null;
-            type = type?.split?.(';')[0];
-            return ((type && __classPrivateFieldGet(this, _Mime_typeToExtension, "f").get(type.trim().toLowerCase())) ?? null);
+            type = (_a = type === null || type === void 0 ? void 0 : type.split) === null || _a === void 0 ? void 0 : _a.call(type, ';')[0];
+            return ((_b = (type && __classPrivateFieldGet(this, _Mime_typeToExtension, "f").get(type.trim().toLowerCase()))) !== null && _b !== void 0 ? _b : null);
         }
         getAllExtensions(type) {
+            var _a;
             if (typeof type !== 'string')
                 return null;
-            return __classPrivateFieldGet(this, _Mime_typeToExtensions, "f").get(type.toLowerCase()) ?? null;
+            return (_a = __classPrivateFieldGet(this, _Mime_typeToExtensions, "f").get(type.toLowerCase())) !== null && _a !== void 0 ? _a : null;
         }
         _freeze() {
             this.define = () => {
@@ -228,7 +241,8 @@
         return result;
     }
     function hasXmlParserError(doc) {
-        return doc.getElementsByTagName("parsererror")[0]?.textContent;
+        var _a;
+        return (_a = doc.getElementsByTagName("parsererror")[0]) === null || _a === void 0 ? void 0 : _a.textContent;
     }
     function removeUTF8BOM(data) {
         return data.charCodeAt(0) === 0xFEFF ? data.substring(1) : data;
@@ -285,12 +299,14 @@
             return convertBoolean(this.attr(node, attrName), defaultValue);
         }
         lengthAttr(node, attrName, usage = LengthUsage.Dxa, defaultValue) {
+            var _a;
             let val = this.attr(node, attrName);
-            return convertLength(val, usage) ?? defaultValue;
+            return (_a = convertLength(val, usage)) !== null && _a !== void 0 ? _a : defaultValue;
         }
         numberAttr(node, attrName, usage = LengthUsage.Dxa, defaultValue = 0) {
+            var _a;
             let val = this.attr(node, attrName);
-            return convertLength(val, usage, false) ?? defaultValue;
+            return (_a = convertLength(val, usage, false)) !== null && _a !== void 0 ? _a : defaultValue;
         }
     }
     const globalXmlParser = new XmlParser();
@@ -300,14 +316,16 @@
             this._package = _package;
             this.path = path;
         }
-        async load() {
-            this.rels = await this._package.loadRelationships(this.path);
-            const xmlText = await this._package.load(this.path);
-            const xmlDoc = this._package.parseXmlDocument(xmlText);
-            if (this._package.options.keepOrigin) {
-                this._xmlDocument = xmlDoc;
-            }
-            this.parseXml(xmlDoc.firstElementChild);
+        load() {
+            return __awaiter(this, void 0, void 0, function* () {
+                this.rels = yield this._package.loadRelationships(this.path);
+                const xmlText = yield this._package.load(this.path);
+                const xmlDoc = this._package.parseXmlDocument(xmlText);
+                if (this._package.options.keepOrigin) {
+                    this._xmlDocument = xmlDoc;
+                }
+                this.parseXml(xmlDoc.firstElementChild);
+            });
         }
         save() {
             this._package.update(this.path, serializeXmlString(this._xmlDocument));
@@ -363,7 +381,7 @@
     }
 
     function escapeClassName(className) {
-        return className?.replace(/[ .]+/g, '-').replace(/[&]+/g, 'and').toLowerCase();
+        return className === null || className === void 0 ? void 0 : className.replace(/[ .]+/g, '-').replace(/[&]+/g, 'and').toLowerCase();
     }
     function splitPath(path) {
         let si = path.lastIndexOf('/') + 1;
@@ -377,7 +395,7 @@
             const url = new URL(path, prefix + base).toString();
             return url.substring(prefix.length);
         }
-        catch {
+        catch (_a) {
             return `${base}${path}`;
         }
     }
@@ -402,13 +420,14 @@
         return typeof item === 'string' || item instanceof String;
     }
     function mergeDeep(target, ...sources) {
+        var _a;
         if (!sources.length)
             return target;
         const source = sources.shift();
         if (isObject(target) && isObject(source)) {
             for (const key in source) {
                 if (isObject(source[key])) {
-                    const val = target[key] ?? (target[key] = {});
+                    const val = (_a = target[key]) !== null && _a !== void 0 ? _a : (target[key] = {});
                     mergeDeep(val, source[key]);
                 }
                 else {
@@ -462,24 +481,29 @@
         update(path, content) {
             this._zip.file(path, content);
         }
-        static async load(input, options) {
-            const zip = await JSZip.loadAsync(input);
-            return new OpenXmlPackage(zip, options);
+        static load(input, options) {
+            return __awaiter(this, void 0, void 0, function* () {
+                const zip = yield JSZip.loadAsync(input);
+                return new OpenXmlPackage(zip, options);
+            });
         }
         save(type = "blob") {
             return this._zip.generateAsync({ type });
         }
         load(path, type = "string") {
-            return this.get(path)?.async(type) ?? Promise.resolve(null);
+            var _a, _b;
+            return (_b = (_a = this.get(path)) === null || _a === void 0 ? void 0 : _a.async(type)) !== null && _b !== void 0 ? _b : Promise.resolve(null);
         }
-        async loadRelationships(path = null) {
-            let relsPath = `_rels/.rels`;
-            if (path != null) {
-                const [f, fn] = splitPath(path);
-                relsPath = `${f}_rels/${fn}.rels`;
-            }
-            const txt = await this.load(relsPath);
-            return txt ? parseRelationships(this.parseXmlDocument(txt).firstElementChild, this.xmlParser) : null;
+        loadRelationships(path = null) {
+            return __awaiter(this, void 0, void 0, function* () {
+                let relsPath = `_rels/.rels`;
+                if (path != null) {
+                    const [f, fn] = splitPath(path);
+                    relsPath = `${f}_rels/${fn}.rels`;
+                }
+                const txt = yield this.load(relsPath);
+                return txt ? parseRelationships(this.parseXmlDocument(txt).firstElementChild, this.xmlParser) : null;
+            });
         }
         parseXmlDocument(txt) {
             return parseXmlString(txt, this.options.trimXmlDeclaration);
@@ -539,6 +563,7 @@
         SectionType["OddPage"] = "oddPage";
     })(SectionType || (SectionType = {}));
     function parseSectionProperties(elem, xml = globalXmlParser) {
+        var _a, _b;
         let section = {};
         let origin = {};
         for (let e of xml.elements(elem)) {
@@ -581,10 +606,10 @@
                     section.columns = parseColumns(e, xml);
                     break;
                 case "headerReference":
-                    (section.headerRefs ?? (section.headerRefs = [])).push(parseFooterHeaderReference(e, xml));
+                    ((_a = section.headerRefs) !== null && _a !== void 0 ? _a : (section.headerRefs = [])).push(parseFooterHeaderReference(e, xml));
                     break;
                 case "footerReference":
-                    (section.footerRefs ?? (section.footerRefs = [])).push(parseFooterHeaderReference(e, xml));
+                    ((_b = section.footerRefs) !== null && _b !== void 0 ? _b : (section.footerRefs = [])).push(parseFooterHeaderReference(e, xml));
                     break;
                 case "titlePg":
                     section.titlePage = xml.boolAttr(e, "val", true);
@@ -1271,93 +1296,105 @@
             this.parts = [];
             this.partsMap = {};
         }
-        static async load(blob, parser, options) {
-            var d = new WordDocument();
-            d._options = options;
-            d._parser = parser;
-            d._package = await OpenXmlPackage.load(blob, options);
-            d.rels = await d._package.loadRelationships();
-            await Promise.all(topLevelRels.map(rel => {
-                const r = d.rels.find(x => x.type === rel.type) ?? rel;
-                return d.loadRelationshipPart(r.target, r.type);
-            }));
-            return d;
+        static load(blob, parser, options) {
+            return __awaiter(this, void 0, void 0, function* () {
+                var d = new WordDocument();
+                d._options = options;
+                d._parser = parser;
+                d._package = yield OpenXmlPackage.load(blob, options);
+                d.rels = yield d._package.loadRelationships();
+                yield Promise.all(topLevelRels.map(rel => {
+                    var _a;
+                    const r = (_a = d.rels.find(x => x.type === rel.type)) !== null && _a !== void 0 ? _a : rel;
+                    return d.loadRelationshipPart(r.target, r.type);
+                }));
+                return d;
+            });
         }
         save(type = "blob") {
             return this._package.save(type);
         }
-        async loadRelationshipPart(path, type) {
-            if (this.partsMap[path])
-                return this.partsMap[path];
-            if (!this._package.get(path))
-                return null;
-            let part = null;
-            switch (type) {
-                case RelationshipTypes.OfficeDocument:
-                    this.documentPart = part = new DocumentPart(this._package, path, this._parser);
-                    break;
-                case RelationshipTypes.FontTable:
-                    this.fontTablePart = part = new FontTablePart(this._package, path);
-                    break;
-                case RelationshipTypes.Numbering:
-                    this.numberingPart = part = new NumberingPart(this._package, path, this._parser);
-                    break;
-                case RelationshipTypes.Styles:
-                    this.stylesPart = part = new StylesPart(this._package, path, this._parser);
-                    break;
-                case RelationshipTypes.Theme:
-                    this.themePart = part = new ThemePart(this._package, path);
-                    break;
-                case RelationshipTypes.Footnotes:
-                    this.footnotesPart = part = new FootnotesPart(this._package, path, this._parser);
-                    break;
-                case RelationshipTypes.Endnotes:
-                    this.endnotesPart = part = new EndnotesPart(this._package, path, this._parser);
-                    break;
-                case RelationshipTypes.Footer:
-                    part = new FooterPart(this._package, path, this._parser);
-                    break;
-                case RelationshipTypes.Header:
-                    part = new HeaderPart(this._package, path, this._parser);
-                    break;
-                case RelationshipTypes.CoreProperties:
-                    this.corePropsPart = part = new CorePropsPart(this._package, path);
-                    break;
-                case RelationshipTypes.ExtendedProperties:
-                    this.extendedPropsPart = part = new ExtendedPropsPart(this._package, path);
-                    break;
-                case RelationshipTypes.CustomProperties:
-                    part = new CustomPropsPart(this._package, path);
-                    break;
-                case RelationshipTypes.Settings:
-                    this.settingsPart = part = new SettingsPart(this._package, path);
-                    break;
-                case RelationshipTypes.Comments:
-                    this.commentsPart = part = new CommentsPart(this._package, path, this._parser);
-                    break;
-            }
-            if (part == null)
-                return Promise.resolve(null);
-            this.partsMap[path] = part;
-            this.parts.push(part);
-            await part.load();
-            if (part.rels?.length > 0) {
-                const [folder] = splitPath(part.path);
-                await Promise.all(part.rels.map(rel => this.loadRelationshipPart(resolvePath(rel.target, folder), rel.type)));
-            }
-            return part;
+        loadRelationshipPart(path, type) {
+            var _a;
+            return __awaiter(this, void 0, void 0, function* () {
+                if (this.partsMap[path])
+                    return this.partsMap[path];
+                if (!this._package.get(path))
+                    return null;
+                let part = null;
+                switch (type) {
+                    case RelationshipTypes.OfficeDocument:
+                        this.documentPart = part = new DocumentPart(this._package, path, this._parser);
+                        break;
+                    case RelationshipTypes.FontTable:
+                        this.fontTablePart = part = new FontTablePart(this._package, path);
+                        break;
+                    case RelationshipTypes.Numbering:
+                        this.numberingPart = part = new NumberingPart(this._package, path, this._parser);
+                        break;
+                    case RelationshipTypes.Styles:
+                        this.stylesPart = part = new StylesPart(this._package, path, this._parser);
+                        break;
+                    case RelationshipTypes.Theme:
+                        this.themePart = part = new ThemePart(this._package, path);
+                        break;
+                    case RelationshipTypes.Footnotes:
+                        this.footnotesPart = part = new FootnotesPart(this._package, path, this._parser);
+                        break;
+                    case RelationshipTypes.Endnotes:
+                        this.endnotesPart = part = new EndnotesPart(this._package, path, this._parser);
+                        break;
+                    case RelationshipTypes.Footer:
+                        part = new FooterPart(this._package, path, this._parser);
+                        break;
+                    case RelationshipTypes.Header:
+                        part = new HeaderPart(this._package, path, this._parser);
+                        break;
+                    case RelationshipTypes.CoreProperties:
+                        this.corePropsPart = part = new CorePropsPart(this._package, path);
+                        break;
+                    case RelationshipTypes.ExtendedProperties:
+                        this.extendedPropsPart = part = new ExtendedPropsPart(this._package, path);
+                        break;
+                    case RelationshipTypes.CustomProperties:
+                        part = new CustomPropsPart(this._package, path);
+                        break;
+                    case RelationshipTypes.Settings:
+                        this.settingsPart = part = new SettingsPart(this._package, path);
+                        break;
+                    case RelationshipTypes.Comments:
+                        this.commentsPart = part = new CommentsPart(this._package, path, this._parser);
+                        break;
+                }
+                if (part == null)
+                    return Promise.resolve(null);
+                this.partsMap[path] = part;
+                this.parts.push(part);
+                yield part.load();
+                if (((_a = part.rels) === null || _a === void 0 ? void 0 : _a.length) > 0) {
+                    const [folder] = splitPath(part.path);
+                    yield Promise.all(part.rels.map(rel => this.loadRelationshipPart(resolvePath(rel.target, folder), rel.type)));
+                }
+                return part;
+            });
         }
-        async loadDocumentImage(id, part) {
-            const blob = await this.loadResource(part ?? this.documentPart, id, "blob");
-            return this.blobToURL(blob);
+        loadDocumentImage(id, part) {
+            return __awaiter(this, void 0, void 0, function* () {
+                const blob = yield this.loadResource(part !== null && part !== void 0 ? part : this.documentPart, id, "blob");
+                return this.blobToURL(blob);
+            });
         }
-        async loadNumberingImage(id) {
-            const blob = await this.loadResource(this.numberingPart, id, "blob");
-            return this.blobToURL(blob);
+        loadNumberingImage(id) {
+            return __awaiter(this, void 0, void 0, function* () {
+                const blob = yield this.loadResource(this.numberingPart, id, "blob");
+                return this.blobToURL(blob);
+            });
         }
-        async loadFont(id, key) {
-            const x = await this.loadResource(this.fontTablePart, id, "uint8array");
-            return x ? this.blobToURL(new Blob([deobfuscate(x, key)])) : x;
+        loadFont(id, key) {
+            return __awaiter(this, void 0, void 0, function* () {
+                const x = yield this.loadResource(this.fontTablePart, id, "uint8array");
+                return x ? this.blobToURL(new Blob([deobfuscate(x, key)])) : x;
+            });
         }
         blobToURL(blob) {
             if (!blob)
@@ -1368,7 +1405,8 @@
             return URL.createObjectURL(blob);
         }
         findPartByRelId(id, basePart = null) {
-            var rel = (basePart.rels ?? this.rels).find(r => r.id == id);
+            var _a;
+            var rel = ((_a = basePart.rels) !== null && _a !== void 0 ? _a : this.rels).find(r => r.id == id);
             const folder = basePart ? splitPath(basePart.path)[0] : '';
             return rel ? this.partsMap[resolvePath(rel.target, folder)] : null;
         }
@@ -1377,16 +1415,18 @@
             const [folder] = splitPath(part.path);
             return rel ? resolvePath(rel.target, folder) : null;
         }
-        async loadResource(part, id, outputType) {
-            const path = this.getPathById(part, id);
-            let type = mime.getType(path);
-            if (path) {
-                let origin_blob = await this._package.load(path, outputType);
-                return new Blob([origin_blob], { type });
-            }
-            else {
-                return Promise.resolve(null);
-            }
+        loadResource(part, id, outputType) {
+            return __awaiter(this, void 0, void 0, function* () {
+                const path = this.getPathById(part, id);
+                let type = mime.getType(path);
+                if (path) {
+                    let origin_blob = yield this._package.load(path, outputType);
+                    return new Blob([origin_blob], { type });
+                }
+                else {
+                    return Promise.resolve(null);
+                }
+            });
         }
     }
     function deobfuscate(data, guidKey) {
@@ -1493,9 +1533,10 @@
         return result;
     }
     function parseStroke(el) {
+        var _a;
         return {
             'stroke': globalXmlParser.attr(el, "color"),
-            'stroke-width': globalXmlParser.lengthAttr(el, "weight", LengthUsage.Emu) ?? '1px'
+            'stroke-width': (_a = globalXmlParser.lengthAttr(el, "weight", LengthUsage.Emu)) !== null && _a !== void 0 ? _a : '1px'
         };
     }
     function parseFill(el) {
@@ -1575,10 +1616,7 @@
     };
     class DocumentParser {
         constructor(options) {
-            this.options = {
-                ...defaultDocumentParserOptions,
-                ...options
-            };
+            this.options = Object.assign(Object.assign({}, defaultDocumentParserOptions), options);
         }
         parseNotes(xmlDoc, elemName, elemClass) {
             let result = [];
@@ -1927,15 +1965,17 @@
             return sdtContent ? parser(sdtContent) : [];
         }
         parseInserted(node, parentParser) {
+            var _a, _b;
             return {
                 type: DomType.Inserted,
-                children: parentParser(node)?.children ?? []
+                children: (_b = (_a = parentParser(node)) === null || _a === void 0 ? void 0 : _a.children) !== null && _b !== void 0 ? _b : []
             };
         }
         parseDeleted(node, parentParser) {
+            var _a, _b;
             return {
                 type: DomType.Deleted,
-                children: parentParser(node)?.children ?? []
+                children: (_b = (_a = parentParser(node)) === null || _a === void 0 ? void 0 : _a.children) !== null && _b !== void 0 ? _b : []
             };
         }
         parseParagraph(node) {
@@ -2203,6 +2243,7 @@
             return result;
         }
         checkAlternateContent(elem) {
+            var _a;
             if (elem.localName != 'AlternateContent') {
                 return elem;
             }
@@ -2214,7 +2255,7 @@
                     return choice.firstElementChild;
                 }
             }
-            return globalXmlParser.element(elem, "Fallback")?.firstElementChild;
+            return (_a = globalXmlParser.element(elem, "Fallback")) === null || _a === void 0 ? void 0 : _a.firstElementChild;
         }
         parseDrawing(node) {
             for (let n of globalXmlParser.elements(node)) {
@@ -2226,6 +2267,7 @@
             }
         }
         parseDrawingWrapper(node) {
+            var _a, _b;
             let layoutInCell = globalXmlParser.boolAttr(node, "layoutInCell");
             let locked = globalXmlParser.boolAttr(node, "locked");
             let behindDoc = globalXmlParser.boolAttr(node, "behindDoc");
@@ -2275,7 +2317,7 @@
                         if (!simplePos) {
                             let alignNode = globalXmlParser.element(n, "align");
                             let offsetNode = globalXmlParser.element(n, "posOffset");
-                            posX.relative = globalXmlParser.attr(n, "relativeFrom") ?? posX.relative;
+                            posX.relative = (_a = globalXmlParser.attr(n, "relativeFrom")) !== null && _a !== void 0 ? _a : posX.relative;
                             if (alignNode) {
                                 posX.align = alignNode.textContent;
                             }
@@ -2290,7 +2332,7 @@
                         if (!simplePos) {
                             let alignNode = globalXmlParser.element(n, "align");
                             let offsetNode = globalXmlParser.element(n, "posOffset");
-                            posY.relative = globalXmlParser.attr(n, "relativeFrom") ?? posY.relative;
+                            posY.relative = (_b = globalXmlParser.attr(n, "relativeFrom")) !== null && _b !== void 0 ? _b : posY.relative;
                             if (alignNode) {
                                 posY.align = alignNode.textContent;
                             }
@@ -2475,6 +2517,7 @@
             let polygon = [];
             let { wrapText, distance, extent, posX, posY } = target.props;
             xmlUtil.foreach(node, (elem) => {
+                var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m;
                 let origin_x = globalXmlParser.intAttr(elem, 'x', 0);
                 let origin_y = globalXmlParser.intAttr(elem, 'y', 0);
                 let real_x, real_y;
@@ -2486,20 +2529,20 @@
                             case "left":
                                 real_x = origin_x * extent.origin_width / 21600 - distance.distL;
                                 real_y = origin_y * extent.origin_height / 21600 + posY.origin;
-                                revise_x = convertLength(real_x, LengthUsage.Emu) ?? "0pt";
-                                revise_y = convertLength(real_y, LengthUsage.Emu) ?? "0pt";
+                                revise_x = (_a = convertLength(real_x, LengthUsage.Emu)) !== null && _a !== void 0 ? _a : "0pt";
+                                revise_y = (_b = convertLength(real_y, LengthUsage.Emu)) !== null && _b !== void 0 ? _b : "0pt";
                                 break;
                             case "right":
                                 real_x = origin_x * extent.origin_width / 21600 + posX.origin - distance.distL;
                                 real_y = origin_y * extent.origin_height / 21600 + posY.origin;
-                                revise_x = convertLength(real_x, LengthUsage.Emu) ?? "0pt";
-                                revise_y = convertLength(real_y, LengthUsage.Emu) ?? "0pt";
+                                revise_x = (_c = convertLength(real_x, LengthUsage.Emu)) !== null && _c !== void 0 ? _c : "0pt";
+                                revise_y = (_d = convertLength(real_y, LengthUsage.Emu)) !== null && _d !== void 0 ? _d : "0pt";
                                 break;
                             case "center":
                                 real_x = origin_x * extent.origin_width / 21600 + posX.origin - distance.distL;
                                 real_y = origin_y * extent.origin_height / 21600 + posY.origin;
-                                revise_x = convertLength(real_x, LengthUsage.Emu) ?? "0pt";
-                                revise_y = convertLength(real_y, LengthUsage.Emu) ?? "0pt";
+                                revise_x = (_e = convertLength(real_x, LengthUsage.Emu)) !== null && _e !== void 0 ? _e : "0pt";
+                                revise_y = (_f = convertLength(real_y, LengthUsage.Emu)) !== null && _f !== void 0 ? _f : "0pt";
                         }
                         break;
                     case "right":
@@ -2507,22 +2550,22 @@
                             case "left":
                                 real_x = origin_x * extent.origin_width / 21600 + posX.origin + distance.distR;
                                 real_y = origin_y * extent.origin_height / 21600 + posY.origin;
-                                revise_x = convertLength(real_x, LengthUsage.Emu) ?? "0pt";
-                                revise_y = convertLength(real_y, LengthUsage.Emu) ?? "0pt";
+                                revise_x = (_g = convertLength(real_x, LengthUsage.Emu)) !== null && _g !== void 0 ? _g : "0pt";
+                                revise_y = (_h = convertLength(real_y, LengthUsage.Emu)) !== null && _h !== void 0 ? _h : "0pt";
                                 break;
                             case "right":
                                 real_x = origin_x * extent.origin_width / 21600 + posX.origin + distance.distR;
                                 real_y = origin_y * extent.origin_height / 21600 + posY.origin;
-                                point_x = convertLength(real_x, LengthUsage.Emu) ?? "0pt";
-                                point_y = convertLength(real_y, LengthUsage.Emu) ?? "0pt";
+                                point_x = (_j = convertLength(real_x, LengthUsage.Emu)) !== null && _j !== void 0 ? _j : "0pt";
+                                point_y = (_k = convertLength(real_y, LengthUsage.Emu)) !== null && _k !== void 0 ? _k : "0pt";
                                 revise_x = `calc(100% + ${point_x} - ${extent.width})`;
                                 revise_y = point_y;
                                 break;
                             case "center":
                                 real_x = origin_x * extent.origin_width / 21600 + posX.origin + distance.distR;
                                 real_y = origin_y * extent.origin_height / 21600 + posY.origin;
-                                point_x = convertLength(real_x, LengthUsage.Emu) ?? "0pt";
-                                point_y = convertLength(real_y, LengthUsage.Emu) ?? "0pt";
+                                point_x = (_l = convertLength(real_x, LengthUsage.Emu)) !== null && _l !== void 0 ? _l : "0pt";
+                                point_y = (_m = convertLength(real_y, LengthUsage.Emu)) !== null && _m !== void 0 ? _m : "0pt";
                                 revise_x = `calc(50% + ${point_x})`;
                                 revise_y = point_y;
                         }
@@ -2621,7 +2664,7 @@
                         let origin_height = globalXmlParser.intAttr(n, "cy", 0);
                         let width;
                         let height;
-                        if (transform?.rotate) {
+                        if (transform === null || transform === void 0 ? void 0 : transform.rotate) {
                             let angel = Math.PI * transform.rotate / 180;
                             width = Math.abs(origin_width * Math.cos(angel) + origin_height * Math.sin(angel));
                             height = Math.abs(origin_width * Math.sin(angel) + origin_height * Math.cos(angel));
@@ -2812,12 +2855,13 @@
         }
         parseTableCellProperties(elem, cell) {
             cell.cssStyle = this.parseDefaultProperties(elem, {}, null, c => {
+                var _a;
                 switch (c.localName) {
                     case "gridSpan":
                         cell.span = globalXmlParser.intAttr(c, "val", null);
                         break;
                     case "vMerge":
-                        cell.verticalMerge = globalXmlParser.attr(c, "val") ?? "continue";
+                        cell.verticalMerge = (_a = globalXmlParser.attr(c, "val")) !== null && _a !== void 0 ? _a : "continue";
                         break;
                     case "cnfStyle":
                         cell.className = values.classNameOfCnfStyle(c);
@@ -2831,7 +2875,7 @@
         parseDefaultProperties(elem, style = null, childStyle = null, handler = null) {
             style = style || {};
             xmlUtil.foreach(elem, c => {
-                if (handler?.(c))
+                if (handler === null || handler === void 0 ? void 0 : handler(c))
                     return;
                 switch (c.localName) {
                     case "b":
@@ -3288,7 +3332,7 @@
         const ebb = elem.getBoundingClientRect();
         const pbb = p.getBoundingClientRect();
         const pcs = getComputedStyle(p);
-        const tabStops = tabs?.length > 0 ? tabs.map(t => ({
+        const tabStops = (tabs === null || tabs === void 0 ? void 0 : tabs.length) > 0 ? tabs.map(t => ({
             pos: lengthToPoint(t.position),
             leader: t.leader,
             style: t.style
@@ -3299,7 +3343,7 @@
         let pos = lastTab.pos + size;
         if (pos < pWidthPt) {
             for (; pos < pWidthPt && tabStops.length < maxTabs; pos += size) {
-                tabStops.push({ ...defaultTab, pos: pos });
+                tabStops.push(Object.assign(Object.assign({}, defaultTab), { pos: pos }));
             }
         }
         const marginLeft = parseFloat(pcs.marginLeft);
@@ -3390,6 +3434,7 @@
             this.tabsTimeout = 0;
         }
         render(document, bodyContainer, styleContainer = null, options) {
+            var _a;
             this.document = document;
             this.options = options;
             this.className = options.className;
@@ -3425,7 +3470,7 @@
                 this.endnoteMap = keyBy(document.endnotesPart.notes, x => x.id);
             }
             if (document.settingsPart) {
-                this.defaultTabSize = document.settingsPart.settings?.defaultTabStop;
+                this.defaultTabSize = (_a = document.settingsPart.settings) === null || _a === void 0 ? void 0 : _a.defaultTabStop;
             }
             let pageElements = this.renderPages(document.documentPart.body);
             if (this.options.inWrapper) {
@@ -3457,8 +3502,9 @@
             return createStyleElement$1(styleText);
         }
         renderTheme(themePart, styleContainer) {
+            var _a, _b;
             const variables = {};
-            const fontScheme = themePart.theme?.fontScheme;
+            const fontScheme = (_a = themePart.theme) === null || _a === void 0 ? void 0 : _a.fontScheme;
             if (fontScheme) {
                 if (fontScheme.majorFont) {
                     variables['--docx-majorHAnsi-font'] = fontScheme.majorFont.latinTypeface;
@@ -3467,7 +3513,7 @@
                     variables['--docx-minorHAnsi-font'] = fontScheme.minorFont.latinTypeface;
                 }
             }
-            const colorScheme = themePart.theme?.colorScheme;
+            const colorScheme = (_b = themePart.theme) === null || _b === void 0 ? void 0 : _b.colorScheme;
             if (colorScheme) {
                 for (let [k, v] of Object.entries(colorScheme.colors)) {
                     variables[`--docx-${k}-color`] = `#${v}`;
@@ -3492,7 +3538,7 @@
                             this.copyStyleProperties(baseValues.values, styleValues.values);
                         }
                         else {
-                            style.styles.push({ ...baseValues, values: { ...baseValues.values } });
+                            style.styles.push(Object.assign(Object.assign({}, baseValues), { values: Object.assign({}, baseValues.values) }));
                         }
                     }
                 }
@@ -3506,6 +3552,7 @@
             return stylesMap;
         }
         renderStyles(styles) {
+            var _a;
             let styleText = "";
             const stylesMap = this.styleMap;
             const defaultStyles = keyBy(styles.filter(s => s.isDefault), s => s.target);
@@ -3521,7 +3568,7 @@
                     }
                 }
                 for (const subStyle of subStyles) {
-                    let selector = `${style.target ?? ''}.${style.cssName}`;
+                    let selector = `${(_a = style.target) !== null && _a !== void 0 ? _a : ''}.${style.cssName}`;
                     if (style.target != subStyle.target) {
                         selector += ` ${subStyle.target}`;
                     }
@@ -3534,9 +3581,10 @@
             return createStyleElement$1(styleText);
         }
         processNumberings(numberings) {
+            var _a;
             for (let num of numberings.filter(n => n.pStyleName)) {
                 const style = this.findStyle(num.pStyleName);
-                if (style?.paragraphProps?.numbering) {
+                if ((_a = style === null || style === void 0 ? void 0 : style.paragraphProps) === null || _a === void 0 ? void 0 : _a.numbering) {
                     style.paragraphProps.numbering.level = num.level;
                 }
             }
@@ -3568,21 +3616,12 @@
                         });
                     }
                     resetCounters.push(counterReset);
-                    styleText += this.styleToString(`${selector}:before`, {
-                        "content": this.levelTextToContent(num.levelText, num.suff, num.id, this.numFormatToCssValue(num.format)),
-                        "counter-increment": counter,
-                        ...num.rStyle,
-                    });
+                    styleText += this.styleToString(`${selector}:before`, Object.assign({ "content": this.levelTextToContent(num.levelText, num.suff, num.id, this.numFormatToCssValue(num.format)), "counter-increment": counter }, num.rStyle));
                 }
                 else {
                     listStyleType = this.numFormatToCssValue(num.format);
                 }
-                styleText += this.styleToString(selector, {
-                    "display": "list-item",
-                    "list-style-position": "inside",
-                    "list-style-type": listStyleType,
-                    ...num.pStyle
-                });
+                styleText += this.styleToString(selector, Object.assign({ "display": "list-item", "list-style-position": "inside", "list-style-type": listStyleType }, num.pStyle));
             }
             if (resetCounters.length > 0) {
                 styleText += this.styleToString(this.rootSelector, {
@@ -3611,6 +3650,7 @@
             return `${this.className}-num-${id}-${lvl}`;
         }
         levelTextToContent(text, suff, id, numformat) {
+            var _a;
             const suffMap = {
                 "tab": "\\9",
                 "space": "\\a0",
@@ -3619,9 +3659,10 @@
                 let lvl = parseInt(s.substring(1), 10) - 1;
                 return `"counter(${this.numberingCounter(id, lvl)}, ${numformat})"`;
             });
-            return `"${result}${suffMap[suff] ?? ""}"`;
+            return `"${result}${(_a = suffMap[suff]) !== null && _a !== void 0 ? _a : ""}"`;
         }
         numFormatToCssValue(format) {
+            var _a;
             let mapping = {
                 none: "none",
                 bullet: "disc",
@@ -3658,7 +3699,7 @@
                 taiwaneseCountingThousand: "cjk-ideographic",
                 taiwaneseDigital: "cjk-decimal",
             };
-            return mapping[format] ?? format;
+            return (_a = mapping[format]) !== null && _a !== void 0 ? _a : format;
         }
         renderFontTable(fontsPart, styleContainer) {
             for (let f of fontsPart.fonts) {
@@ -3726,6 +3767,7 @@
             }
         }
         splitPage(elements) {
+            var _a;
             let current_page = new Page({});
             const pages = [current_page];
             for (const elem of elements) {
@@ -3738,7 +3780,7 @@
                         sectProps.sectionId = uuid();
                     }
                     const default_paragraph_style = this.findStyle(p.styleName);
-                    if (default_paragraph_style?.paragraphProps?.pageBreakBefore) {
+                    if ((_a = default_paragraph_style === null || default_paragraph_style === void 0 ? void 0 : default_paragraph_style.paragraphProps) === null || _a === void 0 ? void 0 : _a.pageBreakBefore) {
                         current_page.isSplit = true;
                         current_page.sectProps = sectProps;
                         current_page = new Page({});
@@ -3748,7 +3790,8 @@
                     let rBreakIndex = -1;
                     if (p.children) {
                         pBreakIndex = p.children.findIndex(r => {
-                            rBreakIndex = r.children?.findIndex((t) => {
+                            var _a;
+                            rBreakIndex = (_a = r.children) === null || _a === void 0 ? void 0 : _a.findIndex((t) => {
                                 if (t.type != DomType.Break) {
                                     return false;
                                 }
@@ -3759,7 +3802,7 @@
                                     return true;
                                 }
                             });
-                            rBreakIndex = rBreakIndex ?? -1;
+                            rBreakIndex = rBreakIndex !== null && rBreakIndex !== void 0 ? rBreakIndex : -1;
                             return rBreakIndex != -1;
                         });
                     }
@@ -3771,8 +3814,9 @@
                         }
                         let exist_TOC = current_page.elements.some((paragraph) => {
                             return paragraph.children.some((elem) => {
+                                var _a;
                                 if (elem.type === DomType.Hyperlink) {
-                                    return elem?.href?.includes('Toc');
+                                    return (_a = elem === null || elem === void 0 ? void 0 : elem.href) === null || _a === void 0 ? void 0 : _a.includes('Toc');
                                 }
                                 return false;
                             });
@@ -3791,18 +3835,12 @@
                         let is_split = rBreakIndex < breakRun.children.length - 1;
                         if (pBreakIndex < p.children.length - 1 || is_split) {
                             let origin_run = p.children;
-                            const new_paragraph = {
-                                ...p,
-                                children: origin_run.slice(pBreakIndex),
-                            };
+                            const new_paragraph = Object.assign(Object.assign({}, p), { children: origin_run.slice(pBreakIndex) });
                             p.children = origin_run.slice(0, pBreakIndex);
                             current_page.elements.push(new_paragraph);
                             if (is_split) {
                                 const origin_elements = breakRun.children;
-                                const newRun = {
-                                    ...breakRun,
-                                    children: origin_elements.slice(0, rBreakIndex),
-                                };
+                                const newRun = Object.assign(Object.assign({}, breakRun), { children: origin_elements.slice(0, rBreakIndex) });
                                 p.children.push(newRun);
                                 breakRun.children = origin_elements.slice(rBreakIndex);
                             }
@@ -3840,7 +3878,7 @@
                 this.currentFootnoteIds = [];
                 const page = pages[i];
                 const { sectProps } = page;
-                let sectionProps = sectProps ?? document.props;
+                let sectionProps = sectProps !== null && sectProps !== void 0 ? sectProps : document.props;
                 let pageIndex = result.length;
                 let isFirstPage = prevProps != sectionProps;
                 let isLastPage = i === l - 1;
@@ -3901,11 +3939,10 @@
             return oPage;
         }
         renderHeaderFooterRef(refs, props, page, isFirstPage, parent) {
+            var _a, _b, _c, _d, _e, _f, _g, _h;
             if (!refs)
                 return;
-            let ref = (props.titlePage && isFirstPage ? refs.find(x => x.type == "first") : null)
-                ?? (page % 2 == 1 ? refs.find(x => x.type == "even") : null)
-                ?? refs.find(x => x.type == "default");
+            let ref = (_b = (_a = (props.titlePage && isFirstPage ? refs.find(x => x.type == "first") : null)) !== null && _a !== void 0 ? _a : (page % 2 == 1 ? refs.find(x => x.type == "even") : null)) !== null && _b !== void 0 ? _b : refs.find(x => x.type == "default");
             let part = ref && this.document.findPartByRelId(ref.id, this.document.documentPart);
             if (part) {
                 this.currentPart = part;
@@ -3916,16 +3953,16 @@
                 switch (part.rootElement.type) {
                     case DomType.Header:
                         part.rootElement.cssStyle = {
-                            left: props.pageMargins?.left,
-                            width: props.contentSize?.width,
-                            height: props.pageMargins?.top,
+                            left: (_c = props.pageMargins) === null || _c === void 0 ? void 0 : _c.left,
+                            width: (_d = props.contentSize) === null || _d === void 0 ? void 0 : _d.width,
+                            height: (_e = props.pageMargins) === null || _e === void 0 ? void 0 : _e.top,
                         };
                         break;
                     case DomType.Footer:
                         part.rootElement.cssStyle = {
-                            left: props.pageMargins?.left,
-                            width: props.contentSize?.width,
-                            height: props.pageMargins?.bottom,
+                            left: (_f = props.pageMargins) === null || _f === void 0 ? void 0 : _f.left,
+                            width: (_g = props.contentSize) === null || _g === void 0 ? void 0 : _g.width,
+                            height: (_h = props.pageMargins) === null || _h === void 0 ? void 0 : _h.bottom,
                         };
                         break;
                     default:
@@ -4086,14 +4123,15 @@
             return createElementNS$1(ns, tagName, props, this.renderChildren(elem));
         }
         renderParagraph(elem) {
+            var _a, _b, _c, _d;
             let result = createElement$1("p");
             const style = this.findStyle(elem.styleName);
-            elem.tabs ?? (elem.tabs = style?.paragraphProps?.tabs);
+            (_a = elem.tabs) !== null && _a !== void 0 ? _a : (elem.tabs = (_b = style === null || style === void 0 ? void 0 : style.paragraphProps) === null || _b === void 0 ? void 0 : _b.tabs);
             this.renderClass(elem, result);
             this.renderChildren(elem, result);
             this.renderStyleValues(elem.cssStyle, result);
             this.renderCommonProperties(result.style, elem);
-            const numbering = elem.numbering ?? style?.paragraphProps?.numbering;
+            const numbering = (_c = elem.numbering) !== null && _c !== void 0 ? _c : (_d = style === null || style === void 0 ? void 0 : style.paragraphProps) === null || _d === void 0 ? void 0 : _d.numbering;
             if (numbering) {
                 result.classList.add(this.numberingClass(numbering.id, numbering.level));
             }
@@ -4130,7 +4168,7 @@
             else if (elem.id) {
                 const rel = this.document.documentPart.rels
                     .find(it => it.id == elem.id && it.targetMode === "External");
-                result.href = rel?.target;
+                result.href = rel === null || rel === void 0 ? void 0 : rel.target;
             }
             return result;
         }
@@ -4201,11 +4239,12 @@
             return result;
         }
         renderTab(elem) {
+            var _a;
             let tabSpan = createElement$1("span");
             tabSpan.innerHTML = "&emsp;";
             if (this.options.experimental) {
                 tabSpan.className = this.tabStopClass();
-                let stops = findParent$1(elem, DomType.Paragraph)?.tabs;
+                let stops = (_a = findParent$1(elem, DomType.Paragraph)) === null || _a === void 0 ? void 0 : _a.tabs;
                 this.currentTabs.push({ stops, span: tabSpan });
             }
             return tabSpan;
@@ -4280,12 +4319,12 @@
             return result;
         }
         renderVmlElement(elem) {
+            var _a, _b;
             let container = createSvgElement$1("svg");
             container.setAttribute("style", elem.cssStyleText);
             const result = this.renderVmlChildElement(elem);
-            if (elem.imageHref?.id) {
-                this.document?.loadDocumentImage(elem.imageHref.id, this.currentPart)
-                    .then(x => result.setAttribute("href", x));
+            if ((_a = elem.imageHref) === null || _a === void 0 ? void 0 : _a.id) {
+                (_b = this.document) === null || _b === void 0 ? void 0 : _b.loadDocumentImage(elem.imageHref.id, this.currentPart).then(x => result.setAttribute("href", x));
             }
             container.appendChild(result);
             requestAnimationFrame(() => {
@@ -4309,28 +4348,31 @@
             return result;
         }
         renderMmlRadical(elem) {
+            var _a;
             const base = elem.children.find(el => el.type == DomType.MmlBase);
-            if (elem.props?.hideDegree) {
+            if ((_a = elem.props) === null || _a === void 0 ? void 0 : _a.hideDegree) {
                 return createElementNS$1(ns$1.mathML, "msqrt", null, this.renderElements([base]));
             }
             const degree = elem.children.find(el => el.type == DomType.MmlDegree);
             return createElementNS$1(ns$1.mathML, "mroot", null, this.renderElements([base, degree]));
         }
         renderMmlDelimiter(elem) {
+            var _a, _b;
             const children = [];
-            children.push(createElementNS$1(ns$1.mathML, "mo", null, [elem.props.beginChar ?? '(']));
+            children.push(createElementNS$1(ns$1.mathML, "mo", null, [(_a = elem.props.beginChar) !== null && _a !== void 0 ? _a : '(']));
             children.push(...this.renderElements(elem.children));
-            children.push(createElementNS$1(ns$1.mathML, "mo", null, [elem.props.endChar ?? ')']));
+            children.push(createElementNS$1(ns$1.mathML, "mo", null, [(_b = elem.props.endChar) !== null && _b !== void 0 ? _b : ')']));
             return createElementNS$1(ns$1.mathML, "mrow", null, children);
         }
         renderMmlNary(elem) {
+            var _a, _b;
             const children = [];
             const grouped = keyBy(elem.children, x => x.type);
             const sup = grouped[DomType.MmlSuperArgument];
             const sub = grouped[DomType.MmlSubArgument];
             const supElem = sup ? createElementNS$1(ns$1.mathML, "mo", null, asArray(this.renderElement(sup))) : null;
             const subElem = sub ? createElementNS$1(ns$1.mathML, "mo", null, asArray(this.renderElement(sub))) : null;
-            const charElem = createElementNS$1(ns$1.mathML, "mo", null, [elem.props?.char ?? '\u222B']);
+            const charElem = createElementNS$1(ns$1.mathML, "mo", null, [(_b = (_a = elem.props) === null || _a === void 0 ? void 0 : _a.char) !== null && _b !== void 0 ? _b : '\u222B']);
             if (supElem || subElem) {
                 children.push(createElementNS$1(ns$1.mathML, "munderover", null, [charElem, subElem, supElem]));
             }
@@ -4429,7 +4471,8 @@
             }
         }
         findStyle(styleName) {
-            return styleName && this.styleMap?.[styleName];
+            var _a;
+            return styleName && ((_a = this.styleMap) === null || _a === void 0 ? void 0 : _a[styleName]);
         }
         tabStopClass() {
             return `${this.className}-tab-stop`;
@@ -4507,54 +4550,57 @@
             this.currentTabs = [];
             this.tabsTimeout = 0;
         }
-        async render(document, bodyContainer, styleContainer = null, options) {
-            this.document = document;
-            this.options = options;
-            this.className = options.className;
-            this.rootSelector = options.inWrapper ? `.${this.className}-wrapper` : ':root';
-            this.styleMap = null;
-            this.wrapper = bodyContainer;
-            styleContainer = styleContainer || bodyContainer;
-            removeAllElements(styleContainer);
-            removeAllElements(bodyContainer);
-            appendComment(styleContainer, 'docxjs library predefined styles');
-            styleContainer.appendChild(this.renderDefaultStyle());
-            if (document.themePart) {
-                appendComment(styleContainer, 'docxjs document theme values');
-                this.renderTheme(document.themePart, styleContainer);
-            }
-            if (document.stylesPart != null) {
-                this.styleMap = this.processStyles(document.stylesPart.styles);
-                appendComment(styleContainer, 'docxjs document styles');
-                styleContainer.appendChild(this.renderStyles(document.stylesPart.styles));
-            }
-            if (document.numberingPart) {
-                this.processNumberings(document.numberingPart.domNumberings);
-                appendComment(styleContainer, "docxjs document numbering styles");
-                styleContainer.appendChild(this.renderNumbering(document.numberingPart.domNumberings, styleContainer));
-            }
-            if (!options.ignoreFonts && document.fontTablePart) {
-                this.renderFontTable(document.fontTablePart, styleContainer);
-            }
-            if (document.footnotesPart) {
-                this.footnoteMap = keyBy(document.footnotesPart.notes, x => x.id);
-            }
-            if (document.endnotesPart) {
-                this.endnoteMap = keyBy(document.endnotesPart.notes, x => x.id);
-            }
-            if (document.settingsPart) {
-                this.defaultTabSize = document.settingsPart.settings?.defaultTabStop;
-            }
-            if (this.options.inWrapper) {
-                this.wrapper = this.renderWrapper();
-                bodyContainer.appendChild(this.wrapper);
-            }
-            else {
+        render(document, bodyContainer, styleContainer = null, options) {
+            var _a;
+            return __awaiter(this, void 0, void 0, function* () {
+                this.document = document;
+                this.options = options;
+                this.className = options.className;
+                this.rootSelector = options.inWrapper ? `.${this.className}-wrapper` : ':root';
+                this.styleMap = null;
                 this.wrapper = bodyContainer;
-            }
-            this.renderKonva();
-            await this.renderPages(document.documentPart.body);
-            this.refreshTabStops();
+                styleContainer = styleContainer || bodyContainer;
+                removeAllElements(styleContainer);
+                removeAllElements(bodyContainer);
+                appendComment(styleContainer, 'docxjs library predefined styles');
+                styleContainer.appendChild(this.renderDefaultStyle());
+                if (document.themePart) {
+                    appendComment(styleContainer, 'docxjs document theme values');
+                    this.renderTheme(document.themePart, styleContainer);
+                }
+                if (document.stylesPart != null) {
+                    this.styleMap = this.processStyles(document.stylesPart.styles);
+                    appendComment(styleContainer, 'docxjs document styles');
+                    styleContainer.appendChild(this.renderStyles(document.stylesPart.styles));
+                }
+                if (document.numberingPart) {
+                    this.processNumberings(document.numberingPart.domNumberings);
+                    appendComment(styleContainer, "docxjs document numbering styles");
+                    styleContainer.appendChild(this.renderNumbering(document.numberingPart.domNumberings, styleContainer));
+                }
+                if (!options.ignoreFonts && document.fontTablePart) {
+                    this.renderFontTable(document.fontTablePart, styleContainer);
+                }
+                if (document.footnotesPart) {
+                    this.footnoteMap = keyBy(document.footnotesPart.notes, x => x.id);
+                }
+                if (document.endnotesPart) {
+                    this.endnoteMap = keyBy(document.endnotesPart.notes, x => x.id);
+                }
+                if (document.settingsPart) {
+                    this.defaultTabSize = (_a = document.settingsPart.settings) === null || _a === void 0 ? void 0 : _a.defaultTabStop;
+                }
+                if (this.options.inWrapper) {
+                    this.wrapper = this.renderWrapper();
+                    bodyContainer.appendChild(this.wrapper);
+                }
+                else {
+                    this.wrapper = bodyContainer;
+                }
+                this.renderKonva();
+                yield this.renderPages(document.documentPart.body);
+                this.refreshTabStops();
+            });
         }
         renderDefaultStyle() {
             const c = this.className;
@@ -4577,8 +4623,9 @@
             return createStyleElement(styleText);
         }
         renderTheme(themePart, styleContainer) {
+            var _a, _b;
             const variables = {};
-            const fontScheme = themePart.theme?.fontScheme;
+            const fontScheme = (_a = themePart.theme) === null || _a === void 0 ? void 0 : _a.fontScheme;
             if (fontScheme) {
                 if (fontScheme.majorFont) {
                     variables['--docx-majorHAnsi-font'] = fontScheme.majorFont.latinTypeface;
@@ -4587,7 +4634,7 @@
                     variables['--docx-minorHAnsi-font'] = fontScheme.minorFont.latinTypeface;
                 }
             }
-            const colorScheme = themePart.theme?.colorScheme;
+            const colorScheme = (_b = themePart.theme) === null || _b === void 0 ? void 0 : _b.colorScheme;
             if (colorScheme) {
                 for (const [k, v] of Object.entries(colorScheme.colors)) {
                     variables[`--docx-${k}-color`] = `#${v}`;
@@ -4612,7 +4659,7 @@
                             this.copyStyleProperties(baseValues.values, styleValues.values);
                         }
                         else {
-                            style.styles.push({ ...baseValues, values: { ...baseValues.values } });
+                            style.styles.push(Object.assign(Object.assign({}, baseValues), { values: Object.assign({}, baseValues.values) }));
                         }
                     }
                 }
@@ -4626,6 +4673,7 @@
             return stylesMap;
         }
         renderStyles(styles) {
+            var _a;
             let styleText = "";
             let stylesMap = this.styleMap;
             let defaultStyles = keyBy(styles.filter(s => s.isDefault), s => s.target);
@@ -4641,7 +4689,7 @@
                     }
                 }
                 for (const subStyle of subStyles) {
-                    let selector = `${style.target ?? ''}.${style.cssName}`;
+                    let selector = `${(_a = style.target) !== null && _a !== void 0 ? _a : ''}.${style.cssName}`;
                     if (style.target != subStyle.target) {
                         selector += ` ${subStyle.target}`;
                     }
@@ -4654,9 +4702,10 @@
             return createStyleElement(styleText);
         }
         processNumberings(numberings) {
+            var _a;
             for (const num of numberings.filter(n => n.pStyleName)) {
                 const style = this.findStyle(num.pStyleName);
-                if (style?.paragraphProps?.numbering) {
+                if ((_a = style === null || style === void 0 ? void 0 : style.paragraphProps) === null || _a === void 0 ? void 0 : _a.numbering) {
                     style.paragraphProps.numbering.level = num.level;
                 }
             }
@@ -4688,21 +4737,12 @@
                         });
                     }
                     resetCounters.push(counterReset);
-                    styleText += this.styleToString(`${selector}:before`, {
-                        "content": this.levelTextToContent(num.levelText, num.suff, num.id, this.numFormatToCssValue(num.format)),
-                        "counter-increment": counter,
-                        ...num.rStyle,
-                    });
+                    styleText += this.styleToString(`${selector}:before`, Object.assign({ "content": this.levelTextToContent(num.levelText, num.suff, num.id, this.numFormatToCssValue(num.format)), "counter-increment": counter }, num.rStyle));
                 }
                 else {
                     listStyleType = this.numFormatToCssValue(num.format);
                 }
-                styleText += this.styleToString(selector, {
-                    display: 'list-item',
-                    'list-style-position': 'inside',
-                    'list-style-type': listStyleType,
-                    ...num.pStyle,
-                });
+                styleText += this.styleToString(selector, Object.assign({ display: 'list-item', 'list-style-position': 'inside', 'list-style-type': listStyleType }, num.pStyle));
             }
             if (resetCounters.length > 0) {
                 styleText += this.styleToString(this.rootSelector, {
@@ -4731,6 +4771,7 @@
             return `${this.className}-num-${id}-${lvl}`;
         }
         levelTextToContent(text, suff, id, numformat) {
+            var _a;
             const suffMap = {
                 tab: '\\9',
                 space: '\\a0',
@@ -4739,9 +4780,10 @@
                 const lvl = parseInt(s.substring(1), 10) - 1;
                 return `"counter(${this.numberingCounter(id, lvl)}, ${numformat})"`;
             });
-            return `"${result}${suffMap[suff] ?? ''}"`;
+            return `"${result}${(_a = suffMap[suff]) !== null && _a !== void 0 ? _a : ''}"`;
         }
         numFormatToCssValue(format) {
+            var _a;
             const mapping = {
                 none: 'none',
                 bullet: 'disc',
@@ -4778,7 +4820,7 @@
                 taiwaneseCountingThousand: 'cjk-ideographic',
                 taiwaneseDigital: 'cjk-decimal',
             };
-            return mapping[format] ?? format;
+            return (_a = mapping[format]) !== null && _a !== void 0 ? _a : format;
         }
         renderFontTable(fontsPart, styleContainer) {
             for (const f of fontsPart.fonts) {
@@ -4852,6 +4894,7 @@
             }
         }
         splitPage(elements) {
+            var _a;
             let current_page = new Page({});
             const pages = [current_page];
             for (const elem of elements) {
@@ -4864,7 +4907,7 @@
                         sectProps.sectionId = uuid();
                     }
                     const default_paragraph_style = this.findStyle(p.styleName);
-                    if (default_paragraph_style?.paragraphProps?.pageBreakBefore) {
+                    if ((_a = default_paragraph_style === null || default_paragraph_style === void 0 ? void 0 : default_paragraph_style.paragraphProps) === null || _a === void 0 ? void 0 : _a.pageBreakBefore) {
                         current_page.isSplit = true;
                         current_page.sectProps = sectProps;
                         current_page = new Page({});
@@ -4874,7 +4917,8 @@
                     let rBreakIndex = -1;
                     if (p.children) {
                         pBreakIndex = p.children.findIndex(r => {
-                            rBreakIndex = r.children?.findIndex((t) => {
+                            var _a;
+                            rBreakIndex = (_a = r.children) === null || _a === void 0 ? void 0 : _a.findIndex((t) => {
                                 if (t.type != DomType.Break) {
                                     return false;
                                 }
@@ -4885,7 +4929,7 @@
                                     return true;
                                 }
                             });
-                            rBreakIndex = rBreakIndex ?? -1;
+                            rBreakIndex = rBreakIndex !== null && rBreakIndex !== void 0 ? rBreakIndex : -1;
                             return rBreakIndex != -1;
                         });
                     }
@@ -4897,8 +4941,9 @@
                         }
                         let exist_TOC = current_page.elements.some((paragraph) => {
                             return paragraph.children.some((elem) => {
+                                var _a;
                                 if (elem.type === DomType.Hyperlink) {
-                                    return elem?.href?.includes('Toc');
+                                    return (_a = elem === null || elem === void 0 ? void 0 : elem.href) === null || _a === void 0 ? void 0 : _a.includes('Toc');
                                 }
                                 return false;
                             });
@@ -4917,18 +4962,12 @@
                         const is_split = rBreakIndex < breakRun.children.length - 1;
                         if (pBreakIndex < p.children.length - 1 || is_split) {
                             const origin_runs = p.children;
-                            const new_paragraph = {
-                                ...p,
-                                children: origin_runs.slice(pBreakIndex),
-                            };
+                            const new_paragraph = Object.assign(Object.assign({}, p), { children: origin_runs.slice(pBreakIndex) });
                             p.children = origin_runs.slice(0, pBreakIndex);
                             current_page.elements.push(new_paragraph);
                             if (is_split) {
                                 const origin_elements = breakRun.children;
-                                const newRun = {
-                                    ...breakRun,
-                                    children: origin_elements.slice(0, rBreakIndex),
-                                };
+                                const newRun = Object.assign(Object.assign({}, breakRun), { children: origin_elements.slice(0, rBreakIndex) });
                                 p.children.push(newRun);
                                 breakRun.children = origin_elements.slice(rBreakIndex);
                             }
@@ -4950,65 +4989,69 @@
             }
             return pages;
         }
-        async renderPages(document) {
-            this.processElement(document);
-            let pages;
-            if (this.options.breakPages) {
-                pages = this.splitPage(document.children);
-            }
-            else {
-                pages = [new Page({ sectProps: document.props, elements: document.children, })];
-            }
-            document.pages = pages;
-            let prevProps = null;
-            let origin_pages = structuredClone(pages);
-            for (let i = 0; i < origin_pages.length; i++) {
-                this.currentFootnoteIds = [];
-                const page = origin_pages[i];
-                const { sectProps } = page;
-                page.sectProps = sectProps ?? document.props;
-                page.isFirstPage = prevProps != page.sectProps;
-                page.isLastPage = i === origin_pages.length - 1;
-                page.checkingOverflow = false;
-                this.currentPage = page;
-                prevProps = page.sectProps;
-                await this.renderPage();
-            }
+        renderPages(document) {
+            return __awaiter(this, void 0, void 0, function* () {
+                this.processElement(document);
+                let pages;
+                if (this.options.breakPages) {
+                    pages = this.splitPage(document.children);
+                }
+                else {
+                    pages = [new Page({ sectProps: document.props, elements: document.children, })];
+                }
+                document.pages = pages;
+                let prevProps = null;
+                let origin_pages = structuredClone(pages);
+                for (let i = 0; i < origin_pages.length; i++) {
+                    this.currentFootnoteIds = [];
+                    const page = origin_pages[i];
+                    const { sectProps } = page;
+                    page.sectProps = sectProps !== null && sectProps !== void 0 ? sectProps : document.props;
+                    page.isFirstPage = prevProps != page.sectProps;
+                    page.isLastPage = i === origin_pages.length - 1;
+                    page.checkingOverflow = false;
+                    this.currentPage = page;
+                    prevProps = page.sectProps;
+                    yield this.renderPage();
+                }
+            });
         }
-        async renderPage() {
-            const { pageId, sectProps, elements, isFirstPage, isLastPage } = this.currentPage;
-            const pageElement = this.createPage(this.className, sectProps);
-            this.renderStyleValues(this.document.documentPart.body.cssStyle, pageElement);
-            let pages = this.document.documentPart.body.pages;
-            let pageIndex = pages.findIndex((page) => page.pageId === pageId);
-            if (this.options.renderHeaders) {
-                await this.renderHeaderFooterRef(sectProps.headerRefs, sectProps, pageIndex, isFirstPage, pageElement);
-            }
-            if (this.options.renderFootnotes) {
-                await this.renderNotes(this.currentFootnoteIds, this.footnoteMap, pageElement);
-            }
-            if (this.options.renderEndnotes && isLastPage) {
-                await this.renderNotes(this.currentEndnoteIds, this.endnoteMap, pageElement);
-            }
-            if (this.options.renderFooters) {
-                await this.renderHeaderFooterRef(sectProps.footerRefs, sectProps, pageIndex, isFirstPage, pageElement);
-            }
-            const contentElement = this.createPageContent(sectProps);
-            if (this.options.breakPages) {
-                contentElement.style.height = sectProps.contentSize.height;
-            }
-            else {
-                contentElement.style.minHeight = sectProps.contentSize.height;
-            }
-            this.currentPage.contentElement = contentElement;
-            pageElement.appendChild(contentElement);
-            this.currentPage.checkingOverflow = true;
-            let is_overflow = await this.renderElements(elements, contentElement);
-            if (is_overflow === Overflow.FALSE) {
-                this.currentPage.isSplit = true;
-                pages[pageIndex] = this.currentPage;
-            }
-            this.currentPage.checkingOverflow = false;
+        renderPage() {
+            return __awaiter(this, void 0, void 0, function* () {
+                const { pageId, sectProps, elements, isFirstPage, isLastPage } = this.currentPage;
+                const pageElement = this.createPage(this.className, sectProps);
+                this.renderStyleValues(this.document.documentPart.body.cssStyle, pageElement);
+                let pages = this.document.documentPart.body.pages;
+                let pageIndex = pages.findIndex((page) => page.pageId === pageId);
+                if (this.options.renderHeaders) {
+                    yield this.renderHeaderFooterRef(sectProps.headerRefs, sectProps, pageIndex, isFirstPage, pageElement);
+                }
+                if (this.options.renderFootnotes) {
+                    yield this.renderNotes(this.currentFootnoteIds, this.footnoteMap, pageElement);
+                }
+                if (this.options.renderEndnotes && isLastPage) {
+                    yield this.renderNotes(this.currentEndnoteIds, this.endnoteMap, pageElement);
+                }
+                if (this.options.renderFooters) {
+                    yield this.renderHeaderFooterRef(sectProps.footerRefs, sectProps, pageIndex, isFirstPage, pageElement);
+                }
+                const contentElement = this.createPageContent(sectProps);
+                if (this.options.breakPages) {
+                    contentElement.style.height = sectProps.contentSize.height;
+                }
+                else {
+                    contentElement.style.minHeight = sectProps.contentSize.height;
+                }
+                this.currentPage.contentElement = contentElement;
+                pageElement.appendChild(contentElement);
+                this.currentPage.checkingOverflow = true;
+                let is_overflow = yield this.renderElements(elements, contentElement);
+                if (is_overflow === Overflow.FALSE) {
+                    this.currentPage.isSplit = true;
+                    pages[pageIndex] = this.currentPage;
+                }
+                this.currentPage.checkingOverflow = false;
+            });
         }
         createPage(className, props) {
             const oPage = createElement('section', { className });
@@ -5034,7 +5077,7 @@
         }
         createPageContent(props) {
             const oArticle = createElement('article');
-            const { count, space, separator } = props?.columns;
+            const { count, space, separator } = props === null || props === void 0 ? void 0 : props.columns;
             if (count > 1) {
                 oArticle.style.columnCount = `${count}`;
                 oArticle.style.columnGap = space;
@@ -5044,334 +5087,344 @@
             }
             return oArticle;
         }
-        async renderHeaderFooterRef(refs, props, pageIndex, isFirstPage, parent) {
-            if (!refs)
-                return;
-            let ref;
-            if (props.titlePage && isFirstPage) {
-                ref = refs.find(x => x.type == "first");
-            }
-            else if (pageIndex % 2 == 1) {
-                ref = refs.find(x => x.type == "even");
-            }
-            else {
-                ref = refs.find(x => x.type == "default");
-            }
-            let part = this.document.findPartByRelId(ref?.id, this.document.documentPart);
-            if (part) {
-                this.currentPart = part;
-                if (!this.usedHederFooterParts.includes(part.path)) {
-                    this.processElement(part.rootElement);
-                    this.usedHederFooterParts.push(part.path);
+        renderHeaderFooterRef(refs, props, pageIndex, isFirstPage, parent) {
+            var _a, _b, _c, _d, _e, _f;
+            return __awaiter(this, void 0, void 0, function* () {
+                if (!refs)
+                    return;
+                let ref;
+                if (props.titlePage && isFirstPage) {
+                    ref = refs.find(x => x.type == "first");
                 }
-                switch (part.rootElement.type) {
-                    case DomType.Header:
-                        part.rootElement.cssStyle = {
-                            left: props.pageMargins?.left,
-                            width: props.contentSize?.width,
-                            height: props.pageMargins?.top,
-                        };
+                else if (pageIndex % 2 == 1) {
+                    ref = refs.find(x => x.type == "even");
+                }
+                else {
+                    ref = refs.find(x => x.type == "default");
+                }
+                let part = this.document.findPartByRelId(ref === null || ref === void 0 ? void 0 : ref.id, this.document.documentPart);
+                if (part) {
+                    this.currentPart = part;
+                    if (!this.usedHederFooterParts.includes(part.path)) {
+                        this.processElement(part.rootElement);
+                        this.usedHederFooterParts.push(part.path);
+                    }
+                    switch (part.rootElement.type) {
+                        case DomType.Header:
+                            part.rootElement.cssStyle = {
+                                left: (_a = props.pageMargins) === null || _a === void 0 ? void 0 : _a.left,
+                                width: (_b = props.contentSize) === null || _b === void 0 ? void 0 : _b.width,
+                                height: (_c = props.pageMargins) === null || _c === void 0 ? void 0 : _c.top,
+                            };
+                            break;
+                        case DomType.Footer:
+                            part.rootElement.cssStyle = {
+                                left: (_d = props.pageMargins) === null || _d === void 0 ? void 0 : _d.left,
+                                width: (_e = props.contentSize) === null || _e === void 0 ? void 0 : _e.width,
+                                height: (_f = props.pageMargins) === null || _f === void 0 ? void 0 : _f.bottom,
+                            };
+                            break;
+                        default:
+                            console.warn('set header/footer style error', part.rootElement.type);
+                            break;
+                    }
+                    yield this.renderElements([part.rootElement], parent);
+                    this.currentPart = null;
+                }
+            });
+        }
+        renderNotes(noteIds, notesMap, parent) {
+            return __awaiter(this, void 0, void 0, function* () {
+                const notes = noteIds.map(id => notesMap[id]).filter(x => x);
+                if (notes.length > 0) {
+                    const oList = createElement('ol', null);
+                    yield this.renderElements(notes, oList);
+                    parent.appendChild(oList);
+                }
+            });
+        }
+        renderElements(elems, parent) {
+            var _a;
+            return __awaiter(this, void 0, void 0, function* () {
+                let is_overflow = Overflow.FALSE;
+                for (let i = 0; i < elems.length; i++) {
+                    if (elems[i].level === 1) {
+                        this.currentPage.breakIndex = i;
+                    }
+                    const element = (yield this.renderElement(elems[i], parent));
+                    if (((_a = element === null || element === void 0 ? void 0 : element.dataset) === null || _a === void 0 ? void 0 : _a.overflow) === Overflow.TRUE) {
+                        is_overflow = Overflow.TRUE;
+                        break;
+                    }
+                }
+                return is_overflow;
+            });
+        }
+        renderElement(elem, parent) {
+            return __awaiter(this, void 0, void 0, function* () {
+                let oNode;
+                switch (elem.type) {
+                    case DomType.Paragraph:
+                        oNode = yield this.renderParagraph(elem, parent);
+                        break;
+                    case DomType.Run:
+                        oNode = yield this.renderRun(elem, parent);
+                        break;
+                    case DomType.Text:
+                        oNode = yield this.renderText(elem, parent);
+                        break;
+                    case DomType.Table:
+                        oNode = yield this.renderTable(elem, parent);
+                        break;
+                    case DomType.Row:
+                        oNode = yield this.renderTableRow(elem, parent);
+                        break;
+                    case DomType.Cell:
+                        oNode = yield this.renderTableCell(elem);
+                        if (parent) {
+                            appendChildren(parent, oNode);
+                        }
+                        break;
+                    case DomType.Hyperlink:
+                        oNode = yield this.renderHyperlink(elem, parent);
+                        break;
+                    case DomType.Drawing:
+                        oNode = yield this.renderDrawing(elem, parent);
+                        break;
+                    case DomType.Image:
+                        oNode = yield this.renderImage(elem, parent);
+                        break;
+                    case DomType.BookmarkStart:
+                        oNode = this.renderBookmarkStart(elem);
+                        if (parent) {
+                            appendChildren(parent, oNode);
+                        }
+                        break;
+                    case DomType.BookmarkEnd:
+                        oNode = null;
+                        break;
+                    case DomType.Tab:
+                        oNode = yield this.renderTab(elem, parent);
+                        break;
+                    case DomType.Symbol:
+                        oNode = yield this.renderSymbol(elem, parent);
+                        break;
+                    case DomType.Break:
+                        oNode = yield this.renderBreak(elem, parent);
+                        break;
+                    case DomType.Inserted:
+                        oNode = yield this.renderInserted(elem);
+                        if (parent) {
+                            yield this.appendChildren(parent, oNode);
+                        }
+                        break;
+                    case DomType.Deleted:
+                        oNode = yield this.renderDeleted(elem);
+                        if (parent) {
+                            yield this.appendChildren(parent, oNode);
+                        }
+                        break;
+                    case DomType.DeletedText:
+                        oNode = yield this.renderDeletedText(elem, parent);
+                        break;
+                    case DomType.NoBreakHyphen:
+                        oNode = createElement('wbr');
+                        if (parent) {
+                            yield this.appendChildren(parent, oNode);
+                        }
+                        break;
+                    case DomType.CommentRangeStart:
+                        oNode = this.renderCommentRangeStart(elem);
+                        if (parent) {
+                            appendChildren(parent, oNode);
+                        }
+                        break;
+                    case DomType.CommentRangeEnd:
+                        oNode = this.renderCommentRangeEnd(elem);
+                        if (parent) {
+                            appendChildren(parent, oNode);
+                        }
+                        break;
+                    case DomType.CommentReference:
+                        oNode = this.renderCommentReference(elem);
+                        if (parent) {
+                            appendChildren(parent, oNode);
+                        }
                         break;
                     case DomType.Footer:
-                        part.rootElement.cssStyle = {
-                            left: props.pageMargins?.left,
-                            width: props.contentSize?.width,
-                            height: props.pageMargins?.bottom,
-                        };
+                        oNode = yield this.renderHeaderFooter(elem, 'footer');
+                        if (parent) {
+                            appendChildren(parent, oNode);
+                        }
                         break;
-                    default:
-                        console.warn('set header/footer style error', part.rootElement.type);
+                    case DomType.Header:
+                        oNode = yield this.renderHeaderFooter(elem, 'header');
+                        if (parent) {
+                            appendChildren(parent, oNode);
+                        }
+                        break;
+                    case DomType.Footnote:
+                    case DomType.Endnote:
+                        oNode = yield this.renderContainer(elem, 'li');
+                        if (parent) {
+                            appendChildren(parent, oNode);
+                        }
+                        break;
+                    case DomType.FootnoteReference:
+                        oNode = this.renderFootnoteReference(elem);
+                        if (parent) {
+                            appendChildren(parent, oNode);
+                        }
+                        break;
+                    case DomType.EndnoteReference:
+                        oNode = this.renderEndnoteReference(elem);
+                        if (parent) {
+                            appendChildren(parent, oNode);
+                        }
+                        break;
+                    case DomType.VmlElement:
+                        oNode = yield this.renderVmlElement(elem, parent);
+                        break;
+                    case DomType.VmlPicture:
+                        oNode = yield this.renderVmlPicture(elem);
+                        if (parent) {
+                            appendChildren(parent, oNode);
+                        }
+                        break;
+                    case DomType.MmlMath:
+                        oNode = yield this.renderContainerNS(elem, ns.mathML, 'math', {
+                            xmlns: ns.mathML,
+                        });
+                        if (parent) {
+                            oNode.dataset.overflow = yield this.appendChildren(parent, oNode);
+                        }
+                        break;
+                    case DomType.MmlMathParagraph:
+                        oNode = yield this.renderContainer(elem, 'span');
+                        if (parent) {
+                            appendChildren(parent, oNode);
+                        }
+                        break;
+                    case DomType.MmlFraction:
+                        oNode = yield this.renderContainerNS(elem, ns.mathML, 'mfrac');
+                        if (parent) {
+                            appendChildren(parent, oNode);
+                        }
+                        break;
+                    case DomType.MmlBase:
+                        oNode = yield this.renderContainerNS(elem, ns.mathML, elem.parent.type == DomType.MmlMatrixRow ? "mtd" : "mrow");
+                        if (parent) {
+                            appendChildren(parent, oNode);
+                        }
+                        break;
+                    case DomType.MmlNumerator:
+                    case DomType.MmlDenominator:
+                    case DomType.MmlFunction:
+                    case DomType.MmlLimit:
+                    case DomType.MmlBox:
+                        oNode = yield this.renderContainerNS(elem, ns.mathML, 'mrow');
+                        if (parent) {
+                            appendChildren(parent, oNode);
+                        }
+                        break;
+                    case DomType.MmlGroupChar:
+                        oNode = yield this.renderMmlGroupChar(elem);
+                        if (parent) {
+                            appendChildren(parent, oNode);
+                        }
+                        break;
+                    case DomType.MmlLimitLower:
+                        oNode = yield this.renderContainerNS(elem, ns.mathML, 'munder');
+                        if (parent) {
+                            appendChildren(parent, oNode);
+                        }
+                        break;
+                    case DomType.MmlMatrix:
+                        oNode = yield this.renderContainerNS(elem, ns.mathML, 'mtable');
+                        if (parent) {
+                            appendChildren(parent, oNode);
+                        }
+                        break;
+                    case DomType.MmlMatrixRow:
+                        oNode = yield this.renderContainerNS(elem, ns.mathML, 'mtr');
+                        if (parent) {
+                            appendChildren(parent, oNode);
+                        }
+                        break;
+                    case DomType.MmlRadical:
+                        oNode = yield this.renderMmlRadical(elem);
+                        if (parent) {
+                            appendChildren(parent, oNode);
+                        }
+                        break;
+                    case DomType.MmlSuperscript:
+                        oNode = yield this.renderContainerNS(elem, ns.mathML, 'msup');
+                        if (parent) {
+                            appendChildren(parent, oNode);
+                        }
+                        break;
+                    case DomType.MmlSubscript:
+                        oNode = yield this.renderContainerNS(elem, ns.mathML, 'msub');
+                        if (parent) {
+                            appendChildren(parent, oNode);
+                        }
+                        break;
+                    case DomType.MmlDegree:
+                    case DomType.MmlSuperArgument:
+                    case DomType.MmlSubArgument:
+                        oNode = yield this.renderContainerNS(elem, ns.mathML, 'mn');
+                        if (parent) {
+                            appendChildren(parent, oNode);
+                        }
+                        break;
+                    case DomType.MmlFunctionName:
+                        oNode = yield this.renderContainerNS(elem, ns.mathML, 'ms');
+                        if (parent) {
+                            appendChildren(parent, oNode);
+                        }
+                        break;
+                    case DomType.MmlDelimiter:
+                        oNode = yield this.renderMmlDelimiter(elem);
+                        if (parent) {
+                            appendChildren(parent, oNode);
+                        }
+                        break;
+                    case DomType.MmlRun:
+                        oNode = yield this.renderMmlRun(elem);
+                        if (parent) {
+                            appendChildren(parent, oNode);
+                        }
+                        break;
+                    case DomType.MmlNary:
+                        oNode = yield this.renderMmlNary(elem);
+                        if (parent) {
+                            appendChildren(parent, oNode);
+                        }
+                        break;
+                    case DomType.MmlPreSubSuper:
+                        oNode = yield this.renderMmlPreSubSuper(elem);
+                        if (parent) {
+                            appendChildren(parent, oNode);
+                        }
+                        break;
+                    case DomType.MmlBar:
+                        oNode = yield this.renderMmlBar(elem);
+                        if (parent) {
+                            appendChildren(parent, oNode);
+                        }
+                        break;
+                    case DomType.MmlEquationArray:
+                        oNode = yield this.renderMllList(elem);
+                        if (parent) {
+                            appendChildren(parent, oNode);
+                        }
                         break;
                 }
-                await this.renderElements([part.rootElement], parent);
-                this.currentPart = null;
-            }
-        }
-        async renderNotes(noteIds, notesMap, parent) {
-            const notes = noteIds.map(id => notesMap[id]).filter(x => x);
-            if (notes.length > 0) {
-                const oList = createElement('ol', null);
-                await this.renderElements(notes, oList);
-                parent.appendChild(oList);
-            }
-        }
-        async renderElements(elems, parent) {
-            let is_overflow = Overflow.FALSE;
-            for (let i = 0; i < elems.length; i++) {
-                if (elems[i].level === 1) {
-                    this.currentPage.breakIndex = i;
+                if (oNode && (oNode === null || oNode === void 0 ? void 0 : oNode.nodeType) === 1) {
+                    oNode.dataset.tag = elem.type;
                 }
-                const element = (await this.renderElement(elems[i], parent));
-                if (element?.dataset?.overflow === Overflow.TRUE) {
-                    is_overflow = Overflow.TRUE;
-                    break;
-                }
-            }
-            return is_overflow;
-        }
-        async renderElement(elem, parent) {
-            let oNode;
-            switch (elem.type) {
-                case DomType.Paragraph:
-                    oNode = await this.renderParagraph(elem, parent);
-                    break;
-                case DomType.Run:
-                    oNode = await this.renderRun(elem, parent);
-                    break;
-                case DomType.Text:
-                    oNode = await this.renderText(elem, parent);
-                    break;
-                case DomType.Table:
-                    oNode = await this.renderTable(elem, parent);
-                    break;
-                case DomType.Row:
-                    oNode = await this.renderTableRow(elem, parent);
-                    break;
-                case DomType.Cell:
-                    oNode = await this.renderTableCell(elem);
-                    if (parent) {
-                        appendChildren(parent, oNode);
-                    }
-                    break;
-                case DomType.Hyperlink:
-                    oNode = await this.renderHyperlink(elem, parent);
-                    break;
-                case DomType.Drawing:
-                    oNode = await this.renderDrawing(elem, parent);
-                    break;
-                case DomType.Image:
-                    oNode = await this.renderImage(elem, parent);
-                    break;
-                case DomType.BookmarkStart:
-                    oNode = this.renderBookmarkStart(elem);
-                    if (parent) {
-                        appendChildren(parent, oNode);
-                    }
-                    break;
-                case DomType.BookmarkEnd:
-                    oNode = null;
-                    break;
-                case DomType.Tab:
-                    oNode = await this.renderTab(elem, parent);
-                    break;
-                case DomType.Symbol:
-                    oNode = await this.renderSymbol(elem, parent);
-                    break;
-                case DomType.Break:
-                    oNode = await this.renderBreak(elem, parent);
-                    break;
-                case DomType.Inserted:
-                    oNode = await this.renderInserted(elem);
-                    if (parent) {
-                        await this.appendChildren(parent, oNode);
-                    }
-                    break;
-                case DomType.Deleted:
-                    oNode = await this.renderDeleted(elem);
-                    if (parent) {
-                        await this.appendChildren(parent, oNode);
-                    }
-                    break;
-                case DomType.DeletedText:
-                    oNode = await this.renderDeletedText(elem, parent);
-                    break;
-                case DomType.NoBreakHyphen:
-                    oNode = createElement('wbr');
-                    if (parent) {
-                        await this.appendChildren(parent, oNode);
-                    }
-                    break;
-                case DomType.CommentRangeStart:
-                    oNode = this.renderCommentRangeStart(elem);
-                    if (parent) {
-                        appendChildren(parent, oNode);
-                    }
-                    break;
-                case DomType.CommentRangeEnd:
-                    oNode = this.renderCommentRangeEnd(elem);
-                    if (parent) {
-                        appendChildren(parent, oNode);
-                    }
-                    break;
-                case DomType.CommentReference:
-                    oNode = this.renderCommentReference(elem);
-                    if (parent) {
-                        appendChildren(parent, oNode);
-                    }
-                    break;
-                case DomType.Footer:
-                    oNode = await this.renderHeaderFooter(elem, 'footer');
-                    if (parent) {
-                        appendChildren(parent, oNode);
-                    }
-                    break;
-                case DomType.Header:
-                    oNode = await this.renderHeaderFooter(elem, 'header');
-                    if (parent) {
-                        appendChildren(parent, oNode);
-                    }
-                    break;
-                case DomType.Footnote:
-                case DomType.Endnote:
-                    oNode = await this.renderContainer(elem, 'li');
-                    if (parent) {
-                        appendChildren(parent, oNode);
-                    }
-                    break;
-                case DomType.FootnoteReference:
-                    oNode = this.renderFootnoteReference(elem);
-                    if (parent) {
-                        appendChildren(parent, oNode);
-                    }
-                    break;
-                case DomType.EndnoteReference:
-                    oNode = this.renderEndnoteReference(elem);
-                    if (parent) {
-                        appendChildren(parent, oNode);
-                    }
-                    break;
-                case DomType.VmlElement:
-                    oNode = await this.renderVmlElement(elem, parent);
-                    break;
-                case DomType.VmlPicture:
-                    oNode = await this.renderVmlPicture(elem);
-                    if (parent) {
-                        appendChildren(parent, oNode);
-                    }
-                    break;
-                case DomType.MmlMath:
-                    oNode = await this.renderContainerNS(elem, ns.mathML, 'math', {
-                        xmlns: ns.mathML,
-                    });
-                    if (parent) {
-                        oNode.dataset.overflow = await this.appendChildren(parent, oNode);
-                    }
-                    break;
-                case DomType.MmlMathParagraph:
-                    oNode = await this.renderContainer(elem, 'span');
-                    if (parent) {
-                        appendChildren(parent, oNode);
-                    }
-                    break;
-                case DomType.MmlFraction:
-                    oNode = await this.renderContainerNS(elem, ns.mathML, 'mfrac');
-                    if (parent) {
-                        appendChildren(parent, oNode);
-                    }
-                    break;
-                case DomType.MmlBase:
-                    oNode = await this.renderContainerNS(elem, ns.mathML, elem.parent.type == DomType.MmlMatrixRow ? "mtd" : "mrow");
-                    if (parent) {
-                        appendChildren(parent, oNode);
-                    }
-                    break;
-                case DomType.MmlNumerator:
-                case DomType.MmlDenominator:
-                case DomType.MmlFunction:
-                case DomType.MmlLimit:
-                case DomType.MmlBox:
-                    oNode = await this.renderContainerNS(elem, ns.mathML, 'mrow');
-                    if (parent) {
-                        appendChildren(parent, oNode);
-                    }
-                    break;
-                case DomType.MmlGroupChar:
-                    oNode = await this.renderMmlGroupChar(elem);
-                    if (parent) {
-                        appendChildren(parent, oNode);
-                    }
-                    break;
-                case DomType.MmlLimitLower:
-                    oNode = await this.renderContainerNS(elem, ns.mathML, 'munder');
-                    if (parent) {
-                        appendChildren(parent, oNode);
-                    }
-                    break;
-                case DomType.MmlMatrix:
-                    oNode = await this.renderContainerNS(elem, ns.mathML, 'mtable');
-                    if (parent) {
-                        appendChildren(parent, oNode);
-                    }
-                    break;
-                case DomType.MmlMatrixRow:
-                    oNode = await this.renderContainerNS(elem, ns.mathML, 'mtr');
-                    if (parent) {
-                        appendChildren(parent, oNode);
-                    }
-                    break;
-                case DomType.MmlRadical:
-                    oNode = await this.renderMmlRadical(elem);
-                    if (parent) {
-                        appendChildren(parent, oNode);
-                    }
-                    break;
-                case DomType.MmlSuperscript:
-                    oNode = await this.renderContainerNS(elem, ns.mathML, 'msup');
-                    if (parent) {
-                        appendChildren(parent, oNode);
-                    }
-                    break;
-                case DomType.MmlSubscript:
-                    oNode = await this.renderContainerNS(elem, ns.mathML, 'msub');
-                    if (parent) {
-                        appendChildren(parent, oNode);
-                    }
-                    break;
-                case DomType.MmlDegree:
-                case DomType.MmlSuperArgument:
-                case DomType.MmlSubArgument:
-                    oNode = await this.renderContainerNS(elem, ns.mathML, 'mn');
-                    if (parent) {
-                        appendChildren(parent, oNode);
-                    }
-                    break;
-                case DomType.MmlFunctionName:
-                    oNode = await this.renderContainerNS(elem, ns.mathML, 'ms');
-                    if (parent) {
-                        appendChildren(parent, oNode);
-                    }
-                    break;
-                case DomType.MmlDelimiter:
-                    oNode = await this.renderMmlDelimiter(elem);
-                    if (parent) {
-                        appendChildren(parent, oNode);
-                    }
-                    break;
-                case DomType.MmlRun:
-                    oNode = await this.renderMmlRun(elem);
-                    if (parent) {
-                        appendChildren(parent, oNode);
-                    }
-                    break;
-                case DomType.MmlNary:
-                    oNode = await this.renderMmlNary(elem);
-                    if (parent) {
-                        appendChildren(parent, oNode);
-                    }
-                    break;
-                case DomType.MmlPreSubSuper:
-                    oNode = await this.renderMmlPreSubSuper(elem);
-                    if (parent) {
-                        appendChildren(parent, oNode);
-                    }
-                    break;
-                case DomType.MmlBar:
-                    oNode = await this.renderMmlBar(elem);
-                    if (parent) {
-                        appendChildren(parent, oNode);
-                    }
-                    break;
-                case DomType.MmlEquationArray:
-                    oNode = await this.renderMllList(elem);
-                    if (parent) {
-                        appendChildren(parent, oNode);
-                    }
-                    break;
-            }
-            if (oNode && oNode?.nodeType === 1) {
-                oNode.dataset.tag = elem.type;
-            }
-            return oNode;
+                return oNode;
+            });
         }
         isPageBreakElement(elem) {
             if (elem.type != DomType.Break) {
@@ -5384,241 +5437,271 @@
                 return true;
             }
         }
-        async renderChildren(elem, parent) {
-            return await this.renderElements(elem.children, parent);
-        }
-        async appendChildren(parent, children, xml_element) {
-            appendChildren(parent, children);
-            let is_overflow = false;
-            let { pageId, sectProps, isSplit, contentElement, breakIndex, checkingOverflow, elements: origin_elements } = this.currentPage;
-            if (isSplit) {
-                return Overflow.UNKNOWN;
-            }
-            if (checkingOverflow) {
-                is_overflow = checkOverflow(contentElement);
-                if (is_overflow) {
-                    if (xml_element?.type === DomType.Row) {
-                        const table = origin_elements[breakIndex];
-                        const row_index = table.children.findIndex(elem => elem === xml_element);
-                        const table_headers = table.children.filter((row) => row.isHeader);
-                        table.children.splice(0, row_index);
-                        table.children = [...table_headers, ...table.children];
-                    }
-                    let elements = origin_elements.splice(breakIndex);
-                    removeElements(children, parent);
-                    let pages = this.document.documentPart.body.pages;
-                    let pageIndex = pages.findIndex((page) => page.pageId === pageId);
-                    this.currentPage.isSplit = true;
-                    this.currentPage.checkingOverflow = false;
-                    const page = new Page({ sectProps, elements });
-                    pages[pageIndex] = this.currentPage;
-                    pages.splice(pageIndex + 1, 0, page);
-                    this.currentPage = page;
-                    await this.renderPage();
-                }
-            }
-            return is_overflow ? Overflow.TRUE : Overflow.FALSE;
-        }
-        async renderContainer(elem, tagName, props) {
-            const parent = createElement(tagName, props);
-            await this.renderChildren(elem, parent);
-            return parent;
-        }
-        async renderContainerNS(elem, ns, tagName, props) {
-            const parent = createElementNS(ns, tagName, props);
-            await this.renderChildren(elem, parent);
-            return parent;
-        }
-        async renderParagraph(elem, parent) {
-            const oParagraph = createElement('p');
-            oParagraph.dataset.uuid = uuid();
-            this.renderClass(elem, oParagraph);
-            this.renderStyleValues(elem.cssStyle, oParagraph);
-            this.renderCommonProperties(oParagraph.style, elem);
-            const style = this.findStyle(elem.styleName);
-            elem.tabs ?? (elem.tabs = style?.paragraphProps?.tabs);
-            const numbering = elem.numbering ?? style?.paragraphProps?.numbering;
-            if (numbering) {
-                oParagraph.classList.add(this.numberingClass(numbering.id, numbering.level));
-            }
-            const is_clear = elem.children.some(run => {
-                const is_exist_drawML = run?.children?.some(child => child.type === DomType.Drawing && child.props.wrapType === WrapType.TopAndBottom);
-                const is_clear_break = run?.children?.some(child => child.type === DomType.Break && child?.props?.clear);
-                return is_exist_drawML || is_clear_break;
+        renderChildren(elem, parent) {
+            return __awaiter(this, void 0, void 0, function* () {
+                return yield this.renderElements(elem.children, parent);
             });
-            if (is_clear) {
-                oParagraph.classList.add('clearfix');
-            }
-            oParagraph.style.position = 'relative';
-            if (parent) {
-                const is_overflow = await this.appendChildren(parent, oParagraph);
-                if (is_overflow === Overflow.TRUE) {
-                    oParagraph.dataset.overflow = Overflow.TRUE;
-                    return oParagraph;
+        }
+        appendChildren(parent, children, xml_element) {
+            return __awaiter(this, void 0, void 0, function* () {
+                appendChildren(parent, children);
+                let is_overflow = false;
+                let { pageId, sectProps, isSplit, contentElement, breakIndex, checkingOverflow, elements: origin_elements } = this.currentPage;
+                if (isSplit) {
+                    return Overflow.UNKNOWN;
                 }
-            }
-            oParagraph.dataset.overflow = await this.renderChildren(elem, oParagraph);
-            return oParagraph;
-        }
-        async renderRun(elem, parent) {
-            if (elem.fieldRun) {
-                return null;
-            }
-            const oSpan = createElement('span');
-            if (elem.id) {
-                oSpan.id = elem.id;
-            }
-            this.renderClass(elem, oSpan);
-            this.renderStyleValues(elem.cssStyle, oSpan);
-            if (parent) {
-                const is_overflow = await this.appendChildren(parent, oSpan);
-                if (is_overflow === Overflow.TRUE) {
-                    oSpan.dataset.overflow = Overflow.TRUE;
-                    return oSpan;
+                if (checkingOverflow) {
+                    is_overflow = checkOverflow(contentElement);
+                    if (is_overflow) {
+                        if ((xml_element === null || xml_element === void 0 ? void 0 : xml_element.type) === DomType.Row) {
+                            const table = origin_elements[breakIndex];
+                            const row_index = table.children.findIndex(elem => elem === xml_element);
+                            const table_headers = table.children.filter((row) => row.isHeader);
+                            table.children.splice(0, row_index);
+                            table.children = [...table_headers, ...table.children];
+                        }
+                        let elements = origin_elements.splice(breakIndex);
+                        removeElements(children, parent);
+                        let pages = this.document.documentPart.body.pages;
+                        let pageIndex = pages.findIndex((page) => page.pageId === pageId);
+                        this.currentPage.isSplit = true;
+                        this.currentPage.checkingOverflow = false;
+                        const page = new Page({ sectProps, elements });
+                        pages[pageIndex] = this.currentPage;
+                        pages.splice(pageIndex + 1, 0, page);
+                        this.currentPage = page;
+                        yield this.renderPage();
+                    }
                 }
-            }
-            if (elem.verticalAlign) {
-                const wrapper = createElement(elem.verticalAlign);
-                oSpan.dataset.overflow = await this.renderChildren(elem, wrapper);
-                oSpan.dataset.overflow = await this.appendChildren(oSpan, wrapper);
-            }
-            else {
-                oSpan.dataset.overflow = await this.renderChildren(elem, oSpan);
-            }
-            return oSpan;
+                return is_overflow ? Overflow.TRUE : Overflow.FALSE;
+            });
         }
-        async renderText(elem, parent) {
-            const oText = document.createTextNode(elem.text);
-            if (parent) {
-                appendChildren(parent, oText);
-            }
-            return oText;
+        renderContainer(elem, tagName, props) {
+            return __awaiter(this, void 0, void 0, function* () {
+                const parent = createElement(tagName, props);
+                yield this.renderChildren(elem, parent);
+                return parent;
+            });
         }
-        async renderTable(elem, parent) {
-            const oTable = createElement('table');
-            oTable.dataset.uuid = uuid();
-            this.tableCellPositions.push(this.currentCellPosition);
-            this.tableVerticalMerges.push(this.currentVerticalMerge);
-            this.currentVerticalMerge = {};
-            this.currentCellPosition = { col: 0, row: 0 };
-            this.renderClass(elem, oTable);
-            this.renderStyleValues(elem.cssStyle, oTable);
-            if (parent) {
-                const is_overflow = await this.appendChildren(parent, oTable);
-                if (is_overflow === Overflow.TRUE) {
-                    oTable.dataset.overflow = Overflow.TRUE;
-                    return oTable;
+        renderContainerNS(elem, ns, tagName, props) {
+            return __awaiter(this, void 0, void 0, function* () {
+                const parent = createElementNS(ns, tagName, props);
+                yield this.renderChildren(elem, parent);
+                return parent;
+            });
+        }
+        renderParagraph(elem, parent) {
+            var _a, _b, _c, _d;
+            return __awaiter(this, void 0, void 0, function* () {
+                const oParagraph = createElement('p');
+                oParagraph.dataset.uuid = uuid();
+                this.renderClass(elem, oParagraph);
+                this.renderStyleValues(elem.cssStyle, oParagraph);
+                this.renderCommonProperties(oParagraph.style, elem);
+                const style = this.findStyle(elem.styleName);
+                (_a = elem.tabs) !== null && _a !== void 0 ? _a : (elem.tabs = (_b = style === null || style === void 0 ? void 0 : style.paragraphProps) === null || _b === void 0 ? void 0 : _b.tabs);
+                const numbering = (_c = elem.numbering) !== null && _c !== void 0 ? _c : (_d = style === null || style === void 0 ? void 0 : style.paragraphProps) === null || _d === void 0 ? void 0 : _d.numbering;
+                if (numbering) {
+                    oParagraph.classList.add(this.numberingClass(numbering.id, numbering.level));
                 }
-            }
-            if (elem.columns) {
-                await this.renderTableColumns(elem.columns, oTable);
-            }
-            oTable.dataset.overflow = await this.renderChildren(elem, oTable);
-            this.currentVerticalMerge = this.tableVerticalMerges.pop();
-            this.currentCellPosition = this.tableCellPositions.pop();
-            return oTable;
-        }
-        async renderTableColumns(columns, parent) {
-            const oColGroup = createElement('colgroup');
-            if (parent) {
-                appendChildren(parent, oColGroup);
-            }
-            for (const col of columns) {
-                const oCol = createElement('col');
-                if (col.width) {
-                    oCol.style.width = col.width;
+                const is_clear = elem.children.some(run => {
+                    var _a, _b;
+                    const is_exist_drawML = (_a = run === null || run === void 0 ? void 0 : run.children) === null || _a === void 0 ? void 0 : _a.some(child => child.type === DomType.Drawing && child.props.wrapType === WrapType.TopAndBottom);
+                    const is_clear_break = (_b = run === null || run === void 0 ? void 0 : run.children) === null || _b === void 0 ? void 0 : _b.some(child => { var _a; return child.type === DomType.Break && ((_a = child === null || child === void 0 ? void 0 : child.props) === null || _a === void 0 ? void 0 : _a.clear); });
+                    return is_exist_drawML || is_clear_break;
+                });
+                if (is_clear) {
+                    oParagraph.classList.add('clearfix');
                 }
-                appendChildren(oColGroup, oCol);
-            }
-            return oColGroup;
-        }
-        async renderTableRow(elem, parent) {
-            const oTableRow = createElement('tr');
-            this.currentCellPosition.col = 0;
-            this.renderClass(elem, oTableRow);
-            this.renderStyleValues(elem.cssStyle, oTableRow);
-            this.currentCellPosition.row++;
-            await this.renderChildren(elem, oTableRow);
-            if (parent) {
-                oTableRow.dataset.overflow = await this.appendChildren(parent, oTableRow, elem);
-            }
-            return oTableRow;
-        }
-        async renderTableCell(elem) {
-            const oTableCell = createElement('td');
-            const key = this.currentCellPosition.col;
-            if (elem.verticalMerge) {
-                if (elem.verticalMerge == 'restart') {
-                    this.currentVerticalMerge[key] = oTableCell;
-                    oTableCell.rowSpan = 1;
+                oParagraph.style.position = 'relative';
+                if (parent) {
+                    const is_overflow = yield this.appendChildren(parent, oParagraph);
+                    if (is_overflow === Overflow.TRUE) {
+                        oParagraph.dataset.overflow = Overflow.TRUE;
+                        return oParagraph;
+                    }
                 }
-                else if (this.currentVerticalMerge[key]) {
-                    this.currentVerticalMerge[key].rowSpan += 1;
-                    oTableCell.style.display = 'none';
-                }
-            }
-            else {
-                this.currentVerticalMerge[key] = null;
-            }
-            this.renderClass(elem, oTableCell);
-            this.renderStyleValues(elem.cssStyle, oTableCell);
-            if (elem.span) {
-                oTableCell.colSpan = elem.span;
-            }
-            this.currentCellPosition.col += oTableCell.colSpan;
-            await this.renderChildren(elem, oTableCell);
-            return oTableCell;
+                oParagraph.dataset.overflow = yield this.renderChildren(elem, oParagraph);
+                return oParagraph;
+            });
         }
-        async renderHyperlink(elem, parent) {
-            const oAnchor = createElement('a');
-            this.renderStyleValues(elem.cssStyle, oAnchor);
-            if (parent) {
-                const is_overflow = await this.appendChildren(parent, oAnchor);
-                if (is_overflow === Overflow.TRUE) {
-                    oAnchor.dataset.overflow = Overflow.TRUE;
-                    return oAnchor;
+        renderRun(elem, parent) {
+            return __awaiter(this, void 0, void 0, function* () {
+                if (elem.fieldRun) {
+                    return null;
                 }
-            }
-            if (elem.href) {
-                oAnchor.href = elem.href;
-            }
-            else if (elem.id) {
-                const rel = this.document.documentPart.rels.find(it => it.id == elem.id && it.targetMode === 'External');
-                oAnchor.href = rel?.target;
-            }
-            oAnchor.dataset.overflow = await this.renderChildren(elem, oAnchor);
-            return oAnchor;
-        }
-        async renderDrawing(elem, parent) {
-            const oDrawing = createElement('span');
-            oDrawing.style.textIndent = '0px';
-            oDrawing.dataset.wrap = elem?.props.wrapType;
-            this.renderStyleValues(elem.cssStyle, oDrawing);
-            if (parent) {
-                const is_overflow = await this.appendChildren(parent, oDrawing);
-                if (is_overflow === Overflow.TRUE) {
-                    oDrawing.dataset.overflow = Overflow.TRUE;
-                    return oDrawing;
+                const oSpan = createElement('span');
+                if (elem.id) {
+                    oSpan.id = elem.id;
                 }
-            }
-            oDrawing.dataset.overflow = await this.renderChildren(elem, oDrawing);
-            return oDrawing;
+                this.renderClass(elem, oSpan);
+                this.renderStyleValues(elem.cssStyle, oSpan);
+                if (parent) {
+                    const is_overflow = yield this.appendChildren(parent, oSpan);
+                    if (is_overflow === Overflow.TRUE) {
+                        oSpan.dataset.overflow = Overflow.TRUE;
+                        return oSpan;
+                    }
+                }
+                if (elem.verticalAlign) {
+                    const wrapper = createElement(elem.verticalAlign);
+                    oSpan.dataset.overflow = yield this.renderChildren(elem, wrapper);
+                    oSpan.dataset.overflow = yield this.appendChildren(oSpan, wrapper);
+                }
+                else {
+                    oSpan.dataset.overflow = yield this.renderChildren(elem, oSpan);
+                }
+                return oSpan;
+            });
         }
-        async renderImage(elem, parent) {
-            const { is_clip, is_transform } = elem.props;
-            const oImage = new Image();
-            this.renderStyleValues(elem.cssStyle, oImage);
-            const source = await this.document.loadDocumentImage(elem.src, this.currentPart);
-            if (is_clip || is_transform) {
-                oImage.src = await this.transformImage(elem, source);
-            }
-            else {
-                oImage.src = source;
-            }
-            if (parent) {
-                oImage.dataset.overflow = await this.appendChildren(parent, oImage);
-            }
-            return oImage;
+        renderText(elem, parent) {
+            return __awaiter(this, void 0, void 0, function* () {
+                const oText = document.createTextNode(elem.text);
+                if (parent) {
+                    appendChildren(parent, oText);
+                }
+                return oText;
+            });
+        }
+        renderTable(elem, parent) {
+            return __awaiter(this, void 0, void 0, function* () {
+                const oTable = createElement('table');
+                oTable.dataset.uuid = uuid();
+                this.tableCellPositions.push(this.currentCellPosition);
+                this.tableVerticalMerges.push(this.currentVerticalMerge);
+                this.currentVerticalMerge = {};
+                this.currentCellPosition = { col: 0, row: 0 };
+                this.renderClass(elem, oTable);
+                this.renderStyleValues(elem.cssStyle, oTable);
+                if (parent) {
+                    const is_overflow = yield this.appendChildren(parent, oTable);
+                    if (is_overflow === Overflow.TRUE) {
+                        oTable.dataset.overflow = Overflow.TRUE;
+                        return oTable;
+                    }
+                }
+                if (elem.columns) {
+                    yield this.renderTableColumns(elem.columns, oTable);
+                }
+                oTable.dataset.overflow = yield this.renderChildren(elem, oTable);
+                this.currentVerticalMerge = this.tableVerticalMerges.pop();
+                this.currentCellPosition = this.tableCellPositions.pop();
+                return oTable;
+            });
+        }
+        renderTableColumns(columns, parent) {
+            return __awaiter(this, void 0, void 0, function* () {
+                const oColGroup = createElement('colgroup');
+                if (parent) {
+                    appendChildren(parent, oColGroup);
+                }
+                for (const col of columns) {
+                    const oCol = createElement('col');
+                    if (col.width) {
+                        oCol.style.width = col.width;
+                    }
+                    appendChildren(oColGroup, oCol);
+                }
+                return oColGroup;
+            });
+        }
+        renderTableRow(elem, parent) {
+            return __awaiter(this, void 0, void 0, function* () {
+                const oTableRow = createElement('tr');
+                this.currentCellPosition.col = 0;
+                this.renderClass(elem, oTableRow);
+                this.renderStyleValues(elem.cssStyle, oTableRow);
+                this.currentCellPosition.row++;
+                yield this.renderChildren(elem, oTableRow);
+                if (parent) {
+                    oTableRow.dataset.overflow = yield this.appendChildren(parent, oTableRow, elem);
+                }
+                return oTableRow;
+            });
+        }
+        renderTableCell(elem) {
+            return __awaiter(this, void 0, void 0, function* () {
+                const oTableCell = createElement('td');
+                const key = this.currentCellPosition.col;
+                if (elem.verticalMerge) {
+                    if (elem.verticalMerge == 'restart') {
+                        this.currentVerticalMerge[key] = oTableCell;
+                        oTableCell.rowSpan = 1;
+                    }
+                    else if (this.currentVerticalMerge[key]) {
+                        this.currentVerticalMerge[key].rowSpan += 1;
+                        oTableCell.style.display = 'none';
+                    }
+                }
+                else {
+                    this.currentVerticalMerge[key] = null;
+                }
+                this.renderClass(elem, oTableCell);
+                this.renderStyleValues(elem.cssStyle, oTableCell);
+                if (elem.span) {
+                    oTableCell.colSpan = elem.span;
+                }
+                this.currentCellPosition.col += oTableCell.colSpan;
+                yield this.renderChildren(elem, oTableCell);
+                return oTableCell;
+            });
+        }
+        renderHyperlink(elem, parent) {
+            return __awaiter(this, void 0, void 0, function* () {
+                const oAnchor = createElement('a');
+                this.renderStyleValues(elem.cssStyle, oAnchor);
+                if (parent) {
+                    const is_overflow = yield this.appendChildren(parent, oAnchor);
+                    if (is_overflow === Overflow.TRUE) {
+                        oAnchor.dataset.overflow = Overflow.TRUE;
+                        return oAnchor;
+                    }
+                }
+                if (elem.href) {
+                    oAnchor.href = elem.href;
+                }
+                else if (elem.id) {
+                    const rel = this.document.documentPart.rels.find(it => it.id == elem.id && it.targetMode === 'External');
+                    oAnchor.href = rel === null || rel === void 0 ? void 0 : rel.target;
+                }
+                oAnchor.dataset.overflow = yield this.renderChildren(elem, oAnchor);
+                return oAnchor;
+            });
+        }
+        renderDrawing(elem, parent) {
+            return __awaiter(this, void 0, void 0, function* () {
+                const oDrawing = createElement('span');
+                oDrawing.style.textIndent = '0px';
+                oDrawing.dataset.wrap = elem === null || elem === void 0 ? void 0 : elem.props.wrapType;
+                this.renderStyleValues(elem.cssStyle, oDrawing);
+                if (parent) {
+                    const is_overflow = yield this.appendChildren(parent, oDrawing);
+                    if (is_overflow === Overflow.TRUE) {
+                        oDrawing.dataset.overflow = Overflow.TRUE;
+                        return oDrawing;
+                    }
+                }
+                oDrawing.dataset.overflow = yield this.renderChildren(elem, oDrawing);
+                return oDrawing;
+            });
+        }
+        renderImage(elem, parent) {
+            return __awaiter(this, void 0, void 0, function* () {
+                const { is_clip, is_transform } = elem.props;
+                const oImage = new Image();
+                this.renderStyleValues(elem.cssStyle, oImage);
+                const source = yield this.document.loadDocumentImage(elem.src, this.currentPart);
+                if (is_clip || is_transform) {
+                    oImage.src = yield this.transformImage(elem, source);
+                }
+                else {
+                    oImage.src = source;
+                }
+                if (parent) {
+                    oImage.dataset.overflow = yield this.appendChildren(parent, oImage);
+                }
+                return oImage;
+            });
         }
         renderKonva() {
             const oContainer = createElement('div');
@@ -5628,116 +5711,125 @@
             this.konva_layer = new Konva.Layer({ listening: false });
             this.konva_stage.add(this.konva_layer);
         }
-        async transformImage(elem, source) {
-            const { width, height, is_clip, clip, is_transform, transform } = elem.props;
-            const img = new Image();
-            img.src = source;
-            await img.decode();
-            const { naturalWidth, naturalHeight } = img;
-            this.konva_stage.visible(true);
-            this.konva_stage.width(naturalWidth);
-            this.konva_stage.height(naturalHeight);
-            this.konva_layer.removeChildren();
-            const group = new Konva.Group();
-            const image = new Konva.Image({
-                image: img,
-                x: naturalWidth / 2,
-                y: naturalHeight / 2,
-                width: naturalWidth,
-                height: naturalHeight,
-                offset: {
+        transformImage(elem, source) {
+            return __awaiter(this, void 0, void 0, function* () {
+                const { width, height, is_clip, clip, is_transform, transform } = elem.props;
+                const img = new Image();
+                img.src = source;
+                yield img.decode();
+                const { naturalWidth, naturalHeight } = img;
+                this.konva_stage.visible(true);
+                this.konva_stage.width(naturalWidth);
+                this.konva_stage.height(naturalHeight);
+                this.konva_layer.removeChildren();
+                const group = new Konva.Group();
+                const image = new Konva.Image({
+                    image: img,
                     x: naturalWidth / 2,
                     y: naturalHeight / 2,
-                },
-            });
-            if (is_clip) {
-                const { left, right, top, bottom } = clip.path;
-                const x = naturalWidth * left;
-                const y = naturalHeight * top;
-                const width = naturalWidth * (1 - left - right);
-                const height = naturalHeight * (1 - top - bottom);
-                image.crop({ x, y, width, height });
-                image.size({ width, height });
-            }
-            if (is_transform) {
-                for (const key in transform) {
-                    switch (key) {
-                        case 'scaleX':
-                            image.scaleX(transform[key]);
-                            break;
-                        case 'scaleY':
-                            image.scaleY(transform[key]);
-                            break;
-                        case 'rotate':
-                            image.rotation(transform[key]);
-                            break;
+                    width: naturalWidth,
+                    height: naturalHeight,
+                    offset: {
+                        x: naturalWidth / 2,
+                        y: naturalHeight / 2,
+                    },
+                });
+                if (is_clip) {
+                    const { left, right, top, bottom } = clip.path;
+                    const x = naturalWidth * left;
+                    const y = naturalHeight * top;
+                    const width = naturalWidth * (1 - left - right);
+                    const height = naturalHeight * (1 - top - bottom);
+                    image.crop({ x, y, width, height });
+                    image.size({ width, height });
+                }
+                if (is_transform) {
+                    for (const key in transform) {
+                        switch (key) {
+                            case 'scaleX':
+                                image.scaleX(transform[key]);
+                                break;
+                            case 'scaleY':
+                                image.scaleY(transform[key]);
+                                break;
+                            case 'rotate':
+                                image.rotation(transform[key]);
+                                break;
+                        }
                     }
                 }
-            }
-            group.add(image);
-            this.konva_layer.add(group);
-            let result;
-            if (this.options.useBase64URL) {
-                result = group.toDataURL();
-            }
-            else {
-                const blob = (await group.toBlob());
-                result = URL.createObjectURL(blob);
-            }
-            this.konva_stage.visible(false);
-            return result;
+                group.add(image);
+                this.konva_layer.add(group);
+                let result;
+                if (this.options.useBase64URL) {
+                    result = group.toDataURL();
+                }
+                else {
+                    const blob = (yield group.toBlob());
+                    result = URL.createObjectURL(blob);
+                }
+                this.konva_stage.visible(false);
+                return result;
+            });
         }
         renderBookmarkStart(elem) {
             const oSpan = createElement('span');
             oSpan.id = elem.name;
             return oSpan;
         }
-        async renderTab(elem, parent) {
-            const tabSpan = createElement('span');
-            tabSpan.innerHTML = '&emsp;';
-            if (this.options.experimental) {
-                tabSpan.className = this.tabStopClass();
-                const stops = findParent(elem, DomType.Paragraph)?.tabs;
-                this.currentTabs.push({ stops, span: tabSpan });
-            }
-            if (parent) {
-                await this.appendChildren(parent, tabSpan);
-            }
-            return tabSpan;
+        renderTab(elem, parent) {
+            var _a;
+            return __awaiter(this, void 0, void 0, function* () {
+                const tabSpan = createElement('span');
+                tabSpan.innerHTML = '&emsp;';
+                if (this.options.experimental) {
+                    tabSpan.className = this.tabStopClass();
+                    const stops = (_a = findParent(elem, DomType.Paragraph)) === null || _a === void 0 ? void 0 : _a.tabs;
+                    this.currentTabs.push({ stops, span: tabSpan });
+                }
+                if (parent) {
+                    yield this.appendChildren(parent, tabSpan);
+                }
+                return tabSpan;
+            });
         }
-        async renderSymbol(elem, parent) {
-            const oSpan = createElement('span');
-            oSpan.style.fontFamily = elem.font;
-            oSpan.innerHTML = `&#x${elem.char};`;
-            if (parent) {
-                await this.appendChildren(parent, oSpan);
-            }
-            return oSpan;
+        renderSymbol(elem, parent) {
+            return __awaiter(this, void 0, void 0, function* () {
+                const oSpan = createElement('span');
+                oSpan.style.fontFamily = elem.font;
+                oSpan.innerHTML = `&#x${elem.char};`;
+                if (parent) {
+                    yield this.appendChildren(parent, oSpan);
+                }
+                return oSpan;
+            });
         }
-        async renderBreak(elem, parent) {
-            let oBr;
-            switch (elem.break) {
-                case 'page':
-                    oBr = createElement('br');
-                    oBr.classList.add('break', 'page');
-                    break;
-                case 'textWrapping':
-                    oBr = createElement('br');
-                    oBr.classList.add('break', 'textWrap');
-                    break;
-                case 'column':
-                    oBr = createElement('br');
-                    oBr.classList.add('break', 'column');
-                    break;
-                case 'lastRenderedPageBreak':
-                    oBr = createElement('wbr');
-                    oBr.classList.add('break', 'lastRenderedPageBreak');
-                    break;
-            }
-            if (parent) {
-                appendChildren(parent, oBr);
-            }
-            return oBr;
+        renderBreak(elem, parent) {
+            return __awaiter(this, void 0, void 0, function* () {
+                let oBr;
+                switch (elem.break) {
+                    case 'page':
+                        oBr = createElement('br');
+                        oBr.classList.add('break', 'page');
+                        break;
+                    case 'textWrapping':
+                        oBr = createElement('br');
+                        oBr.classList.add('break', 'textWrap');
+                        break;
+                    case 'column':
+                        oBr = createElement('br');
+                        oBr.classList.add('break', 'column');
+                        break;
+                    case 'lastRenderedPageBreak':
+                        oBr = createElement('wbr');
+                        oBr.classList.add('break', 'lastRenderedPageBreak');
+                        break;
+                }
+                if (parent) {
+                    appendChildren(parent, oBr);
+                }
+                return oBr;
+            });
         }
         renderInserted(elem) {
             if (this.options.renderChanges) {
@@ -5745,24 +5837,28 @@
             }
             return this.renderContainer(elem, 'span');
         }
-        async renderDeleted(elem) {
-            if (this.options.renderChanges) {
-                return await this.renderContainer(elem, 'del');
-            }
-            return null;
-        }
-        async renderDeletedText(elem, parent) {
-            let oDeletedText;
-            if (this.options.renderEndnotes) {
-                oDeletedText = document.createTextNode(elem.text);
-                if (parent) {
-                    await this.appendChildren(parent, oDeletedText);
+        renderDeleted(elem) {
+            return __awaiter(this, void 0, void 0, function* () {
+                if (this.options.renderChanges) {
+                    return yield this.renderContainer(elem, 'del');
                 }
-            }
-            else {
-                oDeletedText = null;
-            }
-            return oDeletedText;
+                return null;
+            });
+        }
+        renderDeletedText(elem, parent) {
+            return __awaiter(this, void 0, void 0, function* () {
+                let oDeletedText;
+                if (this.options.renderEndnotes) {
+                    oDeletedText = document.createTextNode(elem.text);
+                    if (parent) {
+                        yield this.appendChildren(parent, oDeletedText);
+                    }
+                }
+                else {
+                    oDeletedText = null;
+                }
+                return oDeletedText;
+            });
         }
         renderCommentRangeStart(commentStart) {
             if (!this.options.experimental) {
@@ -5777,19 +5873,22 @@
             return document.createComment(`end of comment #${commentEnd.id}`);
         }
         renderCommentReference(commentRef) {
+            var _a;
             if (!this.options.experimental) {
                 return null;
             }
-            const comment = this.document.commentsPart?.commentMap[commentRef.id];
+            const comment = (_a = this.document.commentsPart) === null || _a === void 0 ? void 0 : _a.commentMap[commentRef.id];
             if (!comment)
                 return null;
             return document.createComment(`comment #${comment.id} by ${comment.author} on ${comment.date}`);
         }
-        async renderHeaderFooter(elem, tagName) {
-            const oElement = createElement(tagName);
-            await this.renderChildren(elem, oElement);
-            this.renderStyleValues(elem.cssStyle, oElement);
-            return oElement;
+        renderHeaderFooter(elem, tagName) {
+            return __awaiter(this, void 0, void 0, function* () {
+                const oElement = createElement(tagName);
+                yield this.renderChildren(elem, oElement);
+                this.renderStyleValues(elem.cssStyle, oElement);
+                return oElement;
+            });
         }
         renderFootnoteReference(elem) {
             const oSup = createElement('sup');
@@ -5803,144 +5902,170 @@
             oSup.textContent = `${this.currentEndnoteIds.length}`;
             return oSup;
         }
-        async renderVmlElement(elem, parent) {
-            const oSvg = createSvgElement('svg');
-            oSvg.setAttribute('style', elem.cssStyleText);
-            const oChildren = await this.renderVmlChildElement(elem);
-            if (elem.imageHref?.id) {
-                const source = await this.document?.loadDocumentImage(elem.imageHref.id, this.currentPart);
-                oChildren.setAttribute('href', source);
-            }
-            appendChildren(oSvg, oChildren);
-            requestAnimationFrame(() => {
-                const bb = oSvg.firstElementChild.getBBox();
-                oSvg.setAttribute('width', `${Math.ceil(bb.x + bb.width)}`);
-                oSvg.setAttribute('height', `${Math.ceil(bb.y + bb.height)}`);
+        renderVmlElement(elem, parent) {
+            var _a, _b;
+            return __awaiter(this, void 0, void 0, function* () {
+                const oSvg = createSvgElement('svg');
+                oSvg.setAttribute('style', elem.cssStyleText);
+                const oChildren = yield this.renderVmlChildElement(elem);
+                if ((_a = elem.imageHref) === null || _a === void 0 ? void 0 : _a.id) {
+                    const source = yield ((_b = this.document) === null || _b === void 0 ? void 0 : _b.loadDocumentImage(elem.imageHref.id, this.currentPart));
+                    oChildren.setAttribute('href', source);
+                }
+                appendChildren(oSvg, oChildren);
+                requestAnimationFrame(() => {
+                    const bb = oSvg.firstElementChild.getBBox();
+                    oSvg.setAttribute('width', `${Math.ceil(bb.x + bb.width)}`);
+                    oSvg.setAttribute('height', `${Math.ceil(bb.y + bb.height)}`);
+                });
+                if (parent) {
+                    oSvg.dataset.overflow = yield this.appendChildren(parent, oSvg);
+                }
+                return oSvg;
             });
-            if (parent) {
-                oSvg.dataset.overflow = await this.appendChildren(parent, oSvg);
-            }
-            return oSvg;
         }
-        async renderVmlPicture(elem) {
-            const oPictureContainer = createElement('span');
-            await this.renderChildren(elem, oPictureContainer);
-            return oPictureContainer;
+        renderVmlPicture(elem) {
+            return __awaiter(this, void 0, void 0, function* () {
+                const oPictureContainer = createElement('span');
+                yield this.renderChildren(elem, oPictureContainer);
+                return oPictureContainer;
+            });
         }
-        async renderVmlChildElement(elem) {
-            const oVMLElement = createSvgElement(elem.tagName);
-            Object.entries(elem.attrs).forEach(([k, v]) => oVMLElement.setAttribute(k, v));
-            for (const child of elem.children) {
-                if (child.type == DomType.VmlElement) {
-                    const oChild = await this.renderVmlChildElement(child);
-                    appendChildren(oVMLElement, oChild);
+        renderVmlChildElement(elem) {
+            return __awaiter(this, void 0, void 0, function* () {
+                const oVMLElement = createSvgElement(elem.tagName);
+                Object.entries(elem.attrs).forEach(([k, v]) => oVMLElement.setAttribute(k, v));
+                for (const child of elem.children) {
+                    if (child.type == DomType.VmlElement) {
+                        const oChild = yield this.renderVmlChildElement(child);
+                        appendChildren(oVMLElement, oChild);
+                    }
+                    else {
+                        yield this.renderElement(child, oVMLElement);
+                    }
+                }
+                return oVMLElement;
+            });
+        }
+        renderMmlRadical(elem) {
+            var _a;
+            return __awaiter(this, void 0, void 0, function* () {
+                const base = elem.children.find(el => el.type == DomType.MmlBase);
+                let oParent;
+                if ((_a = elem.props) === null || _a === void 0 ? void 0 : _a.hideDegree) {
+                    oParent = createElementNS(ns.mathML, 'msqrt', null);
+                    yield this.renderElements([base], oParent);
+                    return oParent;
+                }
+                const degree = elem.children.find(el => el.type == DomType.MmlDegree);
+                oParent = createElementNS(ns.mathML, 'mroot', null);
+                yield this.renderElements([base, degree], oParent);
+                return oParent;
+            });
+        }
+        renderMmlDelimiter(elem) {
+            var _a, _b;
+            return __awaiter(this, void 0, void 0, function* () {
+                const oMrow = createElementNS(ns.mathML, 'mrow', null);
+                let oBegin = createElementNS(ns.mathML, "mo", null, [(_a = elem.props.beginChar) !== null && _a !== void 0 ? _a : '(']);
+                appendChildren(oMrow, oBegin);
+                yield this.renderElements(elem.children, oMrow);
+                let oEnd = createElementNS(ns.mathML, "mo", null, [(_b = elem.props.endChar) !== null && _b !== void 0 ? _b : ')']);
+                appendChildren(oMrow, oEnd);
+                return oMrow;
+            });
+        }
+        renderMmlNary(elem) {
+            var _a, _b;
+            return __awaiter(this, void 0, void 0, function* () {
+                const children = [];
+                const grouped = keyBy(elem.children, x => x.type);
+                const sup = grouped[DomType.MmlSuperArgument];
+                const sub = grouped[DomType.MmlSubArgument];
+                let supElem = sup ? createElementNS(ns.mathML, "mo", null, asArray(yield this.renderElement(sup))) : null;
+                let subElem = sub ? createElementNS(ns.mathML, "mo", null, asArray(yield this.renderElement(sub))) : null;
+                let charElem = createElementNS(ns.mathML, "mo", null, [(_b = (_a = elem.props) === null || _a === void 0 ? void 0 : _a.char) !== null && _b !== void 0 ? _b : '\u222B']);
+                if (supElem || subElem) {
+                    children.push(createElementNS(ns.mathML, "munderover", null, [charElem, subElem, supElem]));
+                }
+                else if (supElem) {
+                    children.push(createElementNS(ns.mathML, "mover", null, [charElem, supElem]));
+                }
+                else if (subElem) {
+                    children.push(createElementNS(ns.mathML, "munder", null, [charElem, subElem]));
                 }
                 else {
-                    await this.renderElement(child, oVMLElement);
+                    children.push(charElem);
                 }
-            }
-            return oVMLElement;
+                const oMrow = createElementNS(ns.mathML, 'mrow', null);
+                appendChildren(oMrow, children);
+                yield this.renderElements(grouped[DomType.MmlBase].children, oMrow);
+                return oMrow;
+            });
         }
-        async renderMmlRadical(elem) {
-            const base = elem.children.find(el => el.type == DomType.MmlBase);
-            let oParent;
-            if (elem.props?.hideDegree) {
-                oParent = createElementNS(ns.mathML, 'msqrt', null);
-                await this.renderElements([base], oParent);
-                return oParent;
-            }
-            const degree = elem.children.find(el => el.type == DomType.MmlDegree);
-            oParent = createElementNS(ns.mathML, 'mroot', null);
-            await this.renderElements([base, degree], oParent);
-            return oParent;
+        renderMmlPreSubSuper(elem) {
+            return __awaiter(this, void 0, void 0, function* () {
+                const children = [];
+                const grouped = keyBy(elem.children, x => x.type);
+                const sup = grouped[DomType.MmlSuperArgument];
+                const sub = grouped[DomType.MmlSubArgument];
+                let supElem = sup ? createElementNS(ns.mathML, "mo", null, asArray(yield this.renderElement(sup))) : null;
+                let subElem = sub ? createElementNS(ns.mathML, "mo", null, asArray(yield this.renderElement(sub))) : null;
+                let stubElem = createElementNS(ns.mathML, "mo", null);
+                children.push(createElementNS(ns.mathML, "msubsup", null, [stubElem, subElem, supElem]));
+                const oMrow = createElementNS(ns.mathML, 'mrow', null);
+                appendChildren(oMrow, children);
+                yield this.renderElements(grouped[DomType.MmlBase].children, oMrow);
+                return oMrow;
+            });
         }
-        async renderMmlDelimiter(elem) {
-            const oMrow = createElementNS(ns.mathML, 'mrow', null);
-            let oBegin = createElementNS(ns.mathML, "mo", null, [elem.props.beginChar ?? '(']);
-            appendChildren(oMrow, oBegin);
-            await this.renderElements(elem.children, oMrow);
-            let oEnd = createElementNS(ns.mathML, "mo", null, [elem.props.endChar ?? ')']);
-            appendChildren(oMrow, oEnd);
-            return oMrow;
+        renderMmlGroupChar(elem) {
+            return __awaiter(this, void 0, void 0, function* () {
+                let tagName = elem.props.verticalJustification === "bot" ? "mover" : "munder";
+                let oGroupChar = yield this.renderContainerNS(elem, ns.mathML, tagName);
+                if (elem.props.char) {
+                    const oMo = createElementNS(ns.mathML, 'mo', null, [elem.props.char]);
+                    appendChildren(oGroupChar, oMo);
+                }
+                return oGroupChar;
+            });
         }
-        async renderMmlNary(elem) {
-            const children = [];
-            const grouped = keyBy(elem.children, x => x.type);
-            const sup = grouped[DomType.MmlSuperArgument];
-            const sub = grouped[DomType.MmlSubArgument];
-            let supElem = sup ? createElementNS(ns.mathML, "mo", null, asArray(await this.renderElement(sup))) : null;
-            let subElem = sub ? createElementNS(ns.mathML, "mo", null, asArray(await this.renderElement(sub))) : null;
-            let charElem = createElementNS(ns.mathML, "mo", null, [elem.props?.char ?? '\u222B']);
-            if (supElem || subElem) {
-                children.push(createElementNS(ns.mathML, "munderover", null, [charElem, subElem, supElem]));
-            }
-            else if (supElem) {
-                children.push(createElementNS(ns.mathML, "mover", null, [charElem, supElem]));
-            }
-            else if (subElem) {
-                children.push(createElementNS(ns.mathML, "munder", null, [charElem, subElem]));
-            }
-            else {
-                children.push(charElem);
-            }
-            const oMrow = createElementNS(ns.mathML, 'mrow', null);
-            appendChildren(oMrow, children);
-            await this.renderElements(grouped[DomType.MmlBase].children, oMrow);
-            return oMrow;
+        renderMmlBar(elem) {
+            return __awaiter(this, void 0, void 0, function* () {
+                let oMrow = yield this.renderContainerNS(elem, ns.mathML, "mrow");
+                switch (elem.props.position) {
+                    case 'top':
+                        oMrow.style.textDecoration = 'overline';
+                        break;
+                    case 'bottom':
+                        oMrow.style.textDecoration = 'underline';
+                        break;
+                }
+                return oMrow;
+            });
         }
-        async renderMmlPreSubSuper(elem) {
-            const children = [];
-            const grouped = keyBy(elem.children, x => x.type);
-            const sup = grouped[DomType.MmlSuperArgument];
-            const sub = grouped[DomType.MmlSubArgument];
-            let supElem = sup ? createElementNS(ns.mathML, "mo", null, asArray(await this.renderElement(sup))) : null;
-            let subElem = sub ? createElementNS(ns.mathML, "mo", null, asArray(await this.renderElement(sub))) : null;
-            let stubElem = createElementNS(ns.mathML, "mo", null);
-            children.push(createElementNS(ns.mathML, "msubsup", null, [stubElem, subElem, supElem]));
-            const oMrow = createElementNS(ns.mathML, 'mrow', null);
-            appendChildren(oMrow, children);
-            await this.renderElements(grouped[DomType.MmlBase].children, oMrow);
-            return oMrow;
+        renderMmlRun(elem) {
+            return __awaiter(this, void 0, void 0, function* () {
+                const oMs = createElementNS(ns.mathML, 'ms');
+                this.renderClass(elem, oMs);
+                this.renderStyleValues(elem.cssStyle, oMs);
+                yield this.renderChildren(elem, oMs);
+                return oMs;
+            });
         }
-        async renderMmlGroupChar(elem) {
-            let tagName = elem.props.verticalJustification === "bot" ? "mover" : "munder";
-            let oGroupChar = await this.renderContainerNS(elem, ns.mathML, tagName);
-            if (elem.props.char) {
-                const oMo = createElementNS(ns.mathML, 'mo', null, [elem.props.char]);
-                appendChildren(oGroupChar, oMo);
-            }
-            return oGroupChar;
-        }
-        async renderMmlBar(elem) {
-            let oMrow = await this.renderContainerNS(elem, ns.mathML, "mrow");
-            switch (elem.props.position) {
-                case 'top':
-                    oMrow.style.textDecoration = 'overline';
-                    break;
-                case 'bottom':
-                    oMrow.style.textDecoration = 'underline';
-                    break;
-            }
-            return oMrow;
-        }
-        async renderMmlRun(elem) {
-            const oMs = createElementNS(ns.mathML, 'ms');
-            this.renderClass(elem, oMs);
-            this.renderStyleValues(elem.cssStyle, oMs);
-            await this.renderChildren(elem, oMs);
-            return oMs;
-        }
-        async renderMllList(elem) {
-            const oMtable = createElementNS(ns.mathML, 'mtable');
-            this.renderClass(elem, oMtable);
-            this.renderStyleValues(elem.cssStyle, oMtable);
-            for (const child of elem.children) {
-                const oChild = await this.renderElement(child);
-                const oMtd = createElementNS(ns.mathML, 'mtd', null, [oChild]);
-                const oMtr = createElementNS(ns.mathML, 'mtr', null, [oMtd]);
-                appendChildren(oMtable, oMtr);
-            }
-            return oMtable;
+        renderMllList(elem) {
+            return __awaiter(this, void 0, void 0, function* () {
+                const oMtable = createElementNS(ns.mathML, 'mtable');
+                this.renderClass(elem, oMtable);
+                this.renderStyleValues(elem.cssStyle, oMtable);
+                for (const child of elem.children) {
+                    const oChild = yield this.renderElement(child);
+                    const oMtd = createElementNS(ns.mathML, 'mtd', null, [oChild]);
+                    const oMtr = createElementNS(ns.mathML, 'mtr', null, [oMtd]);
+                    appendChildren(oMtable, oMtr);
+                }
+                return oMtable;
+            });
         }
         renderStyleValues(style, output) {
             for (const k in style) {
@@ -5974,7 +6099,8 @@
             }
         }
         findStyle(styleName) {
-            return styleName && this.styleMap?.[styleName];
+            var _a;
+            return styleName && ((_a = this.styleMap) === null || _a === void 0 ? void 0 : _a[styleName]);
         }
         tabStopClass() {
             return `${this.className}-tab-stop`;
@@ -6105,22 +6231,26 @@
         debug: false,
     };
     function parseAsync(data, userOptions = null) {
-        const ops = { ...defaultOptions, ...userOptions };
+        const ops = Object.assign(Object.assign({}, defaultOptions), userOptions);
         return WordDocument.load(data, new DocumentParser(ops), ops);
     }
-    async function renderAsync(data, bodyContainer, styleContainer = null, userOptions = null) {
-        const ops = { ...defaultOptions, ...userOptions };
-        const renderer = new HtmlRenderer();
-        const doc = await WordDocument.load(data, new DocumentParser(ops), ops);
-        await renderer.render(doc, bodyContainer, styleContainer, ops);
-        return doc;
+    function renderAsync(data, bodyContainer, styleContainer = null, userOptions = null) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const ops = Object.assign(Object.assign({}, defaultOptions), userOptions);
+            const renderer = new HtmlRenderer();
+            const doc = yield WordDocument.load(data, new DocumentParser(ops), ops);
+            yield renderer.render(doc, bodyContainer, styleContainer, ops);
+            return doc;
+        });
     }
-    async function renderSync(data, bodyContainer, styleContainer = null, userOptions = null) {
-        const ops = { ...defaultOptions, ...userOptions };
-        const renderer = new HtmlRendererSync();
-        const doc = await WordDocument.load(data, new DocumentParser(ops), ops);
-        await renderer.render(doc, bodyContainer, styleContainer, ops);
-        return doc;
+    function renderSync(data, bodyContainer, styleContainer = null, userOptions = null) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const ops = Object.assign(Object.assign({}, defaultOptions), userOptions);
+            const renderer = new HtmlRendererSync();
+            const doc = yield WordDocument.load(data, new DocumentParser(ops), ops);
+            yield renderer.render(doc, bodyContainer, styleContainer, ops);
+            return doc;
+        });
     }
 
     exports.defaultOptions = defaultOptions;
