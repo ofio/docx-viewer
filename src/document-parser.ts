@@ -813,10 +813,12 @@ export class DocumentParser {
 	parseRunProperties(elem: Element, run: WmlRun) {
 		this.parseDefaultProperties(elem, run.cssStyle = {}, null, c => {
 			switch (c.localName) {
+				// Referenced Character Style
 				case "rStyle":
 					run.styleName = xml.attr(c, "val");
 					break;
 
+				// Subscript/Superscript Text
 				case "vertAlign":
 					run.verticalAlign = values.valueOfVertAlign(c, true);
 					break;
@@ -869,7 +871,7 @@ export class DocumentParser {
 			}
 		}
 	}
-
+	// TODO 图片旋转、裁剪之后，文字环绕计算错误
 	// DrawingML对象有两种状态：内联（inline）-- 对象与文本对齐，浮动（anchor）--对象在文本中浮动，但可以相对于页面进行绝对定位
 	parseDrawingWrapper(node: Element): OpenXmlElement {
 		// 是否布局在表格中
@@ -1728,38 +1730,165 @@ export class DocumentParser {
 				return;
 
 			switch (c.localName) {
+				// Bold
+				case "b":
+					style["font-weight"] = xml.boolAttr(c, "val", true) ? "bold" : "normal";
+					break;
+
+				// Complex Script Bold
+				case "bCs":
+
+				// Text Border
+				case "bdr":
+					style["border"] = values.valueOfBorder(c);
+					break;
+
+				// Display All Characters As Capital Letters
+				case "caps":
+					style["text-transform"] = xml.boolAttr(c, "val", true) ? "uppercase" : "none";
+					break;
+
+				// Run Content Color
+				case "color":
+					style["color"] = xmlUtil.colorAttr(c, "val", null, autos.color);
+					break;
+
+				// Use Complex Script Formatting on Run
+				case "cs":
+
+				// Double Strikethrough
+				case "dstrike":
+
+				// East Asian Typography Settings
+				case "eastAsianLayout":
+
+				// Animated Text Effect
+				case "effect":
+
+				// Emphasis Mark
+				case "em":
+
+				// Embossing
+				case "emboss":
+
+				// Manual Run Width
+				case "fitText":
+
+				// Text Highlighting
+				case "highlight":
+					style["background-color"] = xmlUtil.colorAttr(c, "val", null, autos.highlight);
+					break;
+
+				// Italics
+				case "i":
+					style["font-style"] = xml.boolAttr(c, "val", true) ? "italic" : "normal";
+					break;
+
+				// Complex Script Italics
+				case "iCs":
+
+				// Imprinting
+				case "imprint":
+
+				// TODO Font Kerning
+				case "kern":
+					//style['letter-spacing'] = xml.lengthAttr(elem, 'val', LengthUsage.FontSize);
+					break;
+
+				// Languages for Run Content
+				case "lang":
+					style["$lang"] = xml.attr(c, "val");
+					break;
+
+				// TODO Do Not Check Spelling or Grammar
+				case "noProof":
+
+				// TODO Display Character Outline
+				case "outline":
+
+				// Vertically Raised or Lowered Text
+				case "position":
+					style.verticalAlign = xml.lengthAttr(c, "val", LengthUsage.FontSize);
+					break;
+
+				// Run Fonts
+				case "rFonts":
+					this.parseFont(c, style);
+					break;
+				// TODO Revision Information for Run Properties
+
+				case "rPrChange":
+
+				//TODO Right To Left Text
+				case "rtl":
+
+				//TODO Shadow
+				case "shadow":
+
+				// Run Shading
+				case "shd":
+					style["background-color"] = xmlUtil.colorAttr(c, "fill", null, autos.shd);
+					break;
+
+				// Small Caps
+				case "smallCaps":
+					style["font-variant"] = xml.boolAttr(c, "val", true) ? "small-caps" : "none";
+					break;
+
+				// Use Document Grid Settings For Inter-Character Spacing
+				case "snapToGrid":
+
+				// Character Spacing Adjustment
+				case "spacing":
+					if (elem.localName == "pPr")
+						this.parseSpacing(c, style);
+					break;
+
+				// Paragraph Mark Is Always Hidden
+				case "specVanish":
+
+				// Single Strikethrough
+				case "strike":
+					style["text-decoration"] = xml.boolAttr(c, "val", true) ? "line-through" : "none"
+					break;
+
+				// Non-Complex Script Font Size
+				case "sz":
+					style["font-size"] = style["min-height"] = xml.lengthAttr(c, "val", LengthUsage.FontSize);
+					// style["font-size"] = xml.lengthAttr(c, "val", LengthUsage.FontSize);
+					break;
+
+				// Complex Script Font Size
+				case "szCs":
+
+				// Underline
+				case "u":
+					this.parseUnderline(c, style);
+					break;
+
+				// Hidden Text
+				case "vanish":
+					if (xml.boolAttr(c, "val", true))
+						style["display"] = "none";
+					break;
+
+				// TODO	Subscript/Superscript Text
+				case "vertAlign":
+					// style.verticalAlign = values.valueOfVertAlign(c);
+					break;
+
+				// Expanded/Compressed Text
+				case "w":
+
+				// TODO Web Hidden Text
+				case "webHidden":
+
 				case "jc":
 					style["text-align"] = values.valueOfJc(c);
 					break;
 
 				case "textAlignment":
 					style["vertical-align"] = values.valueOfTextAlignment(c);
-					break;
-
-				case "color":
-					style["color"] = xmlUtil.colorAttr(c, "val", null, autos.color);
-					break;
-
-				case "sz":
-					style["font-size"] = style["min-height"] = xml.lengthAttr(c, "val", LengthUsage.FontSize);
-					// style["font-size"] = xml.lengthAttr(c, "val", LengthUsage.FontSize);
-					break;
-
-				case "shd":
-					style["background-color"] = xmlUtil.colorAttr(c, "fill", null, autos.shd);
-					break;
-
-				case "highlight":
-					style["background-color"] = xmlUtil.colorAttr(c, "val", null, autos.highlight);
-					break;
-
-				case "vertAlign":
-					//TODO
-					// style.verticalAlign = values.valueOfVertAlign(c);
-					break;
-
-				case "position":
-					style.verticalAlign = xml.lengthAttr(c, "val", LengthUsage.FontSize);
 					break;
 
 				case "tcW":
@@ -1775,37 +1904,9 @@ export class DocumentParser {
 					this.parseTrHeight(c, style);
 					break;
 
-				case "strike":
-					style["text-decoration"] = xml.boolAttr(c, "val", true) ? "line-through" : "none"
-					break;
-
-				case "b":
-					style["font-weight"] = xml.boolAttr(c, "val", true) ? "bold" : "normal";
-					break;
-
-				case "i":
-					style["font-style"] = xml.boolAttr(c, "val", true) ? "italic" : "normal";
-					break;
-
-				case "caps":
-					style["text-transform"] = xml.boolAttr(c, "val", true) ? "uppercase" : "none";
-					break;
-
-				case "smallCaps":
-					style["font-variant"] = xml.boolAttr(c, "val", true) ? "small-caps" : "none";
-					break;
-
-				case "u":
-					this.parseUnderline(c, style);
-					break;
-
 				case "ind":
 				case "tblInd":
 					this.parseIndentation(c, style);
-					break;
-
-				case "rFonts":
-					this.parseFont(c, style);
 					break;
 
 				case "tblBorders":
@@ -1821,22 +1922,8 @@ export class DocumentParser {
 					this.parseBorderProperties(c, style);
 					break;
 
-				case "bdr":
-					style["border"] = values.valueOfBorder(c);
-					break;
-
 				case "tcBorders":
 					this.parseBorderProperties(c, style);
-					break;
-
-				case "vanish":
-					if (xml.boolAttr(c, "val", true))
-						style["display"] = "none";
-					break;
-
-				case "kern":
-					//TODO
-					//style['letter-spacing'] = xml.lengthAttr(elem, 'val', LengthUsage.FontSize);
 					break;
 
 				case "noWrap":
@@ -1857,11 +1944,6 @@ export class DocumentParser {
 					style["vertical-align"] = values.valueOfTextAlignment(c);
 					break;
 
-				case "spacing":
-					if (elem.localName == "pPr")
-						this.parseSpacing(c, style);
-					break;
-
 				case "wordWrap":
 					if (xml.boolAttr(c, "val")) //TODO: test with examples
 						style["overflow-wrap"] = "break-word";
@@ -1871,29 +1953,17 @@ export class DocumentParser {
 					style["hyphens"] = xml.boolAttr(c, "val", true) ? "none" : "auto";
 					break;
 
-				case "lang":
-					style["$lang"] = xml.attr(c, "val");
-					break;
-
-				case "bCs":
-				case "iCs":
-				case "szCs":
 				case "tabs": //ignore - tabs is parsed by other parser
 				case "outlineLvl": //TODO
 				case "contextualSpacing": //TODO
 				case "tblStyleColBandSize": //TODO
 				case "tblStyleRowBandSize": //TODO
-				case "webHidden": //TODO - maybe web-hidden should be implemented
 				case "pageBreakBefore": //TODO - maybe ignore
 				case "suppressLineNumbers": //TODO - maybe ignore
 				case "keepLines": //TODO - maybe ignore
 				case "keepNext": //TODO - maybe ignore
 				case "widowControl": //TODO - maybe ignore
 				case "bidi": //TODO - maybe ignore
-				case "rtl": //TODO - maybe ignore
-				case "noProof": //ignore spellcheck
-					//TODO ignore
-					break;
 
 				default:
 					if (this.options.debug)

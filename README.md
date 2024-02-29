@@ -1,9 +1,7 @@
-[![npm version](https://badge.fury.io/js/docx-preview.svg)](https://www.npmjs.com/package/docx-preview-sync)
+[![npm version](https://badge.fury.io/js/docx-preview-sync.svg)](https://www.npmjs.com/package/docx-preview-sync)
 
 # docx-preview-sync
-Docx rendering library
-
-Demo - https://volodymyrbaydalka.github.io/docxjs/
+The docx document synchronously rendering library
 
 Goal
 ----

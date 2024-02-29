@@ -738,15 +738,15 @@ export class HtmlRendererSync {
 					const is_split = rBreakIndex < breakRun.children.length - 1;
 
 					if (pBreakIndex < p.children.length - 1 || is_split) {
-						// 原始的Run
-						const origin_run = p.children;
+						// 原始的Run数组
+						const origin_runs = p.children;
 						// 切出Break索引后面的Run，创建新段落
 						const new_paragraph: WmlParagraph = {
 							...p,
-							children: origin_run.slice(pBreakIndex),
+							children: origin_runs.slice(pBreakIndex),
 						};
 						// 保存Break索引前面的Run
-						p.children = origin_run.slice(0, pBreakIndex);
+						p.children = origin_runs.slice(0, pBreakIndex);
 						// 添加新段落
 						current_page.elements.push(new_paragraph);
 
@@ -1028,7 +1028,7 @@ export class HtmlRendererSync {
 			// 顶层元素
 			if (elems[i].level === 1) {
 				// currentPage缓存当前操作顶层元素的索引值,将会不断覆盖，直到此顶层元素溢出，elementIndex即是溢出元素的elements索引。
-				this.currentPage.elementIndex = i;
+				this.currentPage.breakIndex = i;
 			}
 			// 根据XML对象渲染单个元素
 			const element = (await this.renderElement(elems[i], parent)) as Node_DOM;
@@ -1049,18 +1049,23 @@ export class HtmlRendererSync {
 			case DomType.Paragraph:
 				oNode = await this.renderParagraph(elem as WmlParagraph, parent);
 				break;
+
 			case DomType.Run:
 				oNode = await this.renderRun(elem as WmlRun, parent);
 				break;
+
 			case DomType.Text:
 				oNode = await this.renderText(elem as WmlText, parent);
 				break;
+
 			case DomType.Table:
 				oNode = await this.renderTable(elem as WmlTable, parent);
 				break;
+
 			case DomType.Row:
 				oNode = await this.renderTableRow(elem, parent);
 				break;
+
 			case DomType.Cell:
 				oNode = await this.renderTableCell(elem);
 				// 作为子元素插入,忽略溢出检测
@@ -1068,15 +1073,19 @@ export class HtmlRendererSync {
 					appendChildren(parent, oNode);
 				}
 				break;
+
 			case DomType.Hyperlink:
 				oNode = await this.renderHyperlink(elem, parent);
 				break;
+
 			case DomType.Drawing:
 				oNode = await this.renderDrawing(elem as WmlDrawing, parent);
 				break;
+
 			case DomType.Image:
 				oNode = await this.renderImage(elem as WmlImage, parent);
 				break;
+
 			case DomType.BookmarkStart:
 				oNode = this.renderBookmarkStart(elem as WmlBookmarkStart);
 				// 作为子元素插入,忽略溢出检测
@@ -1084,39 +1093,49 @@ export class HtmlRendererSync {
 					appendChildren(parent, oNode);
 				}
 				break;
+
 			case DomType.BookmarkEnd:
-				oNode = null; //ignore bookmark end
+				//ignore bookmark end
+				oNode = null;
 				break;
+
 			case DomType.Tab:
 				oNode = await this.renderTab(elem, parent);
 				break;
+
 			case DomType.Symbol:
 				oNode = await this.renderSymbol(elem as WmlSymbol, parent);
 				break;
+
 			case DomType.Break:
 				oNode = await this.renderBreak(elem as WmlBreak, parent);
 				break;
+
 			case DomType.Inserted:
 				oNode = await this.renderInserted(elem);
 				if (parent) {
 					await this.appendChildren(parent, oNode);
 				}
 				break;
+
 			case DomType.Deleted:
 				oNode = await this.renderDeleted(elem);
 				if (parent) {
 					await this.appendChildren(parent, oNode);
 				}
 				break;
+
 			case DomType.DeletedText:
 				oNode = await this.renderDeletedText(elem as WmlText, parent);
 				break;
+
 			case DomType.NoBreakHyphen:
 				oNode = createElement('wbr');
 				if (parent) {
 					await this.appendChildren(parent, oNode);
 				}
 				break;
+
 			case DomType.CommentRangeStart:
 				oNode = this.renderCommentRangeStart(elem);
 				// 作为子元素插入,忽略溢出检测
@@ -1124,6 +1143,7 @@ export class HtmlRendererSync {
 					appendChildren(parent, oNode);
 				}
 				break;
+
 			case DomType.CommentRangeEnd:
 				oNode = this.renderCommentRangeEnd(elem);
 				// 作为子元素插入,忽略溢出检测
@@ -1131,6 +1151,7 @@ export class HtmlRendererSync {
 					appendChildren(parent, oNode);
 				}
 				break;
+
 			case DomType.CommentReference:
 				oNode = this.renderCommentReference(elem);
 				// 作为子元素插入,忽略溢出检测
@@ -1138,6 +1159,7 @@ export class HtmlRendererSync {
 					appendChildren(parent, oNode);
 				}
 				break;
+
 			case DomType.Footer:
 				oNode = await this.renderHeaderFooter(elem, 'footer');
 				// 作为子元素插入,忽略溢出检测
@@ -1145,6 +1167,7 @@ export class HtmlRendererSync {
 					appendChildren(parent, oNode);
 				}
 				break;
+
 			case DomType.Header:
 				oNode = await this.renderHeaderFooter(elem, 'header');
 				// 作为子元素插入,忽略溢出检测
@@ -1152,6 +1175,7 @@ export class HtmlRendererSync {
 					appendChildren(parent, oNode);
 				}
 				break;
+
 			case DomType.Footnote:
 			case DomType.Endnote:
 				oNode = await this.renderContainer(elem, 'li');
@@ -1160,6 +1184,7 @@ export class HtmlRendererSync {
 					appendChildren(parent, oNode);
 				}
 				break;
+
 			case DomType.FootnoteReference:
 				oNode = this.renderFootnoteReference(elem as WmlNoteReference);
 				// 作为子元素插入,忽略溢出检测
@@ -1167,6 +1192,7 @@ export class HtmlRendererSync {
 					appendChildren(parent, oNode);
 				}
 				break;
+
 			case DomType.EndnoteReference:
 				oNode = this.renderEndnoteReference(elem as WmlNoteReference);
 				// 作为子元素插入,忽略溢出检测
@@ -1174,9 +1200,11 @@ export class HtmlRendererSync {
 					appendChildren(parent, oNode);
 				}
 				break;
+
 			case DomType.VmlElement:
 				oNode = await this.renderVmlElement(elem as VmlElement, parent);
 				break;
+
 			case DomType.VmlPicture:
 				oNode = await this.renderVmlPicture(elem);
 				// 作为子元素插入,忽略溢出检测
@@ -1184,14 +1212,17 @@ export class HtmlRendererSync {
 					appendChildren(parent, oNode);
 				}
 				break;
+
 			case DomType.MmlMath:
 				oNode = await this.renderContainerNS(elem, ns.mathML, 'math', {
 					xmlns: ns.mathML,
 				});
+				// 作为子元素插入,针对此元素进行溢出检测
 				if (parent) {
 					oNode.dataset.overflow = await this.appendChildren(parent, oNode);
 				}
 				break;
+
 			case DomType.MmlMathParagraph:
 				oNode = await this.renderContainer(elem, 'span');
 				// 作为子元素插入,忽略溢出检测
@@ -1199,6 +1230,7 @@ export class HtmlRendererSync {
 					appendChildren(parent, oNode);
 				}
 				break;
+
 			case DomType.MmlFraction:
 				oNode = await this.renderContainerNS(elem, ns.mathML, 'mfrac');
 				// 作为子元素插入,忽略溢出检测
@@ -1206,6 +1238,7 @@ export class HtmlRendererSync {
 					appendChildren(parent, oNode);
 				}
 				break;
+
 			case DomType.MmlBase:
 				oNode = await this.renderContainerNS(elem, ns.mathML, elem.parent.type == DomType.MmlMatrixRow ? "mtd" : "mrow");
 				// 作为子元素插入,忽略溢出检测
@@ -1213,6 +1246,7 @@ export class HtmlRendererSync {
 					appendChildren(parent, oNode);
 				}
 				break;
+
 			case DomType.MmlNumerator:
 			case DomType.MmlDenominator:
 			case DomType.MmlFunction:
@@ -1224,6 +1258,7 @@ export class HtmlRendererSync {
 					appendChildren(parent, oNode);
 				}
 				break;
+
 			case DomType.MmlGroupChar:
 				oNode = await this.renderMmlGroupChar(elem);
 				// 作为子元素插入,忽略溢出检测
@@ -1231,6 +1266,7 @@ export class HtmlRendererSync {
 					appendChildren(parent, oNode);
 				}
 				break;
+
 			case DomType.MmlLimitLower:
 				oNode = await this.renderContainerNS(elem, ns.mathML, 'munder');
 				// 作为子元素插入,忽略溢出检测
@@ -1238,6 +1274,7 @@ export class HtmlRendererSync {
 					appendChildren(parent, oNode);
 				}
 				break;
+
 			case DomType.MmlMatrix:
 				oNode = await this.renderContainerNS(elem, ns.mathML, 'mtable');
 				// 作为子元素插入,忽略溢出检测
@@ -1245,6 +1282,7 @@ export class HtmlRendererSync {
 					appendChildren(parent, oNode);
 				}
 				break;
+
 			case DomType.MmlMatrixRow:
 				oNode = await this.renderContainerNS(elem, ns.mathML, 'mtr');
 				// 作为子元素插入,忽略溢出检测
@@ -1252,6 +1290,7 @@ export class HtmlRendererSync {
 					appendChildren(parent, oNode);
 				}
 				break;
+
 			case DomType.MmlRadical:
 				oNode = await this.renderMmlRadical(elem);
 				// 作为子元素插入,忽略溢出检测
@@ -1259,6 +1298,7 @@ export class HtmlRendererSync {
 					appendChildren(parent, oNode);
 				}
 				break;
+
 			case DomType.MmlSuperscript:
 				oNode = await this.renderContainerNS(elem, ns.mathML, 'msup');
 				// 作为子元素插入,忽略溢出检测
@@ -1266,6 +1306,7 @@ export class HtmlRendererSync {
 					appendChildren(parent, oNode);
 				}
 				break;
+
 			case DomType.MmlSubscript:
 				oNode = await this.renderContainerNS(elem, ns.mathML, 'msub');
 				// 作为子元素插入,忽略溢出检测
@@ -1273,6 +1314,7 @@ export class HtmlRendererSync {
 					appendChildren(parent, oNode);
 				}
 				break;
+
 			case DomType.MmlDegree:
 			case DomType.MmlSuperArgument:
 			case DomType.MmlSubArgument:
@@ -1282,6 +1324,7 @@ export class HtmlRendererSync {
 					appendChildren(parent, oNode);
 				}
 				break;
+
 			case DomType.MmlFunctionName:
 				oNode = await this.renderContainerNS(elem, ns.mathML, 'ms');
 				// 作为子元素插入,忽略溢出检测
@@ -1289,6 +1332,7 @@ export class HtmlRendererSync {
 					appendChildren(parent, oNode);
 				}
 				break;
+
 			case DomType.MmlDelimiter:
 				oNode = await this.renderMmlDelimiter(elem);
 				// 作为子元素插入,忽略溢出检测
@@ -1296,6 +1340,7 @@ export class HtmlRendererSync {
 					appendChildren(parent, oNode);
 				}
 				break;
+
 			case DomType.MmlRun:
 				oNode = await this.renderMmlRun(elem);
 				// 作为子元素插入,忽略溢出检测
@@ -1303,6 +1348,7 @@ export class HtmlRendererSync {
 					appendChildren(parent, oNode);
 				}
 				break;
+
 			case DomType.MmlNary:
 				oNode = await this.renderMmlNary(elem);
 				// 作为子元素插入,忽略溢出检测
@@ -1310,6 +1356,7 @@ export class HtmlRendererSync {
 					appendChildren(parent, oNode);
 				}
 				break;
+
 			case DomType.MmlPreSubSuper:
 				oNode = await this.renderMmlPreSubSuper(elem);
 				// 作为子元素插入,忽略溢出检测
@@ -1317,6 +1364,7 @@ export class HtmlRendererSync {
 					appendChildren(parent, oNode);
 				}
 				break;
+
 			case DomType.MmlBar:
 				oNode = await this.renderMmlBar(elem);
 				// 作为子元素插入,忽略溢出检测
@@ -1324,6 +1372,7 @@ export class HtmlRendererSync {
 					appendChildren(parent, oNode);
 				}
 				break;
+
 			case DomType.MmlEquationArray:
 				oNode = await this.renderMllList(elem);
 				// 作为子元素插入,忽略溢出检测
@@ -1336,6 +1385,7 @@ export class HtmlRendererSync {
 		if (oNode && oNode?.nodeType === 1) {
 			oNode.dataset.tag = elem.type;
 		}
+
 		return oNode;
 	}
 
@@ -1366,7 +1416,15 @@ export class HtmlRendererSync {
 		appendChildren(parent, children);
 		// 是否溢出标识
 		let is_overflow = false;
-		let { pageId, sectProps, isSplit, contentElement, elementIndex, checkingOverflow, elements: origin_elements } = this.currentPage;
+		let {
+			pageId,
+			sectProps,
+			isSplit,
+			contentElement,
+			breakIndex,
+			checkingOverflow,
+			elements: origin_elements
+		} = this.currentPage;
 		// 当前page已拆分，忽略溢出检测
 		if (isSplit) {
 			return Overflow.UNKNOWN;
@@ -1377,9 +1435,10 @@ export class HtmlRendererSync {
 			is_overflow = checkOverflow(contentElement);
 			// 溢出
 			if (is_overflow) {
+				// TODO 充分利用parent属性
 				// 溢出元素 == row
 				if (xml_element?.type === DomType.Row) {
-					const table: OpenXmlElement = origin_elements[elementIndex];
+					const table: OpenXmlElement = origin_elements[breakIndex];
 					// 溢出元素所在tr的索引;
 					const row_index = table.children.findIndex(
 						elem => elem === xml_element
@@ -1391,8 +1450,9 @@ export class HtmlRendererSync {
 					// 填充table header
 					table.children = [...table_headers, ...table.children];
 				}
-				// 根据elementIndex，保留后续元素，以备下一个Page渲染，保留原始数组前面已经渲染的元素
-				let elements = origin_elements.splice(elementIndex);
+				// TODO 由于初期针对段落的分页已经完成，此处拆分针对目录部分。按照顶层元素拆分，分页并不精确。
+				// 根据顶层元素的索引breakIndex，保留后续元素，以备下一个Page渲染，保留原始数组前面已经渲染的元素
+				let elements = origin_elements.splice(breakIndex);
 				// 删除DOM中导致溢出的元素
 				removeElements(children, parent);
 				// 已拆分的Pages数组
@@ -1430,7 +1490,7 @@ export class HtmlRendererSync {
 		return parent;
 	}
 
-	async renderParagraph(elem: WmlParagraph, parent?: HTMLElement | Element) {
+	async renderParagraph(elem: WmlParagraph, parent: HTMLElement | Element) {
 		// 创建段落元素
 		const oParagraph = createElement('p');
 		// 生成段落的uuid标识，
@@ -1476,10 +1536,7 @@ export class HtmlRendererSync {
 		// 如果拥有父级
 		if (parent) {
 			// 作为子元素插入,针对此元素进行溢出检测
-			const is_overflow: Overflow = await this.appendChildren(
-				parent,
-				oParagraph
-			);
+			const is_overflow: Overflow = await this.appendChildren(parent, oParagraph);
 			if (is_overflow === Overflow.TRUE) {
 				oParagraph.dataset.overflow = Overflow.TRUE;
 				return oParagraph;
@@ -2364,6 +2421,7 @@ function appendComment(elem: HTMLElement, comment: string) {
 	elem.appendChild(document.createComment(comment));
 }
 
+// 根据元素类型，回溯元素的父级元素、祖先元素
 function findParent<T extends OpenXmlElement>(elem: OpenXmlElement, type: DomType): T {
 	let parent = elem.parent;
 

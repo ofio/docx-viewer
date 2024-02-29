@@ -1,8 +1,122 @@
 (function (global, factory) {
-    typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('jszip')) :
-    typeof define === 'function' && define.amd ? define(['exports', 'jszip'], factory) :
-    (global = typeof globalThis !== 'undefined' ? globalThis : global || self, factory(global.docx = {}, global.JSZip));
-})(this, (function (exports, JSZip) { 'use strict';
+    typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('jszip'), require('konva')) :
+    typeof define === 'function' && define.amd ? define(['exports', 'jszip', 'konva'], factory) :
+    (global = typeof globalThis !== 'undefined' ? globalThis : global || self, factory(global.docx = {}, global.JSZip, global.Konva));
+})(this, (function (exports, JSZip, Konva) { 'use strict';
+
+    const types = {
+        "application/andrew-inset": ["ez"], "application/appinstaller": ["appinstaller"], "application/applixware": ["aw"], "application/appx": ["appx"], "application/appxbundle": ["appxbundle"], "application/atom+xml": ["atom"], "application/atomcat+xml": ["atomcat"], "application/atomdeleted+xml": ["atomdeleted"], "application/atomsvc+xml": ["atomsvc"], "application/atsc-dwd+xml": ["dwd"], "application/atsc-held+xml": ["held"], "application/atsc-rsat+xml": ["rsat"], "application/automationml-aml+xml": ["aml"], "application/automationml-amlx+zip": ["amlx"], "application/bdoc": ["bdoc"], "application/calendar+xml": ["xcs"], "application/ccxml+xml": ["ccxml"], "application/cdfx+xml": ["cdfx"], "application/cdmi-capability": ["cdmia"], "application/cdmi-container": ["cdmic"], "application/cdmi-domain": ["cdmid"], "application/cdmi-object": ["cdmio"], "application/cdmi-queue": ["cdmiq"], "application/cpl+xml": ["cpl"], "application/cu-seeme": ["cu"], "application/cwl": ["cwl"], "application/dash+xml": ["mpd"], "application/dash-patch+xml": ["mpp"], "application/davmount+xml": ["davmount"], "application/docbook+xml": ["dbk"], "application/dssc+der": ["dssc"], "application/dssc+xml": ["xdssc"], "application/ecmascript": ["ecma"], "application/emma+xml": ["emma"], "application/emotionml+xml": ["emotionml"], "application/epub+zip": ["epub"], "application/exi": ["exi"], "application/express": ["exp"], "application/fdf": ["fdf"], "application/fdt+xml": ["fdt"], "application/font-tdpfr": ["pfr"], "application/geo+json": ["geojson"], "application/gml+xml": ["gml"], "application/gpx+xml": ["gpx"], "application/gxf": ["gxf"], "application/gzip": ["gz"], "application/hjson": ["hjson"], "application/hyperstudio": ["stk"], "application/inkml+xml": ["ink", "inkml"], "application/ipfix": ["ipfix"], "application/its+xml": ["its"], "application/java-archive": ["jar", "war", "ear"], "application/java-serialized-object": ["ser"], "application/java-vm": ["class"], "application/javascript": ["*js"], "application/json": ["json", "map"], "application/json5": ["json5"], "application/jsonml+json": ["jsonml"], "application/ld+json": ["jsonld"], "application/lgr+xml": ["lgr"], "application/lost+xml": ["lostxml"], "application/mac-binhex40": ["hqx"], "application/mac-compactpro": ["cpt"], "application/mads+xml": ["mads"], "application/manifest+json": ["webmanifest"], "application/marc": ["mrc"], "application/marcxml+xml": ["mrcx"], "application/mathematica": ["ma", "nb", "mb"], "application/mathml+xml": ["mathml"], "application/mbox": ["mbox"], "application/media-policy-dataset+xml": ["mpf"], "application/mediaservercontrol+xml": ["mscml"], "application/metalink+xml": ["metalink"], "application/metalink4+xml": ["meta4"], "application/mets+xml": ["mets"], "application/mmt-aei+xml": ["maei"], "application/mmt-usd+xml": ["musd"], "application/mods+xml": ["mods"], "application/mp21": ["m21", "mp21"], "application/mp4": ["mp4", "mpg4", "mp4s", "m4p"], "application/msix": ["msix"], "application/msixbundle": ["msixbundle"], "application/msword": ["doc", "dot"], "application/mxf": ["mxf"], "application/n-quads": ["nq"], "application/n-triples": ["nt"], "application/node": ["cjs"], "application/octet-stream": ["bin", "dms", "lrf", "mar", "so", "dist", "distz", "pkg", "bpk", "dump", "elc", "deploy", "exe", "dll", "deb", "dmg", "iso", "img", "msi", "msp", "msm", "buffer"], "application/oda": ["oda"], "application/oebps-package+xml": ["opf"], "application/ogg": ["ogx"], "application/omdoc+xml": ["omdoc"], "application/onenote": ["onetoc", "onetoc2", "onetmp", "onepkg"], "application/oxps": ["oxps"], "application/p2p-overlay+xml": ["relo"], "application/patch-ops-error+xml": ["xer"], "application/pdf": ["pdf"], "application/pgp-encrypted": ["pgp"], "application/pgp-keys": ["asc"], "application/pgp-signature": ["sig", "*asc"], "application/pics-rules": ["prf"], "application/pkcs10": ["p10"], "application/pkcs7-mime": ["p7m", "p7c"], "application/pkcs7-signature": ["p7s"], "application/pkcs8": ["p8"], "application/pkix-attr-cert": ["ac"], "application/pkix-cert": ["cer"], "application/pkix-crl": ["crl"], "application/pkix-pkipath": ["pkipath"], "application/pkixcmp": ["pki"], "application/pls+xml": ["pls"], "application/postscript": ["ai", "eps", "ps"], "application/provenance+xml": ["provx"], "application/pskc+xml": ["pskcxml"], "application/raml+yaml": ["raml"], "application/rdf+xml": ["rdf", "owl"], "application/reginfo+xml": ["rif"], "application/relax-ng-compact-syntax": ["rnc"], "application/resource-lists+xml": ["rl"], "application/resource-lists-diff+xml": ["rld"], "application/rls-services+xml": ["rs"], "application/route-apd+xml": ["rapd"], "application/route-s-tsid+xml": ["sls"], "application/route-usd+xml": ["rusd"], "application/rpki-ghostbusters": ["gbr"], "application/rpki-manifest": ["mft"], "application/rpki-roa": ["roa"], "application/rsd+xml": ["rsd"], "application/rss+xml": ["rss"], "application/rtf": ["rtf"], "application/sbml+xml": ["sbml"], "application/scvp-cv-request": ["scq"], "application/scvp-cv-response": ["scs"], "application/scvp-vp-request": ["spq"], "application/scvp-vp-response": ["spp"], "application/sdp": ["sdp"], "application/senml+xml": ["senmlx"], "application/sensml+xml": ["sensmlx"], "application/set-payment-initiation": ["setpay"], "application/set-registration-initiation": ["setreg"], "application/shf+xml": ["shf"], "application/sieve": ["siv", "sieve"], "application/smil+xml": ["smi", "smil"], "application/sparql-query": ["rq"], "application/sparql-results+xml": ["srx"], "application/sql": ["sql"], "application/srgs": ["gram"], "application/srgs+xml": ["grxml"], "application/sru+xml": ["sru"], "application/ssdl+xml": ["ssdl"], "application/ssml+xml": ["ssml"], "application/swid+xml": ["swidtag"], "application/tei+xml": ["tei", "teicorpus"], "application/thraud+xml": ["tfi"], "application/timestamped-data": ["tsd"], "application/toml": ["toml"], "application/trig": ["trig"], "application/ttml+xml": ["ttml"], "application/ubjson": ["ubj"], "application/urc-ressheet+xml": ["rsheet"], "application/urc-targetdesc+xml": ["td"], "application/voicexml+xml": ["vxml"], "application/wasm": ["wasm"], "application/watcherinfo+xml": ["wif"], "application/widget": ["wgt"], "application/winhlp": ["hlp"], "application/wsdl+xml": ["wsdl"], "application/wspolicy+xml": ["wspolicy"], "application/xaml+xml": ["xaml"], "application/xcap-att+xml": ["xav"], "application/xcap-caps+xml": ["xca"], "application/xcap-diff+xml": ["xdf"], "application/xcap-el+xml": ["xel"], "application/xcap-ns+xml": ["xns"], "application/xenc+xml": ["xenc"], "application/xfdf": ["xfdf"], "application/xhtml+xml": ["xhtml", "xht"], "application/xliff+xml": ["xlf"], "application/xml": ["xml", "xsl", "xsd", "rng"], "application/xml-dtd": ["dtd"], "application/xop+xml": ["xop"], "application/xproc+xml": ["xpl"], "application/xslt+xml": ["*xsl", "xslt"], "application/xspf+xml": ["xspf"], "application/xv+xml": ["mxml", "xhvml", "xvml", "xvm"], "application/yang": ["yang"], "application/yin+xml": ["yin"], "application/zip": ["zip"], "audio/3gpp": ["*3gpp"], "audio/aac": ["adts", "aac"], "audio/adpcm": ["adp"], "audio/amr": ["amr"], "audio/basic": ["au", "snd"], "audio/midi": ["mid", "midi", "kar", "rmi"], "audio/mobile-xmf": ["mxmf"], "audio/mp3": ["*mp3"], "audio/mp4": ["m4a", "mp4a"], "audio/mpeg": ["mpga", "mp2", "mp2a", "mp3", "m2a", "m3a"], "audio/ogg": ["oga", "ogg", "spx", "opus"], "audio/s3m": ["s3m"], "audio/silk": ["sil"], "audio/wav": ["wav"], "audio/wave": ["*wav"], "audio/webm": ["weba"], "audio/xm": ["xm"], "font/collection": ["ttc"], "font/otf": ["otf"], "font/ttf": ["ttf"], "font/woff": ["woff"], "font/woff2": ["woff2"], "image/aces": ["exr"], "image/apng": ["apng"], "image/avci": ["avci"], "image/avcs": ["avcs"], "image/avif": ["avif"], "image/bmp": ["bmp", "dib"], "image/cgm": ["cgm"], "image/dicom-rle": ["drle"], "image/dpx": ["dpx"], "image/emf": ["emf"], "image/fits": ["fits"], "image/g3fax": ["g3"], "image/gif": ["gif"], "image/heic": ["heic"], "image/heic-sequence": ["heics"], "image/heif": ["heif"], "image/heif-sequence": ["heifs"], "image/hej2k": ["hej2"], "image/hsj2": ["hsj2"], "image/ief": ["ief"], "image/jls": ["jls"], "image/jp2": ["jp2", "jpg2"], "image/jpeg": ["jpeg", "jpg", "jpe"], "image/jph": ["jph"], "image/jphc": ["jhc"], "image/jpm": ["jpm", "jpgm"], "image/jpx": ["jpx", "jpf"], "image/jxr": ["jxr"], "image/jxra": ["jxra"], "image/jxrs": ["jxrs"], "image/jxs": ["jxs"], "image/jxsc": ["jxsc"], "image/jxsi": ["jxsi"], "image/jxss": ["jxss"], "image/ktx": ["ktx"], "image/ktx2": ["ktx2"], "image/png": ["png"], "image/sgi": ["sgi"], "image/svg+xml": ["svg", "svgz"], "image/t38": ["t38"], "image/tiff": ["tif", "tiff"], "image/tiff-fx": ["tfx"], "image/webp": ["webp"], "image/wmf": ["wmf"], "message/disposition-notification": ["disposition-notification"], "message/global": ["u8msg"], "message/global-delivery-status": ["u8dsn"], "message/global-disposition-notification": ["u8mdn"], "message/global-headers": ["u8hdr"], "message/rfc822": ["eml", "mime"], "model/3mf": ["3mf"], "model/gltf+json": ["gltf"], "model/gltf-binary": ["glb"], "model/iges": ["igs", "iges"], "model/jt": ["jt"], "model/mesh": ["msh", "mesh", "silo"], "model/mtl": ["mtl"], "model/obj": ["obj"], "model/prc": ["prc"], "model/step+xml": ["stpx"], "model/step+zip": ["stpz"], "model/step-xml+zip": ["stpxz"], "model/stl": ["stl"], "model/u3d": ["u3d"], "model/vrml": ["wrl", "vrml"], "model/x3d+binary": ["*x3db", "x3dbz"], "model/x3d+fastinfoset": ["x3db"], "model/x3d+vrml": ["*x3dv", "x3dvz"], "model/x3d+xml": ["x3d", "x3dz"], "model/x3d-vrml": ["x3dv"], "text/cache-manifest": ["appcache", "manifest"], "text/calendar": ["ics", "ifb"], "text/coffeescript": ["coffee", "litcoffee"], "text/css": ["css"], "text/csv": ["csv"], "text/html": ["html", "htm", "shtml"], "text/jade": ["jade"], "text/javascript": ["js", "mjs"], "text/jsx": ["jsx"], "text/less": ["less"], "text/markdown": ["md", "markdown"], "text/mathml": ["mml"], "text/mdx": ["mdx"], "text/n3": ["n3"], "text/plain": ["txt", "text", "conf", "def", "list", "log", "in", "ini"], "text/richtext": ["rtx"], "text/rtf": ["*rtf"], "text/sgml": ["sgml", "sgm"], "text/shex": ["shex"], "text/slim": ["slim", "slm"], "text/spdx": ["spdx"], "text/stylus": ["stylus", "styl"], "text/tab-separated-values": ["tsv"], "text/troff": ["t", "tr", "roff", "man", "me", "ms"], "text/turtle": ["ttl"], "text/uri-list": ["uri", "uris", "urls"], "text/vcard": ["vcard"], "text/vtt": ["vtt"], "text/wgsl": ["wgsl"], "text/xml": ["*xml"], "text/yaml": ["yaml", "yml"], "video/3gpp": ["3gp", "3gpp"], "video/3gpp2": ["3g2"], "video/h261": ["h261"], "video/h263": ["h263"], "video/h264": ["h264"], "video/iso.segment": ["m4s"], "video/jpeg": ["jpgv"], "video/jpm": ["*jpm", "*jpgm"], "video/mj2": ["mj2", "mjp2"], "video/mp2t": ["ts"], "video/mp4": ["*mp4", "mp4v", "*mpg4"], "video/mpeg": ["mpeg", "mpg", "mpe", "m1v", "m2v"], "video/ogg": ["ogv"], "video/quicktime": ["qt", "mov"], "video/webm": ["webm"]
+    };
+    Object.freeze(types);
+
+    /******************************************************************************
+    Copyright (c) Microsoft Corporation.
+
+    Permission to use, copy, modify, and/or distribute this software for any
+    purpose with or without fee is hereby granted.
+
+    THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES WITH
+    REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
+    AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT,
+    INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
+    LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR
+    OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
+    PERFORMANCE OF THIS SOFTWARE.
+    ***************************************************************************** */
+    /* global Reflect, Promise, SuppressedError, Symbol */
+
+
+    function __classPrivateFieldGet(receiver, state, kind, f) {
+        if (kind === "a" && !f) throw new TypeError("Private accessor was defined without a getter");
+        if (typeof state === "function" ? receiver !== state || !f : !state.has(receiver)) throw new TypeError("Cannot read private member from an object whose class did not declare it");
+        return kind === "m" ? f : kind === "a" ? f.call(receiver) : f ? f.value : state.get(receiver);
+    }
+
+    typeof SuppressedError === "function" ? SuppressedError : function (error, suppressed, message) {
+        var e = new Error(message);
+        return e.name = "SuppressedError", e.error = error, e.suppressed = suppressed, e;
+    };
+
+    var _Mime_extensionToType, _Mime_typeToExtension, _Mime_typeToExtensions;
+    class Mime {
+        constructor(...args) {
+            _Mime_extensionToType.set(this, new Map());
+            _Mime_typeToExtension.set(this, new Map());
+            _Mime_typeToExtensions.set(this, new Map());
+            for (const arg of args) {
+                this.define(arg);
+            }
+        }
+        define(typeMap, force = false) {
+            for (let [type, extensions] of Object.entries(typeMap)) {
+                type = type.toLowerCase();
+                extensions = extensions.map((ext) => ext.toLowerCase());
+                if (!__classPrivateFieldGet(this, _Mime_typeToExtensions, "f").has(type)) {
+                    __classPrivateFieldGet(this, _Mime_typeToExtensions, "f").set(type, new Set());
+                }
+                const allExtensions = __classPrivateFieldGet(this, _Mime_typeToExtensions, "f").get(type);
+                let first = true;
+                for (let extension of extensions) {
+                    const starred = extension.startsWith('*');
+                    extension = starred ? extension.slice(1) : extension;
+                    allExtensions?.add(extension);
+                    if (first) {
+                        __classPrivateFieldGet(this, _Mime_typeToExtension, "f").set(type, extension);
+                    }
+                    first = false;
+                    if (starred)
+                        continue;
+                    const currentType = __classPrivateFieldGet(this, _Mime_extensionToType, "f").get(extension);
+                    if (currentType && currentType != type && !force) {
+                        throw new Error(`"${type} -> ${extension}" conflicts with "${currentType} -> ${extension}". Pass \`force=true\` to override this definition.`);
+                    }
+                    __classPrivateFieldGet(this, _Mime_extensionToType, "f").set(extension, type);
+                }
+            }
+            return this;
+        }
+        getType(path) {
+            if (typeof path !== 'string')
+                return null;
+            const last = path.replace(/^.*[/\\]/, '').toLowerCase();
+            const ext = last.replace(/^.*\./, '').toLowerCase();
+            const hasPath = last.length < path.length;
+            const hasDot = ext.length < last.length - 1;
+            if (!hasDot && hasPath)
+                return null;
+            return __classPrivateFieldGet(this, _Mime_extensionToType, "f").get(ext) ?? null;
+        }
+        getExtension(type) {
+            if (typeof type !== 'string')
+                return null;
+            type = type?.split?.(';')[0];
+            return ((type && __classPrivateFieldGet(this, _Mime_typeToExtension, "f").get(type.trim().toLowerCase())) ?? null);
+        }
+        getAllExtensions(type) {
+            if (typeof type !== 'string')
+                return null;
+            return __classPrivateFieldGet(this, _Mime_typeToExtensions, "f").get(type.toLowerCase()) ?? null;
+        }
+        _freeze() {
+            this.define = () => {
+                throw new Error('define() not allowed for built-in Mime objects. See https://github.com/broofa/mime/blob/main/README.md#custom-mime-instances');
+            };
+            Object.freeze(this);
+            for (const extensions of __classPrivateFieldGet(this, _Mime_typeToExtensions, "f").values()) {
+                Object.freeze(extensions);
+            }
+            return this;
+        }
+        _getTestState() {
+            return {
+                types: __classPrivateFieldGet(this, _Mime_extensionToType, "f"),
+                extensions: __classPrivateFieldGet(this, _Mime_typeToExtension, "f"),
+            };
+        }
+    }
+    _Mime_extensionToType = new WeakMap(), _Mime_typeToExtension = new WeakMap(), _Mime_typeToExtensions = new WeakMap();
+
+    var mime = new Mime(types)._freeze();
 
     var RelationshipTypes;
     (function (RelationshipTypes) {
@@ -42,29 +156,32 @@
         math: "http://schemas.openxmlformats.org/officeDocument/2006/math"
     };
     const LengthUsage = {
-        Px: { mul: 1 / 15, unit: "px" },
+        Px: { mul: 1 / 9525, unit: "px" },
         Dxa: { mul: 0.05, unit: "pt" },
         Emu: { mul: 1 / 12700, unit: "pt" },
         FontSize: { mul: 0.5, unit: "pt" },
         Border: { mul: 0.125, unit: "pt" },
         Point: { mul: 1, unit: "pt" },
-        Percent: { mul: 0.02, unit: "%" },
+        RelativeRect: { mul: 1 / 100000, unit: "" },
+        TablePercent: { mul: 0.02, unit: "%" },
         LineHeight: { mul: 1 / 240, unit: "" },
         Opacity: { mul: 1 / 100000, unit: "" },
         VmlEmu: { mul: 1 / 12700, unit: "" },
         degree: { mul: 1 / 60000, unit: "deg" },
     };
-    function convertLength(val, usage = LengthUsage.Dxa) {
+    function convertLength(val, usage = LengthUsage.Dxa, unit = true) {
         if (!val) {
             return null;
         }
         if (typeof val === 'number') {
-            return `${(val * usage.mul).toFixed(2)}${usage.unit}`;
+            let result = val * usage.mul;
+            return unit ? `${result.toFixed(2)}${usage.unit}` : result;
         }
-        if (/.+(p[xt]|[%])$/.test(val)) {
+        if (/.+(p[xt]|%)$/.test(val)) {
             return val;
         }
-        return `${(parseInt(val) * usage.mul).toFixed(2)}${usage.unit}`;
+        let result = parseFloat(val) * usage.mul;
+        return unit ? `${result.toFixed(2)}${usage.unit}` : result;
     }
     function convertBoolean(v, defaultValue = false) {
         switch (v) {
@@ -138,7 +255,7 @@
             return null;
         }
         elementAttr(elem, localName, attrLocalName) {
-            var el = this.element(elem, localName);
+            let el = this.element(elem, localName);
             return el ? this.attr(el, attrLocalName) : undefined;
         }
         attrs(elem) {
@@ -153,22 +270,27 @@
             return null;
         }
         intAttr(node, attrName, defaultValue = null) {
-            var val = this.attr(node, attrName);
+            let val = this.attr(node, attrName);
             return val ? parseInt(val) : defaultValue;
         }
         hexAttr(node, attrName, defaultValue = null) {
-            var val = this.attr(node, attrName);
+            let val = this.attr(node, attrName);
             return val ? parseInt(val, 16) : defaultValue;
         }
         floatAttr(node, attrName, defaultValue = null) {
-            var val = this.attr(node, attrName);
+            let val = this.attr(node, attrName);
             return val ? parseFloat(val) : defaultValue;
         }
         boolAttr(node, attrName, defaultValue = null) {
             return convertBoolean(this.attr(node, attrName), defaultValue);
         }
-        lengthAttr(node, attrName, usage = LengthUsage.Dxa) {
-            return convertLength(this.attr(node, attrName), usage);
+        lengthAttr(node, attrName, usage = LengthUsage.Dxa, defaultValue) {
+            let val = this.attr(node, attrName);
+            return convertLength(val, usage) ?? defaultValue;
+        }
+        numberAttr(node, attrName, usage = LengthUsage.Dxa, defaultValue = 0) {
+            let val = this.attr(node, attrName);
+            return convertLength(val, usage, false) ?? defaultValue;
         }
     }
     const globalXmlParser = new XmlParser();
@@ -417,7 +539,7 @@
         SectionType["OddPage"] = "oddPage";
     })(SectionType || (SectionType = {}));
     function parseSectionProperties(elem, xml = globalXmlParser) {
-        var section = {};
+        let section = {};
         let origin = {};
         for (let e of xml.elements(elem)) {
             switch (e.localName) {
@@ -485,7 +607,7 @@
     }
     function parseColumns(elem, xml) {
         return {
-            numberOfColumns: xml.intAttr(elem, "num"),
+            count: xml.intAttr(elem, "num"),
             space: xml.lengthAttr(elem, "space"),
             separator: xml.boolAttr(elem, "sep"),
             equalWidth: xml.boolAttr(elem, "equalWidth", true),
@@ -1226,12 +1348,12 @@
             return part;
         }
         async loadDocumentImage(id, part) {
-            const x = await this.loadResource(part ?? this.documentPart, id, "blob");
-            return this.blobToURL(x);
+            const blob = await this.loadResource(part ?? this.documentPart, id, "blob");
+            return this.blobToURL(blob);
         }
         async loadNumberingImage(id) {
-            const x = await this.loadResource(this.numberingPart, id, "blob");
-            return this.blobToURL(x);
+            const blob = await this.loadResource(this.numberingPart, id, "blob");
+            return this.blobToURL(blob);
         }
         async loadFont(id, key) {
             const x = await this.loadResource(this.fontTablePart, id, "uint8array");
@@ -1255,9 +1377,16 @@
             const [folder] = splitPath(part.path);
             return rel ? resolvePath(rel.target, folder) : null;
         }
-        loadResource(part, id, outputType) {
+        async loadResource(part, id, outputType) {
             const path = this.getPathById(part, id);
-            return path ? this._package.load(path, outputType) : Promise.resolve(null);
+            let type = mime.getType(path);
+            if (path) {
+                let origin_blob = await this._package.load(path, outputType);
+                return new Blob([origin_blob], { type });
+            }
+            else {
+                return Promise.resolve(null);
+            }
         }
     }
     function deobfuscate(data, guidKey) {
@@ -1483,10 +1612,11 @@
             if (sectPr) {
                 props = parseSectionProperties(sectPr, globalXmlParser);
             }
-            props.uuid = uuid();
+            props.sectionId = uuid();
             return {
                 type: DomType.Document,
                 children: this.parseBodyElements(xbody),
+                pages: [],
                 props,
                 cssStyle: background ? this.parseBackground(background) : {},
             };
@@ -2151,7 +2281,7 @@
                             }
                             if (offsetNode) {
                                 posX.offset = xmlUtil.sizeValue(offsetNode, LengthUsage.Emu);
-                                posX.origin = xmlUtil.text_to_int(offsetNode, 0);
+                                posX.origin = xmlUtil.parseTextContent(offsetNode);
                             }
                             result.props.posX = posX;
                         }
@@ -2166,21 +2296,30 @@
                             }
                             if (offsetNode) {
                                 posY.offset = xmlUtil.sizeValue(offsetNode, LengthUsage.Emu);
-                                posY.origin = xmlUtil.text_to_int(offsetNode, 0);
+                                posY.origin = xmlUtil.parseTextContent(offsetNode);
                             }
                             result.props.posY = posY;
                         }
                         break;
                     case "extent":
-                        let origin_width = globalXmlParser.intAttr(n, "cx", 0);
-                        let origin_height = globalXmlParser.intAttr(n, "cy", 0);
-                        let width = globalXmlParser.lengthAttr(n, "cx", LengthUsage.Emu);
-                        let height = globalXmlParser.lengthAttr(n, "cy", LengthUsage.Emu);
-                        result.cssStyle["width"] = width;
-                        result.cssStyle["height"] = height;
-                        result.props.extent = { width, height, origin_width, origin_height };
+                        result.props.extent = {
+                            width: globalXmlParser.lengthAttr(n, "cx", LengthUsage.Emu),
+                            height: globalXmlParser.lengthAttr(n, "cy", LengthUsage.Emu),
+                            origin_width: globalXmlParser.intAttr(n, "cx", 0),
+                            origin_height: globalXmlParser.intAttr(n, "cy", 0),
+                        };
                         break;
                     case "effectExtent":
+                        result.props.effectExtent = {
+                            top: globalXmlParser.lengthAttr(n, "t", LengthUsage.Emu),
+                            bottom: globalXmlParser.lengthAttr(n, "b", LengthUsage.Emu),
+                            left: globalXmlParser.lengthAttr(n, "l", LengthUsage.Emu),
+                            right: globalXmlParser.lengthAttr(n, "r", LengthUsage.Emu),
+                            origin_top: globalXmlParser.intAttr(n, "t", 0),
+                            origin_bottom: globalXmlParser.intAttr(n, "b", 0),
+                            origin_left: globalXmlParser.intAttr(n, "l", 0),
+                            origin_right: globalXmlParser.intAttr(n, "r", 0),
+                        };
                         break;
                     case "graphic":
                         let g = this.parseGraphic(n);
@@ -2207,6 +2346,11 @@
                         break;
                 }
             }
+            let { extent, effectExtent } = result.props;
+            let real_width = extent.origin_width + effectExtent.origin_left + effectExtent.origin_right;
+            let real_height = extent.origin_height + effectExtent.origin_top + effectExtent.origin_bottom;
+            result.cssStyle["width"] = convertLength(real_width, LengthUsage.Emu);
+            result.cssStyle["height"] = convertLength(real_height, LengthUsage.Emu);
             if (node.localName === "inline") {
                 result.props.wrapType = WrapType.Inline;
             }
@@ -2423,15 +2567,18 @@
                     case "xfrm":
                         let flipH = globalXmlParser.boolAttr(n, "flipH");
                         if (flipH) {
-                            target.cssStyle["transform"] = 'scaleX(-1)';
+                            target.props.is_transform = true;
+                            target.props.transform.scaleX = -1;
                         }
                         let flipV = globalXmlParser.boolAttr(n, "flipV");
                         if (flipV) {
-                            target.cssStyle["transform"] = 'scaleY(-1)';
+                            target.props.is_transform = true;
+                            target.props.transform.scaleY = -1;
                         }
-                        let degree = globalXmlParser.lengthAttr(n, "rot", LengthUsage.degree);
+                        let degree = globalXmlParser.numberAttr(n, "rot", LengthUsage.degree, 0);
                         if (degree) {
-                            target.cssStyle["transform"] = `rotate(${degree})`;
+                            target.props.is_transform = true;
+                            target.props.transform.rotate = degree;
                         }
                         this.parseTransform2D(n, target);
                         break;
@@ -2440,7 +2587,17 @@
             return null;
         }
         parsePicture(elem) {
-            let result = { type: DomType.Image, src: "", cssStyle: {} };
+            let result = {
+                type: DomType.Image,
+                src: "",
+                cssStyle: {},
+                props: {
+                    is_clip: false,
+                    clip: {},
+                    is_transform: false,
+                    transform: {},
+                }
+            };
             for (let n of globalXmlParser.elements(elem)) {
                 switch (n.localName) {
                     case "nvPicPr":
@@ -2453,15 +2610,30 @@
                         break;
                 }
             }
-            result.cssStyle["position"] = "relative";
             return result;
         }
         parseTransform2D(node, target) {
             for (let n of globalXmlParser.elements(node)) {
                 switch (n.localName) {
                     case "ext":
-                        target.cssStyle["width"] = globalXmlParser.lengthAttr(n, "cx", LengthUsage.Emu);
-                        target.cssStyle["height"] = globalXmlParser.lengthAttr(n, "cy", LengthUsage.Emu);
+                        let { transform } = target.props;
+                        let origin_width = globalXmlParser.intAttr(n, "cx", 0);
+                        let origin_height = globalXmlParser.intAttr(n, "cy", 0);
+                        let width;
+                        let height;
+                        if (transform?.rotate) {
+                            let angel = Math.PI * transform.rotate / 180;
+                            width = Math.abs(origin_width * Math.cos(angel) + origin_height * Math.sin(angel));
+                            height = Math.abs(origin_width * Math.sin(angel) + origin_height * Math.cos(angel));
+                        }
+                        else {
+                            width = origin_width;
+                            height = origin_height;
+                        }
+                        target.props.width = convertLength(width, LengthUsage.Px, false);
+                        target.props.height = convertLength(height, LengthUsage.Px, false);
+                        target.cssStyle["width"] = convertLength(width, LengthUsage.Emu, true);
+                        target.cssStyle["height"] = convertLength(height, LengthUsage.Emu, true);
                         break;
                     case "off":
                         target.cssStyle["left"] = globalXmlParser.lengthAttr(n, "x", LengthUsage.Emu);
@@ -2476,6 +2648,15 @@
                     case "blip":
                         target.src = globalXmlParser.attr(n, "embed");
                         this.parseBlip(n, target);
+                        break;
+                    case "srcRect":
+                        let left = globalXmlParser.numberAttr(n, "l", LengthUsage.RelativeRect, 0);
+                        let right = globalXmlParser.numberAttr(n, "r", LengthUsage.RelativeRect, 0);
+                        let top = globalXmlParser.numberAttr(n, "t", LengthUsage.RelativeRect, 0);
+                        let bottom = globalXmlParser.numberAttr(n, "b", LengthUsage.RelativeRect, 0);
+                        target.props.is_clip = [left, right, top, bottom].some((item) => item !== 0);
+                        target.props.clip.type = 'inset';
+                        target.props.clip.path = { top, right, bottom, left };
                         break;
                 }
             }
@@ -2508,14 +2689,14 @@
             let result = { type: DomType.Table, children: [] };
             xmlUtil.foreach(node, c => {
                 switch (c.localName) {
-                    case "tr":
-                        result.children.push(this.parseTableRow(c));
+                    case "tblPr":
+                        this.parseTableProperties(c, result);
                         break;
                     case "tblGrid":
                         result.columns = this.parseTableColumns(c);
                         break;
-                    case "tblPr":
-                        this.parseTableProperties(c, result);
+                    case "tr":
+                        result.children.push(this.parseTableRow(c));
                         break;
                 }
             });
@@ -2653,28 +2834,85 @@
                 if (handler?.(c))
                     return;
                 switch (c.localName) {
+                    case "b":
+                        style["font-weight"] = globalXmlParser.boolAttr(c, "val", true) ? "bold" : "normal";
+                        break;
+                    case "bCs":
+                    case "bdr":
+                        style["border"] = values.valueOfBorder(c);
+                        break;
+                    case "caps":
+                        style["text-transform"] = globalXmlParser.boolAttr(c, "val", true) ? "uppercase" : "none";
+                        break;
+                    case "color":
+                        style["color"] = xmlUtil.colorAttr(c, "val", null, autos.color);
+                        break;
+                    case "cs":
+                    case "dstrike":
+                    case "eastAsianLayout":
+                    case "effect":
+                    case "em":
+                    case "emboss":
+                    case "fitText":
+                    case "highlight":
+                        style["background-color"] = xmlUtil.colorAttr(c, "val", null, autos.highlight);
+                        break;
+                    case "i":
+                        style["font-style"] = globalXmlParser.boolAttr(c, "val", true) ? "italic" : "normal";
+                        break;
+                    case "iCs":
+                    case "imprint":
+                    case "kern":
+                        break;
+                    case "lang":
+                        style["$lang"] = globalXmlParser.attr(c, "val");
+                        break;
+                    case "noProof":
+                    case "outline":
+                    case "position":
+                        style.verticalAlign = globalXmlParser.lengthAttr(c, "val", LengthUsage.FontSize);
+                        break;
+                    case "rFonts":
+                        this.parseFont(c, style);
+                        break;
+                    case "rPrChange":
+                    case "rtl":
+                    case "shadow":
+                    case "shd":
+                        style["background-color"] = xmlUtil.colorAttr(c, "fill", null, autos.shd);
+                        break;
+                    case "smallCaps":
+                        style["font-variant"] = globalXmlParser.boolAttr(c, "val", true) ? "small-caps" : "none";
+                        break;
+                    case "snapToGrid":
+                    case "spacing":
+                        if (elem.localName == "pPr")
+                            this.parseSpacing(c, style);
+                        break;
+                    case "specVanish":
+                    case "strike":
+                        style["text-decoration"] = globalXmlParser.boolAttr(c, "val", true) ? "line-through" : "none";
+                        break;
+                    case "sz":
+                        style["font-size"] = style["min-height"] = globalXmlParser.lengthAttr(c, "val", LengthUsage.FontSize);
+                        break;
+                    case "szCs":
+                    case "u":
+                        this.parseUnderline(c, style);
+                        break;
+                    case "vanish":
+                        if (globalXmlParser.boolAttr(c, "val", true))
+                            style["display"] = "none";
+                        break;
+                    case "vertAlign":
+                        break;
+                    case "w":
+                    case "webHidden":
                     case "jc":
                         style["text-align"] = values.valueOfJc(c);
                         break;
                     case "textAlignment":
                         style["vertical-align"] = values.valueOfTextAlignment(c);
-                        break;
-                    case "color":
-                        style["color"] = xmlUtil.colorAttr(c, "val", null, autos.color);
-                        break;
-                    case "sz":
-                        style["font-size"] = style["min-height"] = globalXmlParser.lengthAttr(c, "val", LengthUsage.FontSize);
-                        break;
-                    case "shd":
-                        style["background-color"] = xmlUtil.colorAttr(c, "fill", null, autos.shd);
-                        break;
-                    case "highlight":
-                        style["background-color"] = xmlUtil.colorAttr(c, "val", null, autos.highlight);
-                        break;
-                    case "vertAlign":
-                        break;
-                    case "position":
-                        style.verticalAlign = globalXmlParser.lengthAttr(c, "val", LengthUsage.FontSize);
                         break;
                     case "tcW":
                         if (this.options.ignoreWidth) ;
@@ -2685,30 +2923,9 @@
                     case "trHeight":
                         this.parseTrHeight(c, style);
                         break;
-                    case "strike":
-                        style["text-decoration"] = globalXmlParser.boolAttr(c, "val", true) ? "line-through" : "none";
-                        break;
-                    case "b":
-                        style["font-weight"] = globalXmlParser.boolAttr(c, "val", true) ? "bold" : "normal";
-                        break;
-                    case "i":
-                        style["font-style"] = globalXmlParser.boolAttr(c, "val", true) ? "italic" : "normal";
-                        break;
-                    case "caps":
-                        style["text-transform"] = globalXmlParser.boolAttr(c, "val", true) ? "uppercase" : "none";
-                        break;
-                    case "smallCaps":
-                        style["font-variant"] = globalXmlParser.boolAttr(c, "val", true) ? "small-caps" : "none";
-                        break;
-                    case "u":
-                        this.parseUnderline(c, style);
-                        break;
                     case "ind":
                     case "tblInd":
                         this.parseIndentation(c, style);
-                        break;
-                    case "rFonts":
-                        this.parseFont(c, style);
                         break;
                     case "tblBorders":
                         this.parseBorderProperties(c, childStyle || style);
@@ -2720,17 +2937,8 @@
                     case "pBdr":
                         this.parseBorderProperties(c, style);
                         break;
-                    case "bdr":
-                        style["border"] = values.valueOfBorder(c);
-                        break;
                     case "tcBorders":
                         this.parseBorderProperties(c, style);
-                        break;
-                    case "vanish":
-                        if (globalXmlParser.boolAttr(c, "val", true))
-                            style["display"] = "none";
-                        break;
-                    case "kern":
                         break;
                     case "noWrap":
                         break;
@@ -2744,10 +2952,6 @@
                     case "vAlign":
                         style["vertical-align"] = values.valueOfTextAlignment(c);
                         break;
-                    case "spacing":
-                        if (elem.localName == "pPr")
-                            this.parseSpacing(c, style);
-                        break;
                     case "wordWrap":
                         if (globalXmlParser.boolAttr(c, "val"))
                             style["overflow-wrap"] = "break-word";
@@ -2755,27 +2959,17 @@
                     case "suppressAutoHyphens":
                         style["hyphens"] = globalXmlParser.boolAttr(c, "val", true) ? "none" : "auto";
                         break;
-                    case "lang":
-                        style["$lang"] = globalXmlParser.attr(c, "val");
-                        break;
-                    case "bCs":
-                    case "iCs":
-                    case "szCs":
                     case "tabs":
                     case "outlineLvl":
                     case "contextualSpacing":
                     case "tblStyleColBandSize":
                     case "tblStyleRowBandSize":
-                    case "webHidden":
                     case "pageBreakBefore":
                     case "suppressLineNumbers":
                     case "keepLines":
                     case "keepNext":
                     case "widowControl":
                     case "bidi":
-                    case "rtl":
-                    case "noProof":
-                        break;
                     default:
                         if (this.options.debug)
                             console.warn(`DOCX: Unknown document element: ${elem.localName}.${c.localName}`);
@@ -2965,7 +3159,7 @@
         static sizeValue(node, type = LengthUsage.Dxa) {
             return convertLength(node.textContent, type);
         }
-        static text_to_int(node, defaultValue = 0) {
+        static parseTextContent(node, defaultValue = 0) {
             let textContent = node.textContent;
             return textContent ? parseInt(textContent) : defaultValue;
         }
@@ -2981,7 +3175,7 @@
                 case "dxa":
                     break;
                 case "pct":
-                    type = LengthUsage.Percent;
+                    type = LengthUsage.TablePercent;
                     break;
                 case "auto":
                     return "auto";
@@ -3000,7 +3194,7 @@
             return `${size} solid ${color == "auto" ? autos.borderColor : color}`;
         }
         static valueOfTblLayout(c) {
-            let type = globalXmlParser.attr(c, "val");
+            let type = globalXmlParser.attr(c, "type");
             return type == "fixed" ? "fixed" : "auto";
         }
         static classNameOfCnfStyle(c) {
@@ -3154,10 +3348,31 @@
         return parseFloat(length);
     }
 
+    class Page {
+        constructor({ sectProps, elements = [], isSplit = false, isFirstPage = false, isLastPage = false, breakIndex = 0, contentElement, checkingOverflow = false, }) {
+            this.pageId = uuid();
+            this.sectProps = sectProps;
+            this.elements = elements;
+            this.isSplit = isSplit;
+            this.isFirstPage = isFirstPage;
+            this.isLastPage = isLastPage;
+            this.breakIndex = breakIndex;
+            this.contentElement = contentElement;
+            this.checkingOverflow = checkingOverflow;
+        }
+    }
+
     const ns$1 = {
-        svg: "http://www.w3.org/2000/svg",
-        mathML: "http://www.w3.org/1998/Math/MathML"
+        html: 'http://www.w3.org/1999/xhtml',
+        svg: 'http://www.w3.org/2000/svg',
+        mathML: 'http://www.w3.org/1998/Math/MathML',
     };
+    var Overflow$1;
+    (function (Overflow) {
+        Overflow["TRUE"] = "true";
+        Overflow["FALSE"] = "false";
+        Overflow["UNKNOWN"] = "undetected";
+    })(Overflow$1 || (Overflow$1 = {}));
     class HtmlRenderer {
         constructor() {
             this.className = "docx";
@@ -3180,6 +3395,7 @@
             this.className = options.className;
             this.rootSelector = options.inWrapper ? `.${this.className}-wrapper` : ':root';
             this.styleMap = null;
+            this.wrapper = bodyContainer;
             styleContainer = styleContainer || bodyContainer;
             removeAllElements$1(styleContainer);
             removeAllElements$1(bodyContainer);
@@ -3211,12 +3427,12 @@
             if (document.settingsPart) {
                 this.defaultTabSize = document.settingsPart.settings?.defaultTabStop;
             }
-            let sectionElements = this.renderSections(document.documentPart.body);
+            let pageElements = this.renderPages(document.documentPart.body);
             if (this.options.inWrapper) {
-                bodyContainer.appendChild(this.renderWrapper(sectionElements));
+                bodyContainer.appendChild(this.renderWrapper(pageElements));
             }
             else {
-                appendChildren$1(bodyContainer, sectionElements);
+                appendChildren$1(bodyContainer, pageElements);
             }
             this.refreshTabStops();
         }
@@ -3225,7 +3441,7 @@
             let styleText = `
 			.${c}-wrapper { background: gray; padding: 30px; padding-bottom: 0px; display: flex; flex-flow: column; align-items: center; } 
 			.${c}-wrapper>section.${c} { background: white; box-shadow: 0 0 10px rgba(0, 0, 0, 0.5); margin-bottom: 30px; }
-			.${c} { color: black; hyphens: auto; }
+			.${c} { color: black; hyphens: auto; text-underline-position: from-font; }
 			section.${c} { box-sizing: border-box; display: flex; flex-flow: column nowrap; position: relative; overflow: hidden; }
             section.${c}>header { position: absolute; top: 0; z-index: 1; display: flex; align-items: flex-end; }
 			section.${c}>article { z-index: 1; }
@@ -3235,6 +3451,8 @@
 			.${c} p { margin: 0pt; min-height: 1em; }
 			.${c} span { white-space: pre-wrap; overflow-wrap: break-word; }
 			.${c} a { color: inherit; text-decoration: inherit; }
+			.${c} img, ${c} svg { vertical-align: baseline; }
+			.${c} .clearfix::after { content: ""; display: block; line-height: 0; clear: both; }
 		`;
             return createStyleElement$1(styleText);
         }
@@ -3295,17 +3513,21 @@
                 let subStyles = style.styles;
                 if (style.linked) {
                     let linkedStyle = style.linked && stylesMap[style.linked];
-                    if (linkedStyle)
+                    if (linkedStyle) {
                         subStyles = subStyles.concat(linkedStyle.styles);
-                    else if (this.options.debug)
+                    }
+                    else if (this.options.debug) {
                         console.warn(`Can't find linked style ${style.linked}`);
+                    }
                 }
                 for (const subStyle of subStyles) {
                     let selector = `${style.target ?? ''}.${style.cssName}`;
-                    if (style.target != subStyle.target)
+                    if (style.target != subStyle.target) {
                         selector += ` ${subStyle.target}`;
-                    if (defaultStyles[style.target] == style)
+                    }
+                    if (defaultStyles[style.target] == style) {
                         selector = `.${this.className} ${style.target}, ` + selector;
+                    }
                     styleText += this.styleToString(selector, subStyle.values);
                 }
             }
@@ -3375,12 +3597,14 @@
         styleToString(selectors, values, cssText = null) {
             let result = `${selectors} {\r\n`;
             for (const key in values) {
-                if (key.startsWith('$'))
+                if (key.startsWith('$')) {
                     continue;
+                }
                 result += `  ${key}: ${values[key]};\r\n`;
             }
-            if (cssText)
+            if (cssText) {
                 result += cssText;
+            }
             return result + "}\r\n";
         }
         numberingCounter(id, lvl) {
@@ -3501,20 +3725,24 @@
                 }
             }
         }
-        splitBySection(elements) {
-            let current_section = { sectProps: null, elements: [], is_split: false, };
-            let sections = [current_section];
-            for (let elem of elements) {
-                current_section.elements.push(elem);
+        splitPage(elements) {
+            let current_page = new Page({});
+            const pages = [current_page];
+            for (const elem of elements) {
+                elem.level = 1;
+                current_page.elements.push(elem);
                 if (elem.type == DomType.Paragraph) {
                     const p = elem;
-                    let sectProps = p.sectionProps;
+                    const sectProps = p.sectionProps;
+                    if (sectProps) {
+                        sectProps.sectionId = uuid();
+                    }
                     const default_paragraph_style = this.findStyle(p.styleName);
                     if (default_paragraph_style?.paragraphProps?.pageBreakBefore) {
-                        current_section.is_split = true;
-                        current_section.sectProps = sectProps;
-                        current_section = { sectProps: null, elements: [], is_split: false };
-                        sections.push(current_section);
+                        current_page.isSplit = true;
+                        current_page.sectProps = sectProps;
+                        current_page = new Page({});
+                        pages.push(current_page);
                     }
                     let pBreakIndex = -1;
                     let rBreakIndex = -1;
@@ -3525,7 +3753,7 @@
                                     return false;
                                 }
                                 if (t.break == "lastRenderedPageBreak") {
-                                    return current_section.elements.length > 1 || !this.options.ignoreLastRenderedPageBreak;
+                                    return (current_page.elements.length > 2 || !this.options.ignoreLastRenderedPageBreak);
                                 }
                                 if (t.break === "page") {
                                     return true;
@@ -3535,120 +3763,147 @@
                             return rBreakIndex != -1;
                         });
                     }
-                    if (sectProps || pBreakIndex != -1) {
-                        current_section.is_split = true;
-                        current_section.sectProps = sectProps;
-                        current_section = { sectProps: null, elements: [], is_split: false };
-                        sections.push(current_section);
+                    if (pBreakIndex != -1) {
+                        current_page.isSplit = true;
+                        const exist_table = current_page.elements.some(elem => elem.type === DomType.Table);
+                        if (exist_table) {
+                            current_page.isSplit = false;
+                        }
+                        let exist_TOC = current_page.elements.some((paragraph) => {
+                            return paragraph.children.some((elem) => {
+                                if (elem.type === DomType.Hyperlink) {
+                                    return elem?.href?.includes('Toc');
+                                }
+                                return false;
+                            });
+                        });
+                        if (exist_TOC) {
+                            current_page.isSplit = false;
+                        }
+                    }
+                    if (pBreakIndex != -1 || (sectProps && sectProps.type != SectionType.Continuous && sectProps.type != SectionType.NextColumn)) {
+                        current_page.sectProps = sectProps;
+                        current_page = new Page({});
+                        pages.push(current_page);
                     }
                     if (pBreakIndex != -1) {
                         let breakRun = p.children[pBreakIndex];
                         let is_split = rBreakIndex < breakRun.children.length - 1;
                         if (pBreakIndex < p.children.length - 1 || is_split) {
                             let origin_run = p.children;
-                            let new_paragraph = { ...p, children: origin_run.slice(pBreakIndex) };
+                            const new_paragraph = {
+                                ...p,
+                                children: origin_run.slice(pBreakIndex),
+                            };
                             p.children = origin_run.slice(0, pBreakIndex);
-                            current_section.elements.push(new_paragraph);
+                            current_page.elements.push(new_paragraph);
                             if (is_split) {
-                                let origin_elements = breakRun.children;
-                                let newRun = { ...breakRun, children: origin_elements.slice(0, rBreakIndex) };
+                                const origin_elements = breakRun.children;
+                                const newRun = {
+                                    ...breakRun,
+                                    children: origin_elements.slice(0, rBreakIndex),
+                                };
                                 p.children.push(newRun);
                                 breakRun.children = origin_elements.slice(rBreakIndex);
                             }
                         }
                     }
                 }
-                if (elem.type === DomType.Table) ;
+                if (elem.type === DomType.Table) {
+                    current_page.isSplit = false;
+                }
             }
             let currentSectProps = null;
-            for (let i = sections.length - 1; i >= 0; i--) {
-                if (sections[i].sectProps == null) {
-                    sections[i].sectProps = currentSectProps;
+            for (let i = pages.length - 1; i >= 0; i--) {
+                if (pages[i].sectProps == null) {
+                    pages[i].sectProps = currentSectProps;
                 }
                 else {
-                    currentSectProps = sections[i].sectProps;
+                    currentSectProps = pages[i].sectProps;
                 }
             }
-            return sections;
+            return pages;
         }
-        renderSections(document) {
+        renderPages(document) {
             const result = [];
             this.processElement(document);
-            let sections;
+            let pages;
             if (this.options.breakPages) {
-                sections = this.splitBySection(document.children);
+                pages = this.splitPage(document.children);
             }
             else {
-                sections = [{ sectProps: document.props, elements: document.children, is_split: false }];
+                pages = [new Page({ sectProps: document.props, elements: document.children, })];
             }
+            document.pages = pages;
             let prevProps = null;
-            for (let i = 0, l = sections.length; i < l; i++) {
+            for (let i = 0, l = pages.length; i < l; i++) {
                 this.currentFootnoteIds = [];
-                const section = sections[i];
-                const props = section.sectProps || document.props;
+                const page = pages[i];
+                const { sectProps } = page;
+                let sectionProps = sectProps ?? document.props;
                 let pageIndex = result.length;
-                let isFirstSection = prevProps != props;
-                let isLastSection = i === (l - 1);
-                let sectionElement = this.renderSection(section, props, document.cssStyle, pageIndex, isFirstSection, isLastSection);
-                result.push(...sectionElement);
-                prevProps = props;
+                let isFirstPage = prevProps != sectionProps;
+                let isLastPage = i === l - 1;
+                let pageElements = this.renderPage(page, sectionProps, document.cssStyle, pageIndex, isFirstPage, isLastPage);
+                result.push(...pageElements);
+                prevProps = sectProps;
             }
             return result;
         }
-        renderSection(section, props, sectionStyle, pageIndex, isFirstSection, isLastSection) {
-            const sectionElement = this.createSection(this.className, props);
-            this.renderStyleValues(sectionStyle, sectionElement);
+        renderPage(page, props, sectionStyle, pageIndex, isFirstPage, isLastPage) {
+            const pageElement = this.createPage(this.className, props);
+            this.renderStyleValues(sectionStyle, pageElement);
             if (this.options.renderHeaders) {
-                this.renderHeaderFooterRef(props.headerRefs, props, pageIndex, isFirstSection, sectionElement);
+                this.renderHeaderFooterRef(props.headerRefs, props, pageIndex, isFirstPage, pageElement);
             }
             let contentElement = createElement$1("article");
             if (this.options.breakPages) {
                 contentElement.style.minHeight = props.contentSize.height;
             }
-            this.renderElements(section.elements, contentElement);
-            sectionElement.appendChild(contentElement);
+            this.renderElements(page.elements, contentElement);
+            pageElement.appendChild(contentElement);
             if (this.options.renderFootnotes) {
-                this.renderNotes(this.currentFootnoteIds, this.footnoteMap, sectionElement);
+                this.renderNotes(this.currentFootnoteIds, this.footnoteMap, pageElement);
             }
-            if (this.options.renderEndnotes && isLastSection) {
-                this.renderNotes(this.currentEndnoteIds, this.endnoteMap, sectionElement);
+            if (this.options.renderEndnotes && isLastPage) {
+                this.renderNotes(this.currentEndnoteIds, this.endnoteMap, pageElement);
             }
             if (this.options.renderFooters) {
-                this.renderHeaderFooterRef(props.footerRefs, props, pageIndex, isFirstSection, sectionElement);
+                this.renderHeaderFooterRef(props.footerRefs, props, pageIndex, isFirstPage, pageElement);
             }
-            return [sectionElement];
+            return [pageElement];
         }
-        createSection(className, props) {
-            let oSection = createElement$1("section", { className });
+        createPage(className, props) {
+            let oPage = createElement$1("section", { className });
             if (props) {
                 if (props.pageMargins) {
-                    oSection.style.paddingLeft = props.pageMargins.left;
-                    oSection.style.paddingRight = props.pageMargins.right;
-                    oSection.style.paddingTop = props.pageMargins.top;
-                    oSection.style.paddingBottom = props.pageMargins.bottom;
+                    oPage.style.paddingLeft = props.pageMargins.left;
+                    oPage.style.paddingRight = props.pageMargins.right;
+                    oPage.style.paddingTop = props.pageMargins.top;
+                    oPage.style.paddingBottom = props.pageMargins.bottom;
                 }
                 if (props.pageSize) {
                     if (!this.options.ignoreWidth) {
-                        oSection.style.width = props.pageSize.width;
+                        oPage.style.width = props.pageSize.width;
                     }
                     if (!this.options.ignoreHeight) {
-                        oSection.style.minHeight = props.pageSize.height;
+                        oPage.style.minHeight = props.pageSize.height;
                     }
                 }
-                if (props.columns && props.columns.numberOfColumns) {
-                    oSection.style.columnCount = `${props.columns.numberOfColumns}`;
-                    oSection.style.columnGap = props.columns.space;
+                if (props.columns && props.columns.count) {
+                    oPage.style.columnCount = `${props.columns.count}`;
+                    oPage.style.columnGap = props.columns.space;
                     if (props.columns.separator) {
-                        oSection.style.columnRule = "1px solid black";
+                        oPage.style.columnRule = "1px solid black";
                     }
                 }
             }
-            return oSection;
+            return oPage;
         }
-        renderHeaderFooterRef(refs, props, page, firstOfSection, parent) {
+        renderHeaderFooterRef(refs, props, page, isFirstPage, parent) {
             if (!refs)
                 return;
-            let ref = (props.titlePage && firstOfSection ? refs.find(x => x.type == "first") : null)
+            let ref = (props.titlePage && isFirstPage ? refs.find(x => x.type == "first") : null)
                 ?? (page % 2 == 1 ? refs.find(x => x.type == "even") : null)
                 ?? refs.find(x => x.type == "default");
             let part = ref && this.document.findPartByRelId(ref.id, this.document.documentPart);
@@ -4225,10 +4480,10 @@
         return parent;
     }
 
-    let ns = {
-        html: "http://www.w3.org/1999/xhtml",
-        svg: "http://www.w3.org/2000/svg",
-        mathML: "http://www.w3.org/1998/Math/MathML"
+    const ns = {
+        html: 'http://www.w3.org/1999/xhtml',
+        svg: 'http://www.w3.org/2000/svg',
+        mathML: 'http://www.w3.org/1998/Math/MathML',
     };
     var Overflow;
     (function (Overflow) {
@@ -4238,7 +4493,7 @@
     })(Overflow || (Overflow = {}));
     class HtmlRendererSync {
         constructor() {
-            this.className = "docx";
+            this.className = 'docx';
             this.styleMap = {};
             this.currentPart = null;
             this.tableVerticalMerges = [];
@@ -4262,15 +4517,15 @@
             styleContainer = styleContainer || bodyContainer;
             removeAllElements(styleContainer);
             removeAllElements(bodyContainer);
-            appendComment(styleContainer, "docxjs library predefined styles");
+            appendComment(styleContainer, 'docxjs library predefined styles');
             styleContainer.appendChild(this.renderDefaultStyle());
             if (document.themePart) {
-                appendComment(styleContainer, "docxjs document theme values");
+                appendComment(styleContainer, 'docxjs document theme values');
                 this.renderTheme(document.themePart, styleContainer);
             }
             if (document.stylesPart != null) {
                 this.styleMap = this.processStyles(document.stylesPart.styles);
-                appendComment(styleContainer, "docxjs document styles");
+                appendComment(styleContainer, 'docxjs document styles');
                 styleContainer.appendChild(this.renderStyles(document.stylesPart.styles));
             }
             if (document.numberingPart) {
@@ -4297,12 +4552,13 @@
             else {
                 this.wrapper = bodyContainer;
             }
-            await this.renderSections(document.documentPart.body);
+            this.renderKonva();
+            await this.renderPages(document.documentPart.body);
             this.refreshTabStops();
         }
         renderDefaultStyle() {
-            let c = this.className;
-            let styleText = `
+            const c = this.className;
+            const styleText = `
 			.${c}-wrapper { background: gray; padding: 30px; padding-bottom: 0px; display: flex; flex-flow: column; align-items: center; line-height:normal; font-weight:normal; } 
 			.${c}-wrapper>section.${c} { background: white; box-shadow: 0 0 10px rgba(0, 0, 0, 0.5); margin-bottom: 30px; }
 			.${c} { color: black; hyphens: auto; text-underline-position: from-font; }
@@ -4321,8 +4577,8 @@
             return createStyleElement(styleText);
         }
         renderTheme(themePart, styleContainer) {
-            let variables = {};
-            let fontScheme = themePart.theme?.fontScheme;
+            const variables = {};
+            const fontScheme = themePart.theme?.fontScheme;
             if (fontScheme) {
                 if (fontScheme.majorFont) {
                     variables['--docx-majorHAnsi-font'] = fontScheme.majorFont.latinTypeface;
@@ -4331,13 +4587,13 @@
                     variables['--docx-minorHAnsi-font'] = fontScheme.minorFont.latinTypeface;
                 }
             }
-            let colorScheme = themePart.theme?.colorScheme;
+            const colorScheme = themePart.theme?.colorScheme;
             if (colorScheme) {
-                for (let [k, v] of Object.entries(colorScheme.colors)) {
+                for (const [k, v] of Object.entries(colorScheme.colors)) {
                     variables[`--docx-${k}-color`] = `#${v}`;
                 }
             }
-            let cssText = this.styleToString(`.${this.className}`, variables);
+            const cssText = this.styleToString(`.${this.className}`, variables);
             styleContainer.appendChild(createStyleElement(cssText));
         }
         processStyleName(className) {
@@ -4345,8 +4601,8 @@
         }
         processStyles(styles) {
             let stylesMap = keyBy(styles.filter(x => x.id != null), x => x.id);
-            for (let style of styles.filter(x => x.basedOn)) {
-                let baseStyle = stylesMap[style.basedOn];
+            for (const style of styles.filter(x => x.basedOn)) {
+                const baseStyle = stylesMap[style.basedOn];
                 if (baseStyle) {
                     style.paragraphProps = mergeDeep(style.paragraphProps, baseStyle.paragraphProps);
                     style.runProps = mergeDeep(style.runProps, baseStyle.runProps);
@@ -4364,7 +4620,7 @@
                     console.warn(`Can't find base style ${style.basedOn}`);
                 }
             }
-            for (let style of styles) {
+            for (const style of styles) {
                 style.cssName = this.processStyleName(style.id);
             }
             return stylesMap;
@@ -4373,55 +4629,59 @@
             let styleText = "";
             let stylesMap = this.styleMap;
             let defaultStyles = keyBy(styles.filter(s => s.isDefault), s => s.target);
-            for (let style of styles) {
+            for (const style of styles) {
                 let subStyles = style.styles;
                 if (style.linked) {
-                    let linkedStyle = style.linked && stylesMap[style.linked];
-                    if (linkedStyle)
+                    const linkedStyle = style.linked && stylesMap[style.linked];
+                    if (linkedStyle) {
                         subStyles = subStyles.concat(linkedStyle.styles);
-                    else if (this.options.debug)
+                    }
+                    else if (this.options.debug) {
                         console.warn(`Can't find linked style ${style.linked}`);
+                    }
                 }
-                for (let subStyle of subStyles) {
+                for (const subStyle of subStyles) {
                     let selector = `${style.target ?? ''}.${style.cssName}`;
-                    if (style.target != subStyle.target)
+                    if (style.target != subStyle.target) {
                         selector += ` ${subStyle.target}`;
-                    if (defaultStyles[style.target] == style)
+                    }
+                    if (defaultStyles[style.target] == style) {
                         selector = `.${this.className} ${style.target}, ` + selector;
+                    }
                     styleText += this.styleToString(selector, subStyle.values);
                 }
             }
             return createStyleElement(styleText);
         }
         processNumberings(numberings) {
-            for (let num of numberings.filter(n => n.pStyleName)) {
-                let style = this.findStyle(num.pStyleName);
+            for (const num of numberings.filter(n => n.pStyleName)) {
+                const style = this.findStyle(num.pStyleName);
                 if (style?.paragraphProps?.numbering) {
                     style.paragraphProps.numbering.level = num.level;
                 }
             }
         }
         renderNumbering(numberings, styleContainer) {
-            let styleText = "";
-            let resetCounters = [];
-            for (let num of numberings) {
-                let selector = `p.${this.numberingClass(num.id, num.level)}`;
-                let listStyleType = "none";
+            let styleText = '';
+            const resetCounters = [];
+            for (const num of numberings) {
+                const selector = `p.${this.numberingClass(num.id, num.level)}`;
+                let listStyleType = 'none';
                 if (num.bullet) {
-                    let valiable = `--${this.className}-${num.bullet.src}`.toLowerCase();
+                    const valiable = `--${this.className}-${num.bullet.src}`.toLowerCase();
                     styleText += this.styleToString(`${selector}:before`, {
                         "content": "' '",
                         "display": "inline-block",
                         "background": `var(${valiable})`
                     }, num.bullet.style);
                     this.document.loadNumberingImage(num.bullet.src).then(data => {
-                        let text = `${this.rootSelector} { ${valiable}: url(${data}) }`;
+                        const text = `${this.rootSelector} { ${valiable}: url(${data}) }`;
                         styleContainer.appendChild(createStyleElement(text));
                     });
                 }
                 else if (num.levelText) {
-                    let counter = this.numberingCounter(num.id, num.level);
-                    let counterReset = counter + " " + (num.start - 1);
+                    const counter = this.numberingCounter(num.id, num.level);
+                    const counterReset = counter + ' ' + (num.start - 1);
                     if (num.level > 0) {
                         styleText += this.styleToString(`p.${this.numberingClass(num.id, num.level - 1)}`, {
                             "counter-reset": counterReset
@@ -4438,15 +4698,15 @@
                     listStyleType = this.numFormatToCssValue(num.format);
                 }
                 styleText += this.styleToString(selector, {
-                    "display": "list-item",
-                    "list-style-position": "inside",
-                    "list-style-type": listStyleType,
-                    ...num.pStyle
+                    display: 'list-item',
+                    'list-style-position': 'inside',
+                    'list-style-type': listStyleType,
+                    ...num.pStyle,
                 });
             }
             if (resetCounters.length > 0) {
                 styleText += this.styleToString(this.rootSelector, {
-                    "counter-reset": resetCounters.join(" ")
+                    'counter-reset': resetCounters.join(' '),
                 });
             }
             return createStyleElement(styleText);
@@ -4456,84 +4716,86 @@
         }
         styleToString(selectors, values, cssText = null) {
             let result = `${selectors} {\r\n`;
-            for (let key in values) {
-                if (key.startsWith('$'))
+            for (const key in values) {
+                if (key.startsWith('$')) {
                     continue;
+                }
                 result += `  ${key}: ${values[key]};\r\n`;
             }
-            if (cssText)
+            if (cssText) {
                 result += cssText;
-            return result + "}\r\n";
+            }
+            return result + '}\r\n';
         }
         numberingCounter(id, lvl) {
             return `${this.className}-num-${id}-${lvl}`;
         }
         levelTextToContent(text, suff, id, numformat) {
-            let suffMap = {
-                "tab": "\\9",
-                "space": "\\a0",
+            const suffMap = {
+                tab: '\\9',
+                space: '\\a0',
             };
-            let result = text.replace(/%\d*/g, s => {
-                let lvl = parseInt(s.substring(1), 10) - 1;
+            const result = text.replace(/%\d*/g, s => {
+                const lvl = parseInt(s.substring(1), 10) - 1;
                 return `"counter(${this.numberingCounter(id, lvl)}, ${numformat})"`;
             });
-            return `"${result}${suffMap[suff] ?? ""}"`;
+            return `"${result}${suffMap[suff] ?? ''}"`;
         }
         numFormatToCssValue(format) {
-            let mapping = {
-                none: "none",
-                bullet: "disc",
-                decimal: "decimal",
-                lowerLetter: "lower-alpha",
-                upperLetter: "upper-alpha",
-                lowerRoman: "lower-roman",
-                upperRoman: "upper-roman",
-                decimalZero: "decimal-leading-zero",
-                aiueo: "katakana",
-                aiueoFullWidth: "katakana",
-                chineseCounting: "simp-chinese-informal",
-                chineseCountingThousand: "simp-chinese-informal",
-                chineseLegalSimplified: "simp-chinese-formal",
-                chosung: "hangul-consonant",
-                ideographDigital: "cjk-ideographic",
-                ideographTraditional: "cjk-heavenly-stem",
-                ideographLegalTraditional: "trad-chinese-formal",
-                ideographZodiac: "cjk-earthly-branch",
-                iroha: "katakana-iroha",
-                irohaFullWidth: "katakana-iroha",
-                japaneseCounting: "japanese-informal",
-                japaneseDigitalTenThousand: "cjk-decimal",
-                japaneseLegal: "japanese-formal",
-                thaiNumbers: "thai",
-                koreanCounting: "korean-hangul-formal",
-                koreanDigital: "korean-hangul-formal",
-                koreanDigital2: "korean-hanja-informal",
-                hebrew1: "hebrew",
-                hebrew2: "hebrew",
-                hindiNumbers: "devanagari",
-                ganada: "hangul",
-                taiwaneseCounting: "cjk-ideographic",
-                taiwaneseCountingThousand: "cjk-ideographic",
-                taiwaneseDigital: "cjk-decimal",
+            const mapping = {
+                none: 'none',
+                bullet: 'disc',
+                decimal: 'decimal',
+                lowerLetter: 'lower-alpha',
+                upperLetter: 'upper-alpha',
+                lowerRoman: 'lower-roman',
+                upperRoman: 'upper-roman',
+                decimalZero: 'decimal-leading-zero',
+                aiueo: 'katakana',
+                aiueoFullWidth: 'katakana',
+                chineseCounting: 'simp-chinese-informal',
+                chineseCountingThousand: 'simp-chinese-informal',
+                chineseLegalSimplified: 'simp-chinese-formal',
+                chosung: 'hangul-consonant',
+                ideographDigital: 'cjk-ideographic',
+                ideographTraditional: 'cjk-heavenly-stem',
+                ideographLegalTraditional: 'trad-chinese-formal',
+                ideographZodiac: 'cjk-earthly-branch',
+                iroha: 'katakana-iroha',
+                irohaFullWidth: 'katakana-iroha',
+                japaneseCounting: 'japanese-informal',
+                japaneseDigitalTenThousand: 'cjk-decimal',
+                japaneseLegal: 'japanese-formal',
+                thaiNumbers: 'thai',
+                koreanCounting: 'korean-hangul-formal',
+                koreanDigital: 'korean-hangul-formal',
+                koreanDigital2: 'korean-hanja-informal',
+                hebrew1: 'hebrew',
+                hebrew2: 'hebrew',
+                hindiNumbers: 'devanagari',
+                ganada: 'hangul',
+                taiwaneseCounting: 'cjk-ideographic',
+                taiwaneseCountingThousand: 'cjk-ideographic',
+                taiwaneseDigital: 'cjk-decimal',
             };
             return mapping[format] ?? format;
         }
         renderFontTable(fontsPart, styleContainer) {
-            for (let f of fontsPart.fonts) {
-                for (let ref of f.embedFontRefs) {
+            for (const f of fontsPart.fonts) {
+                for (const ref of f.embedFontRefs) {
                     this.document.loadFont(ref.id, ref.key).then(fontData => {
-                        let cssValues = {
+                        const cssValues = {
                             'font-family': f.name,
-                            'src': `url(${fontData})`
+                            src: `url(${fontData})`,
                         };
-                        if (ref.type == "bold" || ref.type == "boldItalic") {
+                        if (ref.type == 'bold' || ref.type == 'boldItalic') {
                             cssValues['font-weight'] = 'bold';
                         }
-                        if (ref.type == "italic" || ref.type == "boldItalic") {
+                        if (ref.type == 'italic' || ref.type == 'boldItalic') {
                             cssValues['font-style'] = 'italic';
                         }
                         appendComment(styleContainer, `docxjs ${f.name} font`);
-                        let cssText = this.styleToString("@font-face", cssValues);
+                        const cssText = this.styleToString('@font-face', cssValues);
                         styleContainer.appendChild(createStyleElement(cssText));
                         this.refreshTabStops();
                     });
@@ -4541,7 +4803,7 @@
             }
         }
         renderWrapper() {
-            return createElement("div", { className: `${this.className}-wrapper` });
+            return createElement('div', { className: `${this.className}-wrapper` });
         }
         copyStyleProperties(input, output, attrs = null) {
             if (!input) {
@@ -4553,7 +4815,7 @@
             if (attrs == null) {
                 attrs = Object.getOwnPropertyNames(input);
             }
-            for (let key of attrs) {
+            for (const key of attrs) {
                 if (input.hasOwnProperty(key) && !output.hasOwnProperty(key))
                     output[key] = input[key];
             }
@@ -4561,7 +4823,7 @@
         }
         processElement(element) {
             if (element.children) {
-                for (let e of element.children) {
+                for (const e of element.children) {
                     e.parent = element;
                     if (e.type == DomType.Table) {
                         this.processTable(e);
@@ -4574,33 +4836,39 @@
             }
         }
         processTable(table) {
-            for (let r of table.children) {
-                for (let c of r.children) {
+            for (const r of table.children) {
+                for (const c of r.children) {
                     c.cssStyle = this.copyStyleProperties(table.cellStyle, c.cssStyle, [
-                        "border-left", "border-right", "border-top", "border-bottom",
-                        "padding-left", "padding-right", "padding-top", "padding-bottom"
+                        'border-left',
+                        'border-right',
+                        'border-top',
+                        'border-bottom',
+                        'padding-left',
+                        'padding-right',
+                        'padding-top',
+                        'padding-bottom',
                     ]);
                 }
             }
         }
-        splitBySection(elements) {
-            let current_section = { sectProps: null, elements: [], is_split: false, };
-            let sections = [current_section];
-            for (let elem of elements) {
+        splitPage(elements) {
+            let current_page = new Page({});
+            const pages = [current_page];
+            for (const elem of elements) {
                 elem.level = 1;
-                current_section.elements.push(elem);
+                current_page.elements.push(elem);
                 if (elem.type == DomType.Paragraph) {
-                    let p = elem;
-                    let sectProps = p.sectionProps;
+                    const p = elem;
+                    const sectProps = p.sectionProps;
                     if (sectProps) {
-                        sectProps.uuid = uuid();
+                        sectProps.sectionId = uuid();
                     }
-                    let default_paragraph_style = this.findStyle(p.styleName);
+                    const default_paragraph_style = this.findStyle(p.styleName);
                     if (default_paragraph_style?.paragraphProps?.pageBreakBefore) {
-                        current_section.is_split = true;
-                        current_section.sectProps = sectProps;
-                        current_section = { sectProps: null, elements: [], is_split: false };
-                        sections.push(current_section);
+                        current_page.isSplit = true;
+                        current_page.sectProps = sectProps;
+                        current_page = new Page({});
+                        pages.push(current_page);
                     }
                     let pBreakIndex = -1;
                     let rBreakIndex = -1;
@@ -4610,10 +4878,10 @@
                                 if (t.type != DomType.Break) {
                                     return false;
                                 }
-                                if (t.break == "lastRenderedPageBreak") {
-                                    return current_section.elements.length > 2 || !this.options.ignoreLastRenderedPageBreak;
+                                if (t.break == 'lastRenderedPageBreak') {
+                                    return (current_page.elements.length > 2 || !this.options.ignoreLastRenderedPageBreak);
                                 }
-                                if (t.break === "page") {
+                                if (t.break === 'page') {
                                     return true;
                                 }
                             });
@@ -4622,34 +4890,45 @@
                         });
                     }
                     if (pBreakIndex != -1) {
-                        current_section.is_split = true;
-                        let exist_table = current_section.elements.some((elem) => elem.type === DomType.Table);
+                        current_page.isSplit = true;
+                        const exist_table = current_page.elements.some(elem => elem.type === DomType.Table);
                         if (exist_table) {
-                            current_section.is_split = false;
+                            current_page.isSplit = false;
                         }
-                        let exist_TOC = current_section.elements.some((paragraph) => {
-                            return paragraph.children.some((elem) => elem.type === DomType.Hyperlink && elem?.href?.includes('Toc'));
+                        let exist_TOC = current_page.elements.some((paragraph) => {
+                            return paragraph.children.some((elem) => {
+                                if (elem.type === DomType.Hyperlink) {
+                                    return elem?.href?.includes('Toc');
+                                }
+                                return false;
+                            });
                         });
                         if (exist_TOC) {
-                            current_section.is_split = false;
+                            current_page.isSplit = false;
                         }
                     }
-                    if (pBreakIndex != -1 || ((sectProps && sectProps.type != SectionType.Continuous && sectProps.type != SectionType.NextColumn))) {
-                        current_section.sectProps = sectProps;
-                        current_section = { sectProps: null, elements: [], is_split: false };
-                        sections.push(current_section);
+                    if (pBreakIndex != -1 || (sectProps && sectProps.type != SectionType.Continuous && sectProps.type != SectionType.NextColumn)) {
+                        current_page.sectProps = sectProps;
+                        current_page = new Page({});
+                        pages.push(current_page);
                     }
                     if (pBreakIndex != -1) {
-                        let breakRun = p.children[pBreakIndex];
-                        let is_split = rBreakIndex < breakRun.children.length - 1;
+                        const breakRun = p.children[pBreakIndex];
+                        const is_split = rBreakIndex < breakRun.children.length - 1;
                         if (pBreakIndex < p.children.length - 1 || is_split) {
-                            let origin_run = p.children;
-                            let new_paragraph = { ...p, children: origin_run.slice(pBreakIndex) };
-                            p.children = origin_run.slice(0, pBreakIndex);
-                            current_section.elements.push(new_paragraph);
+                            const origin_runs = p.children;
+                            const new_paragraph = {
+                                ...p,
+                                children: origin_runs.slice(pBreakIndex),
+                            };
+                            p.children = origin_runs.slice(0, pBreakIndex);
+                            current_page.elements.push(new_paragraph);
                             if (is_split) {
-                                let origin_elements = breakRun.children;
-                                let newRun = { ...breakRun, children: origin_elements.slice(0, rBreakIndex) };
+                                const origin_elements = breakRun.children;
+                                const newRun = {
+                                    ...breakRun,
+                                    children: origin_elements.slice(0, rBreakIndex),
+                                };
                                 p.children.push(newRun);
                                 breakRun.children = origin_elements.slice(rBreakIndex);
                             }
@@ -4657,115 +4936,128 @@
                     }
                 }
                 if (elem.type === DomType.Table) {
-                    current_section.is_split = false;
+                    current_page.isSplit = false;
                 }
             }
             let currentSectProps = null;
-            for (let i = sections.length - 1; i >= 0; i--) {
-                if (sections[i].sectProps == null) {
-                    sections[i].sectProps = currentSectProps;
+            for (let i = pages.length - 1; i >= 0; i--) {
+                if (pages[i].sectProps == null) {
+                    pages[i].sectProps = currentSectProps;
                 }
                 else {
-                    currentSectProps = sections[i].sectProps;
+                    currentSectProps = pages[i].sectProps;
                 }
             }
-            return sections;
+            return pages;
         }
-        async renderSections(document) {
+        async renderPages(document) {
             this.processElement(document);
-            let sections;
+            let pages;
             if (this.options.breakPages) {
-                sections = this.splitBySection(document.children);
+                pages = this.splitPage(document.children);
             }
             else {
-                sections = [{ sectProps: document.props, elements: document.children, is_split: false }];
+                pages = [new Page({ sectProps: document.props, elements: document.children, })];
             }
+            document.pages = pages;
             let prevProps = null;
-            for (let i = 0, l = sections.length; i < l; i++) {
+            let origin_pages = structuredClone(pages);
+            for (let i = 0; i < origin_pages.length; i++) {
                 this.currentFootnoteIds = [];
-                let section = sections[i];
-                let { sectProps } = section;
-                section.sectProps = sectProps ?? document.props;
-                section.isFirstSection = prevProps != sectProps;
-                section.isLastSection = i === (l - 1);
-                section.pageIndex = i;
-                section.checking_overflow = false;
-                this.current_section = section;
-                prevProps = sectProps;
-                await this.renderSection();
+                const page = origin_pages[i];
+                const { sectProps } = page;
+                page.sectProps = sectProps ?? document.props;
+                page.isFirstPage = prevProps != page.sectProps;
+                page.isLastPage = i === origin_pages.length - 1;
+                page.checkingOverflow = false;
+                this.currentPage = page;
+                prevProps = page.sectProps;
+                await this.renderPage();
             }
         }
-        async renderSection() {
-            let section = this.current_section;
-            let { is_split, sectProps, isFirstSection, isLastSection, pageIndex } = section;
-            let sectionElement = this.createSection(this.className, sectProps);
-            sectionElement.dataset.splited = String(is_split);
-            this.renderStyleValues(this.document.documentPart.body.cssStyle, sectionElement);
+        async renderPage() {
+            const { pageId, sectProps, elements, isFirstPage, isLastPage } = this.currentPage;
+            const pageElement = this.createPage(this.className, sectProps);
+            this.renderStyleValues(this.document.documentPart.body.cssStyle, pageElement);
+            let pages = this.document.documentPart.body.pages;
+            let pageIndex = pages.findIndex((page) => page.pageId === pageId);
             if (this.options.renderHeaders) {
-                await this.renderHeaderFooterRef(sectProps.headerRefs, sectProps, pageIndex, isFirstSection, sectionElement);
+                await this.renderHeaderFooterRef(sectProps.headerRefs, sectProps, pageIndex, isFirstPage, pageElement);
             }
             if (this.options.renderFootnotes) {
-                await this.renderNotes(this.currentFootnoteIds, this.footnoteMap, sectionElement);
+                await this.renderNotes(this.currentFootnoteIds, this.footnoteMap, pageElement);
             }
-            if (this.options.renderEndnotes && isLastSection) {
-                await this.renderNotes(this.currentEndnoteIds, this.endnoteMap, sectionElement);
+            if (this.options.renderEndnotes && isLastPage) {
+                await this.renderNotes(this.currentEndnoteIds, this.endnoteMap, pageElement);
             }
             if (this.options.renderFooters) {
-                await this.renderHeaderFooterRef(sectProps.footerRefs, sectProps, pageIndex, isFirstSection, sectionElement);
+                await this.renderHeaderFooterRef(sectProps.footerRefs, sectProps, pageIndex, isFirstPage, pageElement);
             }
-            let contentElement = this.createSectionContent(sectProps);
+            const contentElement = this.createPageContent(sectProps);
             if (this.options.breakPages) {
                 contentElement.style.height = sectProps.contentSize.height;
             }
             else {
                 contentElement.style.minHeight = sectProps.contentSize.height;
             }
-            this.current_section.contentElement = contentElement;
-            sectionElement.appendChild(contentElement);
-            this.current_section.checking_overflow = true;
-            await this.renderElements(section.elements, contentElement);
-            this.current_section.checking_overflow = false;
+            this.currentPage.contentElement = contentElement;
+            pageElement.appendChild(contentElement);
+            this.currentPage.checkingOverflow = true;
+            let is_overflow = await this.renderElements(elements, contentElement);
+            if (is_overflow === Overflow.FALSE) {
+                this.currentPage.isSplit = true;
+                pages[pageIndex] = this.currentPage;
+            }
+            this.currentPage.checkingOverflow = false;
         }
-        createSection(className, props) {
-            let oSection = createElement("section", { className });
+        createPage(className, props) {
+            const oPage = createElement('section', { className });
             if (props) {
-                oSection.dataset.uuid = props.uuid;
+                oPage.dataset.sectionId = props.sectionId;
                 if (props.pageMargins) {
-                    oSection.style.paddingLeft = props.pageMargins.left;
-                    oSection.style.paddingRight = props.pageMargins.right;
-                    oSection.style.paddingTop = props.pageMargins.top;
-                    oSection.style.paddingBottom = props.pageMargins.bottom;
+                    oPage.style.paddingLeft = props.pageMargins.left;
+                    oPage.style.paddingRight = props.pageMargins.right;
+                    oPage.style.paddingTop = props.pageMargins.top;
+                    oPage.style.paddingBottom = props.pageMargins.bottom;
                 }
                 if (props.pageSize) {
                     if (!this.options.ignoreWidth) {
-                        oSection.style.width = props.pageSize.width;
+                        oPage.style.width = props.pageSize.width;
                     }
                     if (!this.options.ignoreHeight) {
-                        oSection.style.minHeight = props.pageSize.height;
+                        oPage.style.minHeight = props.pageSize.height;
                     }
                 }
             }
-            this.wrapper.appendChild(oSection);
-            return oSection;
+            this.wrapper.appendChild(oPage);
+            return oPage;
         }
-        createSectionContent(props) {
-            const oArticle = createElement("article");
-            if (props.columns && props.columns.numberOfColumns) {
-                oArticle.style.columnCount = `${props.columns.numberOfColumns}`;
-                oArticle.style.columnGap = props.columns.space;
-                if (props.columns.separator) {
-                    oArticle.style.columnRule = "1px solid black";
-                }
+        createPageContent(props) {
+            const oArticle = createElement('article');
+            const { count, space, separator } = props?.columns;
+            if (count > 1) {
+                oArticle.style.columnCount = `${count}`;
+                oArticle.style.columnGap = space;
+            }
+            if (separator) {
+                oArticle.style.columnRule = '1px solid black';
             }
             return oArticle;
         }
-        async renderHeaderFooterRef(refs, props, pageIndex, firstOfSection, parent) {
+        async renderHeaderFooterRef(refs, props, pageIndex, isFirstPage, parent) {
             if (!refs)
                 return;
-            let ref = (props.titlePage && firstOfSection ? refs.find(x => x.type == "first") : null)
-                ?? (pageIndex % 2 == 1 ? refs.find(x => x.type == "even") : null)
-                ?? refs.find(x => x.type == "default");
-            let part = ref && this.document.findPartByRelId(ref.id, this.document.documentPart);
+            let ref;
+            if (props.titlePage && isFirstPage) {
+                ref = refs.find(x => x.type == "first");
+            }
+            else if (pageIndex % 2 == 1) {
+                ref = refs.find(x => x.type == "even");
+            }
+            else {
+                ref = refs.find(x => x.type == "default");
+            }
+            let part = this.document.findPartByRelId(ref?.id, this.document.documentPart);
             if (part) {
                 this.currentPart = part;
                 if (!this.usedHederFooterParts.includes(part.path)) {
@@ -4796,9 +5088,9 @@
             }
         }
         async renderNotes(noteIds, notesMap, parent) {
-            let notes = noteIds.map(id => notesMap[id]).filter(x => x);
+            const notes = noteIds.map(id => notesMap[id]).filter(x => x);
             if (notes.length > 0) {
-                let oList = createElement("ol", null);
+                const oList = createElement('ol', null);
                 await this.renderElements(notes, oList);
                 parent.appendChild(oList);
             }
@@ -4807,9 +5099,9 @@
             let is_overflow = Overflow.FALSE;
             for (let i = 0; i < elems.length; i++) {
                 if (elems[i].level === 1) {
-                    this.current_section.elementIndex = i;
+                    this.currentPage.breakIndex = i;
                 }
-                let element = await this.renderElement(elems[i], parent);
+                const element = (await this.renderElement(elems[i], parent));
                 if (element?.dataset?.overflow === Overflow.TRUE) {
                     is_overflow = Overflow.TRUE;
                     break;
@@ -4884,7 +5176,7 @@
                     oNode = await this.renderDeletedText(elem, parent);
                     break;
                 case DomType.NoBreakHyphen:
-                    oNode = createElement("wbr");
+                    oNode = createElement('wbr');
                     if (parent) {
                         await this.appendChildren(parent, oNode);
                     }
@@ -4908,20 +5200,20 @@
                     }
                     break;
                 case DomType.Footer:
-                    oNode = await this.renderHeaderFooter(elem, "footer");
+                    oNode = await this.renderHeaderFooter(elem, 'footer');
                     if (parent) {
                         appendChildren(parent, oNode);
                     }
                     break;
                 case DomType.Header:
-                    oNode = await this.renderHeaderFooter(elem, "header");
+                    oNode = await this.renderHeaderFooter(elem, 'header');
                     if (parent) {
                         appendChildren(parent, oNode);
                     }
                     break;
                 case DomType.Footnote:
                 case DomType.Endnote:
-                    oNode = await this.renderContainer(elem, "li");
+                    oNode = await this.renderContainer(elem, 'li');
                     if (parent) {
                         appendChildren(parent, oNode);
                     }
@@ -4948,19 +5240,21 @@
                     }
                     break;
                 case DomType.MmlMath:
-                    oNode = await this.renderContainerNS(elem, ns.mathML, "math", { xmlns: ns.mathML });
+                    oNode = await this.renderContainerNS(elem, ns.mathML, 'math', {
+                        xmlns: ns.mathML,
+                    });
                     if (parent) {
                         oNode.dataset.overflow = await this.appendChildren(parent, oNode);
                     }
                     break;
                 case DomType.MmlMathParagraph:
-                    oNode = await this.renderContainer(elem, "span");
+                    oNode = await this.renderContainer(elem, 'span');
                     if (parent) {
                         appendChildren(parent, oNode);
                     }
                     break;
                 case DomType.MmlFraction:
-                    oNode = await this.renderContainerNS(elem, ns.mathML, "mfrac");
+                    oNode = await this.renderContainerNS(elem, ns.mathML, 'mfrac');
                     if (parent) {
                         appendChildren(parent, oNode);
                     }
@@ -4976,7 +5270,7 @@
                 case DomType.MmlFunction:
                 case DomType.MmlLimit:
                 case DomType.MmlBox:
-                    oNode = await this.renderContainerNS(elem, ns.mathML, "mrow");
+                    oNode = await this.renderContainerNS(elem, ns.mathML, 'mrow');
                     if (parent) {
                         appendChildren(parent, oNode);
                     }
@@ -4988,19 +5282,19 @@
                     }
                     break;
                 case DomType.MmlLimitLower:
-                    oNode = await this.renderContainerNS(elem, ns.mathML, "munder");
+                    oNode = await this.renderContainerNS(elem, ns.mathML, 'munder');
                     if (parent) {
                         appendChildren(parent, oNode);
                     }
                     break;
                 case DomType.MmlMatrix:
-                    oNode = await this.renderContainerNS(elem, ns.mathML, "mtable");
+                    oNode = await this.renderContainerNS(elem, ns.mathML, 'mtable');
                     if (parent) {
                         appendChildren(parent, oNode);
                     }
                     break;
                 case DomType.MmlMatrixRow:
-                    oNode = await this.renderContainerNS(elem, ns.mathML, "mtr");
+                    oNode = await this.renderContainerNS(elem, ns.mathML, 'mtr');
                     if (parent) {
                         appendChildren(parent, oNode);
                     }
@@ -5012,13 +5306,13 @@
                     }
                     break;
                 case DomType.MmlSuperscript:
-                    oNode = await this.renderContainerNS(elem, ns.mathML, "msup");
+                    oNode = await this.renderContainerNS(elem, ns.mathML, 'msup');
                     if (parent) {
                         appendChildren(parent, oNode);
                     }
                     break;
                 case DomType.MmlSubscript:
-                    oNode = await this.renderContainerNS(elem, ns.mathML, "msub");
+                    oNode = await this.renderContainerNS(elem, ns.mathML, 'msub');
                     if (parent) {
                         appendChildren(parent, oNode);
                     }
@@ -5026,13 +5320,13 @@
                 case DomType.MmlDegree:
                 case DomType.MmlSuperArgument:
                 case DomType.MmlSubArgument:
-                    oNode = await this.renderContainerNS(elem, ns.mathML, "mn");
+                    oNode = await this.renderContainerNS(elem, ns.mathML, 'mn');
                     if (parent) {
                         appendChildren(parent, oNode);
                     }
                     break;
                 case DomType.MmlFunctionName:
-                    oNode = await this.renderContainerNS(elem, ns.mathML, "ms");
+                    oNode = await this.renderContainerNS(elem, ns.mathML, 'ms');
                     if (parent) {
                         appendChildren(parent, oNode);
                     }
@@ -5083,10 +5377,10 @@
             if (elem.type != DomType.Break) {
                 return false;
             }
-            if (elem.break == "lastRenderedPageBreak") {
+            if (elem.break == 'lastRenderedPageBreak') {
                 return !this.options.ignoreLastRenderedPageBreak;
             }
-            if (elem.break === "page") {
+            if (elem.break === 'page') {
                 return true;
             }
         }
@@ -5096,62 +5390,60 @@
         async appendChildren(parent, children, xml_element) {
             appendChildren(parent, children);
             let is_overflow = false;
-            let { is_split, contentElement, pageIndex, elementIndex, checking_overflow, elements } = this.current_section;
-            if (is_split) {
+            let { pageId, sectProps, isSplit, contentElement, breakIndex, checkingOverflow, elements: origin_elements } = this.currentPage;
+            if (isSplit) {
                 return Overflow.UNKNOWN;
             }
-            if (checking_overflow) {
+            if (checkingOverflow) {
                 is_overflow = checkOverflow(contentElement);
                 if (is_overflow) {
                     if (xml_element?.type === DomType.Row) {
-                        let table = elements[elementIndex];
-                        let row_index = table.children.findIndex((elem) => elem === xml_element);
-                        let table_headers = table.children.filter((row) => row.isHeader);
+                        const table = origin_elements[breakIndex];
+                        const row_index = table.children.findIndex(elem => elem === xml_element);
+                        const table_headers = table.children.filter((row) => row.isHeader);
                         table.children.splice(0, row_index);
                         table.children = [...table_headers, ...table.children];
                     }
-                    elements.splice(0, elementIndex);
-                    elementIndex = 0;
+                    let elements = origin_elements.splice(breakIndex);
                     removeElements(children, parent);
-                    pageIndex += 1;
-                    checking_overflow = false;
-                    this.current_section = {
-                        ...this.current_section,
-                        pageIndex,
-                        checking_overflow,
-                        elements,
-                        elementIndex
-                    };
-                    await this.renderSection();
+                    let pages = this.document.documentPart.body.pages;
+                    let pageIndex = pages.findIndex((page) => page.pageId === pageId);
+                    this.currentPage.isSplit = true;
+                    this.currentPage.checkingOverflow = false;
+                    const page = new Page({ sectProps, elements });
+                    pages[pageIndex] = this.currentPage;
+                    pages.splice(pageIndex + 1, 0, page);
+                    this.currentPage = page;
+                    await this.renderPage();
                 }
             }
             return is_overflow ? Overflow.TRUE : Overflow.FALSE;
         }
         async renderContainer(elem, tagName, props) {
-            let parent = createElement(tagName, props);
+            const parent = createElement(tagName, props);
             await this.renderChildren(elem, parent);
             return parent;
         }
         async renderContainerNS(elem, ns, tagName, props) {
-            let parent = createElementNS(ns, tagName, props);
+            const parent = createElementNS(ns, tagName, props);
             await this.renderChildren(elem, parent);
             return parent;
         }
         async renderParagraph(elem, parent) {
-            let oParagraph = createElement("p");
+            const oParagraph = createElement('p');
             oParagraph.dataset.uuid = uuid();
             this.renderClass(elem, oParagraph);
             this.renderStyleValues(elem.cssStyle, oParagraph);
             this.renderCommonProperties(oParagraph.style, elem);
-            let style = this.findStyle(elem.styleName);
+            const style = this.findStyle(elem.styleName);
             elem.tabs ?? (elem.tabs = style?.paragraphProps?.tabs);
-            let numbering = elem.numbering ?? style?.paragraphProps?.numbering;
+            const numbering = elem.numbering ?? style?.paragraphProps?.numbering;
             if (numbering) {
                 oParagraph.classList.add(this.numberingClass(numbering.id, numbering.level));
             }
-            let is_clear = elem.children.some((run) => {
-                let is_exist_drawML = run?.children?.some((child) => child.type === DomType.Drawing && child.props.wrapType === WrapType.TopAndBottom);
-                let is_clear_break = run?.children?.some((child) => child.type === DomType.Break && child?.props?.clear);
+            const is_clear = elem.children.some(run => {
+                const is_exist_drawML = run?.children?.some(child => child.type === DomType.Drawing && child.props.wrapType === WrapType.TopAndBottom);
+                const is_clear_break = run?.children?.some(child => child.type === DomType.Break && child?.props?.clear);
                 return is_exist_drawML || is_clear_break;
             });
             if (is_clear) {
@@ -5159,7 +5451,7 @@
             }
             oParagraph.style.position = 'relative';
             if (parent) {
-                let is_overflow = await this.appendChildren(parent, oParagraph);
+                const is_overflow = await this.appendChildren(parent, oParagraph);
                 if (is_overflow === Overflow.TRUE) {
                     oParagraph.dataset.overflow = Overflow.TRUE;
                     return oParagraph;
@@ -5172,21 +5464,21 @@
             if (elem.fieldRun) {
                 return null;
             }
-            let oSpan = createElement("span");
+            const oSpan = createElement('span');
             if (elem.id) {
                 oSpan.id = elem.id;
             }
             this.renderClass(elem, oSpan);
             this.renderStyleValues(elem.cssStyle, oSpan);
             if (parent) {
-                let is_overflow = await this.appendChildren(parent, oSpan);
+                const is_overflow = await this.appendChildren(parent, oSpan);
                 if (is_overflow === Overflow.TRUE) {
                     oSpan.dataset.overflow = Overflow.TRUE;
                     return oSpan;
                 }
             }
             if (elem.verticalAlign) {
-                let wrapper = createElement(elem.verticalAlign);
+                const wrapper = createElement(elem.verticalAlign);
                 oSpan.dataset.overflow = await this.renderChildren(elem, wrapper);
                 oSpan.dataset.overflow = await this.appendChildren(oSpan, wrapper);
             }
@@ -5196,14 +5488,14 @@
             return oSpan;
         }
         async renderText(elem, parent) {
-            let oText = document.createTextNode(elem.text);
+            const oText = document.createTextNode(elem.text);
             if (parent) {
                 appendChildren(parent, oText);
             }
             return oText;
         }
         async renderTable(elem, parent) {
-            let oTable = createElement("table");
+            const oTable = createElement('table');
             oTable.dataset.uuid = uuid();
             this.tableCellPositions.push(this.currentCellPosition);
             this.tableVerticalMerges.push(this.currentVerticalMerge);
@@ -5212,7 +5504,7 @@
             this.renderClass(elem, oTable);
             this.renderStyleValues(elem.cssStyle, oTable);
             if (parent) {
-                let is_overflow = await this.appendChildren(parent, oTable);
+                const is_overflow = await this.appendChildren(parent, oTable);
                 if (is_overflow === Overflow.TRUE) {
                     oTable.dataset.overflow = Overflow.TRUE;
                     return oTable;
@@ -5227,12 +5519,12 @@
             return oTable;
         }
         async renderTableColumns(columns, parent) {
-            let oColGroup = createElement("colgroup");
+            const oColGroup = createElement('colgroup');
             if (parent) {
                 appendChildren(parent, oColGroup);
             }
-            for (let col of columns) {
-                let oCol = createElement("col");
+            for (const col of columns) {
+                const oCol = createElement('col');
                 if (col.width) {
                     oCol.style.width = col.width;
                 }
@@ -5241,7 +5533,7 @@
             return oColGroup;
         }
         async renderTableRow(elem, parent) {
-            let oTableRow = createElement("tr");
+            const oTableRow = createElement('tr');
             this.currentCellPosition.col = 0;
             this.renderClass(elem, oTableRow);
             this.renderStyleValues(elem.cssStyle, oTableRow);
@@ -5253,16 +5545,16 @@
             return oTableRow;
         }
         async renderTableCell(elem) {
-            let oTableCell = createElement("td");
-            let key = this.currentCellPosition.col;
+            const oTableCell = createElement('td');
+            const key = this.currentCellPosition.col;
             if (elem.verticalMerge) {
-                if (elem.verticalMerge == "restart") {
+                if (elem.verticalMerge == 'restart') {
                     this.currentVerticalMerge[key] = oTableCell;
                     oTableCell.rowSpan = 1;
                 }
                 else if (this.currentVerticalMerge[key]) {
                     this.currentVerticalMerge[key].rowSpan += 1;
-                    oTableCell.style.display = "none";
+                    oTableCell.style.display = 'none';
                 }
             }
             else {
@@ -5278,10 +5570,10 @@
             return oTableCell;
         }
         async renderHyperlink(elem, parent) {
-            let oAnchor = createElement("a");
+            const oAnchor = createElement('a');
             this.renderStyleValues(elem.cssStyle, oAnchor);
             if (parent) {
-                let is_overflow = await this.appendChildren(parent, oAnchor);
+                const is_overflow = await this.appendChildren(parent, oAnchor);
                 if (is_overflow === Overflow.TRUE) {
                     oAnchor.dataset.overflow = Overflow.TRUE;
                     return oAnchor;
@@ -5291,19 +5583,19 @@
                 oAnchor.href = elem.href;
             }
             else if (elem.id) {
-                let rel = this.document.documentPart.rels.find(it => it.id == elem.id && it.targetMode === "External");
+                const rel = this.document.documentPart.rels.find(it => it.id == elem.id && it.targetMode === 'External');
                 oAnchor.href = rel?.target;
             }
             oAnchor.dataset.overflow = await this.renderChildren(elem, oAnchor);
             return oAnchor;
         }
         async renderDrawing(elem, parent) {
-            let oDrawing = createElement("span");
-            oDrawing.style.textIndent = "0px";
+            const oDrawing = createElement('span');
+            oDrawing.style.textIndent = '0px';
             oDrawing.dataset.wrap = elem?.props.wrapType;
             this.renderStyleValues(elem.cssStyle, oDrawing);
             if (parent) {
-                let is_overflow = await this.appendChildren(parent, oDrawing);
+                const is_overflow = await this.appendChildren(parent, oDrawing);
                 if (is_overflow === Overflow.TRUE) {
                     oDrawing.dataset.overflow = Overflow.TRUE;
                     return oDrawing;
@@ -5313,27 +5605,99 @@
             return oDrawing;
         }
         async renderImage(elem, parent) {
-            let oImage = createElement("img");
+            const { is_clip, is_transform } = elem.props;
+            const oImage = new Image();
             this.renderStyleValues(elem.cssStyle, oImage);
-            if (this.document) {
-                oImage.src = await this.document.loadDocumentImage(elem.src, this.currentPart);
+            const source = await this.document.loadDocumentImage(elem.src, this.currentPart);
+            if (is_clip || is_transform) {
+                oImage.src = await this.transformImage(elem, source);
+            }
+            else {
+                oImage.src = source;
             }
             if (parent) {
                 oImage.dataset.overflow = await this.appendChildren(parent, oImage);
             }
             return oImage;
         }
+        renderKonva() {
+            const oContainer = createElement('div');
+            oContainer.id = 'konva-container';
+            document.body.appendChild(oContainer);
+            this.konva_stage = new Konva.Stage({ container: 'konva-container' });
+            this.konva_layer = new Konva.Layer({ listening: false });
+            this.konva_stage.add(this.konva_layer);
+        }
+        async transformImage(elem, source) {
+            const { width, height, is_clip, clip, is_transform, transform } = elem.props;
+            const img = new Image();
+            img.src = source;
+            await img.decode();
+            const { naturalWidth, naturalHeight } = img;
+            this.konva_stage.visible(true);
+            this.konva_stage.width(naturalWidth);
+            this.konva_stage.height(naturalHeight);
+            this.konva_layer.removeChildren();
+            const group = new Konva.Group();
+            const image = new Konva.Image({
+                image: img,
+                x: naturalWidth / 2,
+                y: naturalHeight / 2,
+                width: naturalWidth,
+                height: naturalHeight,
+                offset: {
+                    x: naturalWidth / 2,
+                    y: naturalHeight / 2,
+                },
+            });
+            if (is_clip) {
+                const { left, right, top, bottom } = clip.path;
+                const x = naturalWidth * left;
+                const y = naturalHeight * top;
+                const width = naturalWidth * (1 - left - right);
+                const height = naturalHeight * (1 - top - bottom);
+                image.crop({ x, y, width, height });
+                image.size({ width, height });
+            }
+            if (is_transform) {
+                for (const key in transform) {
+                    switch (key) {
+                        case 'scaleX':
+                            image.scaleX(transform[key]);
+                            break;
+                        case 'scaleY':
+                            image.scaleY(transform[key]);
+                            break;
+                        case 'rotate':
+                            image.rotation(transform[key]);
+                            break;
+                    }
+                }
+            }
+            group.add(image);
+            this.konva_layer.add(group);
+            let result;
+            if (this.options.useBase64URL) {
+                result = group.toDataURL();
+            }
+            else {
+                const blob = (await group.toBlob());
+                result = URL.createObjectURL(blob);
+            }
+            this.konva_stage.visible(false);
+            return result;
+        }
         renderBookmarkStart(elem) {
-            let oSpan = createElement("span");
+            const oSpan = createElement('span');
             oSpan.id = elem.name;
             return oSpan;
         }
         async renderTab(elem, parent) {
-            let tabSpan = createElement("span");
-            tabSpan.innerHTML = "&emsp;";
+            const tabSpan = createElement('span');
+            tabSpan.innerHTML = '&emsp;';
             if (this.options.experimental) {
                 tabSpan.className = this.tabStopClass();
-                let stops = findParent(elem, DomType.Paragraph)?.tabs;
+                const stops = findParent(elem, DomType.Paragraph)?.tabs;
                 this.currentTabs.push({ stops, span: tabSpan });
             }
             if (parent) {
@@ -5342,7 +5706,7 @@
             return tabSpan;
         }
         async renderSymbol(elem, parent) {
-            let oSpan = createElement("span");
+            const oSpan = createElement('span');
             oSpan.style.fontFamily = elem.font;
             oSpan.innerHTML = `&#x${elem.char};`;
             if (parent) {
@@ -5353,21 +5717,21 @@
         async renderBreak(elem, parent) {
             let oBr;
             switch (elem.break) {
-                case "page":
-                    oBr = createElement("br");
-                    oBr.classList.add("break", "page");
+                case 'page':
+                    oBr = createElement('br');
+                    oBr.classList.add('break', 'page');
                     break;
-                case "textWrapping":
-                    oBr = createElement("br");
-                    oBr.classList.add("break", "textWrap");
+                case 'textWrapping':
+                    oBr = createElement('br');
+                    oBr.classList.add('break', 'textWrap');
                     break;
-                case "column":
-                    oBr = createElement("br");
-                    oBr.classList.add("break", "column");
+                case 'column':
+                    oBr = createElement('br');
+                    oBr.classList.add('break', 'column');
                     break;
-                case "lastRenderedPageBreak":
-                    oBr = createElement("wbr");
-                    oBr.classList.add("break", "lastRenderedPageBreak");
+                case 'lastRenderedPageBreak':
+                    oBr = createElement('wbr');
+                    oBr.classList.add('break', 'lastRenderedPageBreak');
                     break;
             }
             if (parent) {
@@ -5377,13 +5741,13 @@
         }
         renderInserted(elem) {
             if (this.options.renderChanges) {
-                return this.renderContainer(elem, "ins");
+                return this.renderContainer(elem, 'ins');
             }
-            return this.renderContainer(elem, "span");
+            return this.renderContainer(elem, 'span');
         }
         async renderDeleted(elem) {
             if (this.options.renderChanges) {
-                return await this.renderContainer(elem, "del");
+                return await this.renderContainer(elem, 'del');
             }
             return null;
         }
@@ -5422,36 +5786,36 @@
             return document.createComment(`comment #${comment.id} by ${comment.author} on ${comment.date}`);
         }
         async renderHeaderFooter(elem, tagName) {
-            let oElement = createElement(tagName);
+            const oElement = createElement(tagName);
             await this.renderChildren(elem, oElement);
             this.renderStyleValues(elem.cssStyle, oElement);
             return oElement;
         }
         renderFootnoteReference(elem) {
-            let oSup = createElement("sup");
+            const oSup = createElement('sup');
             this.currentFootnoteIds.push(elem.id);
             oSup.textContent = `${this.currentFootnoteIds.length}`;
             return oSup;
         }
         renderEndnoteReference(elem) {
-            let oSup = createElement("sup");
+            const oSup = createElement('sup');
             this.currentEndnoteIds.push(elem.id);
             oSup.textContent = `${this.currentEndnoteIds.length}`;
             return oSup;
         }
         async renderVmlElement(elem, parent) {
-            let oSvg = createSvgElement("svg");
-            oSvg.setAttribute("style", elem.cssStyleText);
-            let oChildren = await this.renderVmlChildElement(elem);
+            const oSvg = createSvgElement('svg');
+            oSvg.setAttribute('style', elem.cssStyleText);
+            const oChildren = await this.renderVmlChildElement(elem);
             if (elem.imageHref?.id) {
-                let source = await this.document?.loadDocumentImage(elem.imageHref.id, this.currentPart);
-                oChildren.setAttribute("href", source);
+                const source = await this.document?.loadDocumentImage(elem.imageHref.id, this.currentPart);
+                oChildren.setAttribute('href', source);
             }
             appendChildren(oSvg, oChildren);
             requestAnimationFrame(() => {
-                let bb = oSvg.firstElementChild.getBBox();
-                oSvg.setAttribute("width", `${Math.ceil(bb.x + bb.width)}`);
-                oSvg.setAttribute("height", `${Math.ceil(bb.y + bb.height)}`);
+                const bb = oSvg.firstElementChild.getBBox();
+                oSvg.setAttribute('width', `${Math.ceil(bb.x + bb.width)}`);
+                oSvg.setAttribute('height', `${Math.ceil(bb.y + bb.height)}`);
             });
             if (parent) {
                 oSvg.dataset.overflow = await this.appendChildren(parent, oSvg);
@@ -5459,16 +5823,16 @@
             return oSvg;
         }
         async renderVmlPicture(elem) {
-            let oPictureContainer = createElement("span");
+            const oPictureContainer = createElement('span');
             await this.renderChildren(elem, oPictureContainer);
             return oPictureContainer;
         }
         async renderVmlChildElement(elem) {
-            let oVMLElement = createSvgElement(elem.tagName);
+            const oVMLElement = createSvgElement(elem.tagName);
             Object.entries(elem.attrs).forEach(([k, v]) => oVMLElement.setAttribute(k, v));
-            for (let child of elem.children) {
+            for (const child of elem.children) {
                 if (child.type == DomType.VmlElement) {
-                    let oChild = await this.renderVmlChildElement(child);
+                    const oChild = await this.renderVmlChildElement(child);
                     appendChildren(oVMLElement, oChild);
                 }
                 else {
@@ -5478,20 +5842,20 @@
             return oVMLElement;
         }
         async renderMmlRadical(elem) {
-            let base = elem.children.find(el => el.type == DomType.MmlBase);
+            const base = elem.children.find(el => el.type == DomType.MmlBase);
             let oParent;
             if (elem.props?.hideDegree) {
-                oParent = createElementNS(ns.mathML, "msqrt", null);
+                oParent = createElementNS(ns.mathML, 'msqrt', null);
                 await this.renderElements([base], oParent);
                 return oParent;
             }
-            let degree = elem.children.find(el => el.type == DomType.MmlDegree);
-            oParent = createElementNS(ns.mathML, "mroot", null);
+            const degree = elem.children.find(el => el.type == DomType.MmlDegree);
+            oParent = createElementNS(ns.mathML, 'mroot', null);
             await this.renderElements([base, degree], oParent);
             return oParent;
         }
         async renderMmlDelimiter(elem) {
-            let oMrow = createElementNS(ns.mathML, "mrow", null);
+            const oMrow = createElementNS(ns.mathML, 'mrow', null);
             let oBegin = createElementNS(ns.mathML, "mo", null, [elem.props.beginChar ?? '(']);
             appendChildren(oMrow, oBegin);
             await this.renderElements(elem.children, oMrow);
@@ -5500,10 +5864,10 @@
             return oMrow;
         }
         async renderMmlNary(elem) {
-            let children = [];
-            let grouped = keyBy(elem.children, x => x.type);
-            let sup = grouped[DomType.MmlSuperArgument];
-            let sub = grouped[DomType.MmlSubArgument];
+            const children = [];
+            const grouped = keyBy(elem.children, x => x.type);
+            const sup = grouped[DomType.MmlSuperArgument];
+            const sub = grouped[DomType.MmlSubArgument];
             let supElem = sup ? createElementNS(ns.mathML, "mo", null, asArray(await this.renderElement(sup))) : null;
             let subElem = sub ? createElementNS(ns.mathML, "mo", null, asArray(await this.renderElement(sub))) : null;
             let charElem = createElementNS(ns.mathML, "mo", null, [elem.props?.char ?? '\u222B']);
@@ -5519,21 +5883,21 @@
             else {
                 children.push(charElem);
             }
-            let oMrow = createElementNS(ns.mathML, "mrow", null);
+            const oMrow = createElementNS(ns.mathML, 'mrow', null);
             appendChildren(oMrow, children);
             await this.renderElements(grouped[DomType.MmlBase].children, oMrow);
             return oMrow;
         }
         async renderMmlPreSubSuper(elem) {
-            let children = [];
-            let grouped = keyBy(elem.children, x => x.type);
-            let sup = grouped[DomType.MmlSuperArgument];
-            let sub = grouped[DomType.MmlSubArgument];
+            const children = [];
+            const grouped = keyBy(elem.children, x => x.type);
+            const sup = grouped[DomType.MmlSuperArgument];
+            const sub = grouped[DomType.MmlSubArgument];
             let supElem = sup ? createElementNS(ns.mathML, "mo", null, asArray(await this.renderElement(sup))) : null;
             let subElem = sub ? createElementNS(ns.mathML, "mo", null, asArray(await this.renderElement(sub))) : null;
             let stubElem = createElementNS(ns.mathML, "mo", null);
             children.push(createElementNS(ns.mathML, "msubsup", null, [stubElem, subElem, supElem]));
-            let oMrow = createElementNS(ns.mathML, "mrow", null);
+            const oMrow = createElementNS(ns.mathML, 'mrow', null);
             appendChildren(oMrow, children);
             await this.renderElements(grouped[DomType.MmlBase].children, oMrow);
             return oMrow;
@@ -5542,7 +5906,7 @@
             let tagName = elem.props.verticalJustification === "bot" ? "mover" : "munder";
             let oGroupChar = await this.renderContainerNS(elem, ns.mathML, tagName);
             if (elem.props.char) {
-                let oMo = createElementNS(ns.mathML, "mo", null, [elem.props.char]);
+                const oMo = createElementNS(ns.mathML, 'mo', null, [elem.props.char]);
                 appendChildren(oGroupChar, oMo);
             }
             return oGroupChar;
@@ -5550,37 +5914,37 @@
         async renderMmlBar(elem) {
             let oMrow = await this.renderContainerNS(elem, ns.mathML, "mrow");
             switch (elem.props.position) {
-                case "top":
-                    oMrow.style.textDecoration = "overline";
+                case 'top':
+                    oMrow.style.textDecoration = 'overline';
                     break;
-                case "bottom":
-                    oMrow.style.textDecoration = "underline";
+                case 'bottom':
+                    oMrow.style.textDecoration = 'underline';
                     break;
             }
             return oMrow;
         }
         async renderMmlRun(elem) {
-            let oMs = createElementNS(ns.mathML, "ms");
+            const oMs = createElementNS(ns.mathML, 'ms');
             this.renderClass(elem, oMs);
             this.renderStyleValues(elem.cssStyle, oMs);
             await this.renderChildren(elem, oMs);
             return oMs;
         }
         async renderMllList(elem) {
-            let oMtable = createElementNS(ns.mathML, "mtable");
+            const oMtable = createElementNS(ns.mathML, 'mtable');
             this.renderClass(elem, oMtable);
             this.renderStyleValues(elem.cssStyle, oMtable);
-            for (let child of elem.children) {
-                let oChild = await this.renderElement(child);
-                let oMtd = createElementNS(ns.mathML, "mtd", null, [oChild]);
-                let oMtr = createElementNS(ns.mathML, "mtr", null, [oMtd]);
+            for (const child of elem.children) {
+                const oChild = await this.renderElement(child);
+                const oMtd = createElementNS(ns.mathML, 'mtd', null, [oChild]);
+                const oMtr = createElementNS(ns.mathML, 'mtr', null, [oMtd]);
                 appendChildren(oMtable, oMtr);
             }
             return oMtable;
         }
         renderStyleValues(style, output) {
-            for (let k in style) {
-                if (k.startsWith("$")) {
+            for (const k in style) {
+                if (k.startsWith('$')) {
                     output.setAttribute(k.slice(1), style[k]);
                 }
                 else {
@@ -5595,10 +5959,10 @@
             if (props == null)
                 return;
             if (props.color) {
-                style["color"] = props.color;
+                style['color'] = props.color;
             }
             if (props.fontSize) {
-                style["font-size"] = props.fontSize;
+                style['font-size'] = props.fontSize;
             }
         }
         renderClass(input, output) {
@@ -5621,8 +5985,8 @@
             }
             clearTimeout(this.tabsTimeout);
             this.tabsTimeout = setTimeout(() => {
-                let pixelToPoint = computePixelToPoint();
-                for (let tab of this.currentTabs) {
+                const pixelToPoint = computePixelToPoint();
+                for (const tab of this.currentTabs) {
                     updateTabStop(tab.span, tab.stops, this.defaultTabSize, pixelToPoint);
                 }
             }, 500);
@@ -5640,10 +6004,10 @@
             case "http://www.w3.org/1998/Math/MathML":
                 oParent = document.createElementNS(ns, tagName);
                 break;
-            case "http://www.w3.org/2000/svg":
+            case 'http://www.w3.org/2000/svg':
                 oParent = document.createElementNS(ns, tagName);
                 break;
-            case "http://www.w3.org/1999/xhtml":
+            case 'http://www.w3.org/1999/xhtml':
                 oParent = document.createElement(tagName);
                 break;
             default:
@@ -5674,17 +6038,17 @@
         }
     }
     function checkOverflow(el) {
-        let current_overflow = getComputedStyle(el).overflow;
-        if (!current_overflow || current_overflow === "visible") {
-            el.style.overflow = "hidden";
+        const current_overflow = getComputedStyle(el).overflow;
+        if (!current_overflow || current_overflow === 'visible') {
+            el.style.overflow = 'hidden';
         }
-        let is_overflow = el.clientHeight < el.scrollHeight;
+        const is_overflow = el.clientHeight < el.scrollHeight;
         el.style.overflow = current_overflow;
         return is_overflow;
     }
     function removeElements(target, parent) {
         if (Array.isArray(target)) {
-            target.forEach((elem) => {
+            target.forEach(elem => {
                 if (elem instanceof Element) {
                     elem.remove();
                 }
@@ -5707,7 +6071,7 @@
         }
     }
     function createStyleElement(cssText) {
-        return createElement("style", { innerHTML: cssText });
+        return createElement('style', { innerHTML: cssText });
     }
     function appendComment(elem, comment) {
         elem.appendChild(document.createComment(comment));
