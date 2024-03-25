@@ -156,6 +156,11 @@ export class DocumentParser {
 				case "sdt":
 					children.push(...this.parseSdt(elem, (e: Element) => this.parseBodyElements(e)));
 					break;
+				default:
+					if (this.options.debug) {
+						console.warn(`DOCX:%c Unknown Body Element：${elem.localName}`, 'color:red');
+					}
+
 			}
 		}
 
@@ -174,6 +179,10 @@ export class DocumentParser {
 				case "docDefaults":
 					result.push(this.parseDefaultStyles(n));
 					break;
+				default:
+					if (this.options.debug) {
+						console.warn(`DOCX:%c Unknown Style File：${n.localName}`, 'color:grey');
+					}
 			}
 		});
 
@@ -210,6 +219,10 @@ export class DocumentParser {
 							values: this.parseDefaultProperties(pPr, {})
 						});
 					break;
+				default:
+					if (this.options.debug) {
+						console.warn(`DOCX:%c Unknown Default Style：${c.localName}`, 'color:grey');
+					}
 			}
 		});
 
@@ -238,6 +251,10 @@ export class DocumentParser {
 				result.target = "span";
 				break;
 			//case "numbering": result.target = "p"; break;
+			default:
+				if (this.options.debug) {
+					console.warn(`DOCX:%c Unknown Node Type：${node}`, 'color:grey');
+				}
 		}
 
 		xmlUtil.foreach(node, n => {
@@ -298,11 +315,10 @@ export class DocumentParser {
 				case "unhideWhenUsed":
 				case "autoRedefine":
 				case "uiPriority":
-					//TODO: ignore
-					break;
-
 				default:
-					this.options.debug && console.warn(`DOCX: Unknown style element: ${n.localName}`);
+					if (this.options.debug) {
+						console.warn(`DOCX:%c Unknown Style element：${n.localName}`, 'color:blue');
+					}
 			}
 		});
 
@@ -379,6 +395,10 @@ export class DocumentParser {
 						values: this.parseDefaultProperties(n, {})
 					});
 					break;
+				default:
+					if (this.options.debug) {
+						console.warn(`DOCX:%c Unknown Table Style：${n.localName}`, 'color:grey');
+					}
 			}
 		});
 
@@ -406,6 +426,10 @@ export class DocumentParser {
 					let abstractNumId = xml.elementAttr(n, "abstractNumId", "val");
 					mapping[abstractNumId] = numId;
 					break;
+				default:
+					if (this.options.debug) {
+						console.warn(`DOCX:%c Unknown Numbering File：${n.localName}`, 'color:grey');
+					}
 			}
 		});
 
@@ -435,6 +459,10 @@ export class DocumentParser {
 				case "lvl":
 					result.push(this.parseNumberingLevel(id, n, bullets));
 					break;
+				default:
+					if (this.options.debug) {
+						console.warn(`DOCX:%c Unknown Abstract Numbering：${n.localName}`, 'color:grey');
+					}
 			}
 		});
 
@@ -486,6 +514,10 @@ export class DocumentParser {
 				case "suff":
 					result.suff = xml.attr(n, "val");
 					break;
+				default:
+					if (this.options.debug) {
+						console.warn(`DOCX:%c Unknown Numbering Level：${n.localName}`, 'color:grey');
+					}
 			}
 		});
 
@@ -560,6 +592,10 @@ export class DocumentParser {
 				case "del":
 					wmlParagraph.children.push(this.parseDeleted(el, (e: Element) => this.parseParagraph(e)));
 					break;
+				default:
+					if (this.options.debug) {
+						console.warn(`DOCX:%c Unknown Paragraph Element：${el.localName}`, 'color:grey');
+					}
 			}
 		}
 		// when paragraph is empty, a br tag needs to be added to work with the rich text editor and generate line height
@@ -598,6 +634,9 @@ export class DocumentParser {
 					break;
 
 				default:
+					if (this.options.debug) {
+						console.warn(`DOCX:%c Unknown Paragraph Property：${c.localName}`, 'color:grey');
+					}
 					return false;
 			}
 
@@ -628,6 +667,11 @@ export class DocumentParser {
 				case "r":
 					result.children.push(this.parseRun(c, result));
 					break;
+
+				default:
+					if (this.options.debug) {
+						console.warn(`DOCX:%c Unknown Hyperlink Element：${c.localName}`, 'color:grey');
+					}
 			}
 		});
 
@@ -713,7 +757,7 @@ export class DocumentParser {
 						break: "lastRenderedPageBreak"
 					});
 					break;
-
+				// SymbolChar：符号字符
 				case "sym":
 					result.children.push(<WmlSymbol>{
 						type: DomType.Symbol,
@@ -754,6 +798,11 @@ export class DocumentParser {
 				case "rPr":
 					this.parseRunProperties(c, result);
 					break;
+
+				default:
+					if (this.options.debug) {
+						console.warn(`DOCX:%c Unknown Run Element：${c.localName}`, 'color:grey');
+					}
 			}
 		});
 
@@ -774,14 +823,14 @@ export class DocumentParser {
 				run.type = DomType.MmlRun;
 				result.children.push(run);
 			} else if (el.localName == propsTag) {
-				result.props = this.parseMathProperies(el);
+				result.props = this.parseMathProperties(el);
 			}
 		}
 
 		return result;
 	}
 
-	parseMathProperies(elem: Element): Record<string, any> {
+	parseMathProperties(elem: Element): Record<string, any> {
 		const result: Record<string, any> = {};
 
 		for (const el of xml.elements(elem)) {
@@ -789,21 +838,31 @@ export class DocumentParser {
 				case "chr":
 					result.char = xml.attr(el, "val");
 					break;
+
 				case "vertJc":
 					result.verticalJustification = xml.attr(el, "val");
 					break;
+
 				case "pos":
 					result.position = xml.attr(el, "val");
 					break;
+
 				case "degHide":
 					result.hideDegree = xml.boolAttr(el, "val");
 					break;
+
 				case "begChr":
 					result.beginChar = xml.attr(el, "val");
 					break;
+
 				case "endChr":
 					result.endChar = xml.attr(el, "val");
 					break;
+
+				default:
+					if (this.options.debug) {
+						console.warn(`DOCX:%c Unknown Math Property：${el.localName}`, 'color:grey');
+					}
 			}
 		}
 
@@ -824,6 +883,9 @@ export class DocumentParser {
 					break;
 
 				default:
+					if (this.options.debug) {
+						console.warn(`DOCX:%c Unknown Run Property：${c.localName}`, 'color:grey');
+					}
 					return false;
 			}
 
@@ -868,9 +930,14 @@ export class DocumentParser {
 				case "inline":
 				case "anchor":
 					return this.parseDrawingWrapper(n);
+				default:
+					if (this.options.debug) {
+						console.warn(`DOCX:%c Unknown Drawing Element：${n.localName}`, 'color:grey');
+					}
 			}
 		}
 	}
+
 	// TODO 图片旋转、裁剪之后，文字环绕计算错误
 	// DrawingML对象有两种状态：内联（inline）-- 对象与文本对齐，浮动（anchor）--对象在文本中浮动，但可以相对于页面进行绝对定位
 	parseDrawingWrapper(node: Element): OpenXmlElement {
@@ -1035,6 +1102,10 @@ export class DocumentParser {
 					let polygonNode = xml.element(n, "wrapPolygon");
 					this.parsePolygon(polygonNode, result);
 					break;
+				default:
+					if (this.options.debug) {
+						console.warn(`DOCX:%c Unknown Drawing Property：${n.localName}`, 'color:grey');
+					}
 			}
 		}
 		// 重新计算DrawWrapper的空间
@@ -1143,7 +1214,7 @@ export class DocumentParser {
 
 							break;
 						default:
-							console.warn(`text wrap picture on ${wrapText} is not supported！`)
+							console.error(`text wrap picture on ${wrapText} is not supported！`)
 							break;
 					}
 					// DrawML对象与文字的上下间距
@@ -1201,7 +1272,7 @@ export class DocumentParser {
 							}
 							break;
 						default:
-							console.warn(`text wrap picture on ${wrapText} is not supported！`)
+							console.error(`text wrap picture on ${wrapText} is not supported！`)
 							break;
 					}
 					break;
@@ -1302,7 +1373,7 @@ export class DocumentParser {
 
 					break;
 				default:
-					console.warn(`text wrap picture on ${wrapText} is not supported！`)
+					console.error(`text wrap picture on ${wrapText} is not supported！`)
 					break;
 			}
 
@@ -1321,9 +1392,15 @@ export class DocumentParser {
 				// shape图形
 				case "wsp":
 					return this.parseShape(n);
+
 				// 图片
 				case "pic":
 					return this.parsePicture(n);
+
+				default:
+					if (this.options.debug) {
+						console.warn(`DOCX:%c Unknown Graphic Element：${n.localName}`, 'color:grey');
+					}
 			}
 		}
 
@@ -1349,6 +1426,11 @@ export class DocumentParser {
 				case "linkedTxbx":
 				// 指定形状中文本正文的正文属性。
 				case "bodyPr":
+
+				default:
+					if (this.options.debug) {
+						console.warn(`DOCX:%c Unknown Shape Element：${n.localName}`, 'color:grey');
+					}
 			}
 		}
 		return null;
@@ -1396,6 +1478,10 @@ export class DocumentParser {
 				case "scene3d":
 				case "sp3d":
 				case "extLst":
+				default:
+					if (this.options.debug) {
+						console.warn(`DOCX:%c Unknown Shape Property：${n.localName}`, 'color:grey');
+					}
 			}
 		}
 		return null;
@@ -1425,6 +1511,10 @@ export class DocumentParser {
 				case "spPr":
 					this.parseShapeProperties(n, result)
 					break;
+				default:
+					if (this.options.debug) {
+						console.warn(`DOCX:%c Unknown Picture Element：${n.localName}`, 'color:grey');
+					}
 			}
 		}
 
@@ -1459,11 +1549,17 @@ export class DocumentParser {
 					target.cssStyle["width"] = convertLength(width, LengthUsage.Emu, true);
 					target.cssStyle["height"] = convertLength(height, LengthUsage.Emu, true);
 					break;
+
 				// 变换之后的偏移量，实际上无效
 				case "off":
 					target.cssStyle["left"] = xml.lengthAttr(n, "x", LengthUsage.Emu);
 					target.cssStyle["top"] = xml.lengthAttr(n, "y", LengthUsage.Emu);
 					break;
+
+				default:
+					if (this.options.debug) {
+						console.warn(`DOCX:%c Unknown Transform2D Element：${n.localName}`, 'color:grey');
+					}
 			}
 		}
 	}
@@ -1497,12 +1593,18 @@ export class DocumentParser {
 				// 平铺
 				case "tile":
 					break;
+
+				default:
+					if (this.options.debug) {
+						console.warn(`DOCX:%c Unknown Blip Fill Element：${n.localName}`, 'color:grey');
+					}
 			}
 		}
 	}
 
 	// 图片填充效果
 	parseBlip(node: Element, target: OpenXmlElement) {
+
 		for (let n of xml.elements(node)) {
 			switch (n.localName) {
 				case "alphaBiLevel":
@@ -1525,13 +1627,15 @@ export class DocumentParser {
 					let opacity = xml.lengthAttr(n, 'amt', LengthUsage.Opacity);
 					target.cssStyle["opacity"] = opacity;
 					break;
-				default:
-					if (this.options.debug)
-						console.warn(`DOCX: Unknown document element: ${n.localName}`);
-					break;
 
+				default:
+					if (this.options.debug) {
+						console.warn(`DOCX:%c Unknown Blip Element：${n.localName}`, 'color:grey');
+					}
+					break;
 			}
 		}
+
 	}
 
 	parseTable(node: Element): WmlTable {
@@ -1550,6 +1654,11 @@ export class DocumentParser {
 				case "tr":
 					result.children.push(this.parseTableRow(c));
 					break;
+
+				default:
+					if (this.options.debug) {
+						console.warn(`DOCX:%c Unknown Table Element：${c.localName}`, 'color:grey');
+					}
 			}
 		});
 
@@ -1564,10 +1673,15 @@ export class DocumentParser {
 				case "gridCol":
 					result.push({ width: xml.lengthAttr(n, "w") });
 					break;
+
 				// TODO 网格修订信息
 				case "tblGridChange":
-
 					break;
+
+				default:
+					if (this.options.debug) {
+						console.warn(`DOCX:%c Unknown Table Columns Element：${n.localName}`, 'color:grey');
+					}
 			}
 		});
 
@@ -1602,6 +1716,9 @@ export class DocumentParser {
 					break;
 
 				default:
+					if (this.options.debug) {
+						console.warn(`DOCX:%c Unknown Table Property：${c.localName}`, 'color:grey');
+					}
 					return false;
 			}
 
@@ -1619,6 +1736,11 @@ export class DocumentParser {
 				delete table.cssStyle["text-align"];
 				table.cssStyle["margin-left"] = "auto";
 				break;
+
+			default:
+				if (this.options.debug) {
+					console.warn(`DOCX:%c Unknown Table Align：${table.cssStyle["text-align"]}`, 'color:grey');
+				}
 		}
 	}
 
@@ -1652,6 +1774,11 @@ export class DocumentParser {
 				case "trPr":
 					this.parseTableRowProperties(c, result);
 					break;
+
+				default:
+					if (this.options.debug) {
+						console.warn(`DOCX:%c Unknown Table Row Element：${c.localName}`, 'color:grey');
+					}
 			}
 		});
 
@@ -1670,6 +1797,9 @@ export class DocumentParser {
 					break;
 
 				default:
+					if (this.options.debug) {
+						console.warn(`DOCX:%c Unknown Table Row Property：${c.localName}`, 'color:grey');
+					}
 					return false;
 			}
 
@@ -1693,6 +1823,11 @@ export class DocumentParser {
 				case "tcPr":
 					this.parseTableCellProperties(c, result);
 					break;
+
+				default:
+					if (this.options.debug) {
+						console.warn(`DOCX:%c Unknown Table Cell Element：${c.localName}`, 'color:grey');
+					}
 			}
 		});
 
@@ -1715,6 +1850,9 @@ export class DocumentParser {
 					break;
 
 				default:
+					if (this.options.debug) {
+						console.warn(`DOCX:%c Unknown Table Cell Property：${c.localName}`, 'color:grey');
+					}
 					return false;
 			}
 
@@ -1966,8 +2104,9 @@ export class DocumentParser {
 				case "bidi": //TODO - maybe ignore
 
 				default:
-					if (this.options.debug)
-						console.warn(`DOCX: Unknown document element: ${elem.localName}.${c.localName}`);
+					if (this.options.debug) {
+						console.warn(`DOCX:%c Unknown Property Element：${elem.localName}.${c.localName}`, 'color:green');
+					}
 					break;
 			}
 		});
@@ -2020,12 +2159,19 @@ export class DocumentParser {
 			case "none":
 				style["text-decoration"] = "none";
 				break;
+
+			default:
+				if (this.options.debug) {
+					console.warn(`DOCX:%c Unknown Underline Property：${val}`, 'color:grey');
+				}
 		}
 
 		let col = xmlUtil.colorAttr(node, "color");
 
-		if (col)
+		if (col) {
 			style["text-decoration-color"] = col;
+		}
+
 	}
 
 	// 转换Run字体，包含四种，ascii，eastAsia，ComplexScript，高 ANSI Font
@@ -2075,6 +2221,7 @@ export class DocumentParser {
 		if (right || end) style["padding-right"] = right || end;
 	}
 
+	// TODO css中的line-height与word中的行距有区别，后期需重构
 	parseSpacing(node: Element, style: Record<string, string>) {
 		let before = xml.lengthAttr(node, "before");
 		let after = xml.lengthAttr(node, "after");
@@ -2123,6 +2270,11 @@ export class DocumentParser {
 				case "bottom":
 					output["padding-bottom"] = values.valueOfMargin(c);
 					break;
+
+				default:
+					if (this.options.debug) {
+						console.warn(`DOCX:%c Unknown Margin Property：${c.localName}`, 'color:grey');
+					}
 			}
 		});
 	}
@@ -2162,6 +2314,11 @@ export class DocumentParser {
 				case "bottom":
 					output["border-bottom"] = values.valueOfBorder(c);
 					break;
+
+				default:
+					if (this.options.debug) {
+						console.warn(`DOCX:%c Unknown Border Property：${c.localName}`, 'color:grey');
+					}
 			}
 		});
 	}
