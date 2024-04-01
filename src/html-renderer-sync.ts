@@ -946,16 +946,19 @@ export class HtmlRendererSync {
 	createPageContent(props: SectionProperties): HTMLElement {
 		// 指代页面page，HTML5缺少page，以article代替
 		const oArticle = createElement('article');
-		// TODO count为空，fix
-		const { count, space, separator } = props?.columns;
-		// 设置多列样式
-		if (count > 1) {
-			oArticle.style.columnCount = `${count}`;
-			oArticle.style.columnGap = space;
+		if (props.columns) {
+			const { count, space, separator } = props.columns;
+			// 设置多列样式
+			if (count > 1) {
+				oArticle.style.columnCount = `${count}`;
+				oArticle.style.columnGap = space;
+			}
+			// 分隔符，则添加分割线样式
+			if (separator) {
+				oArticle.style.columnRule = '1px solid black';
+			}
 		}
-		if (separator) {
-			oArticle.style.columnRule = '1px solid black';
-		}
+
 		return oArticle;
 	}
 

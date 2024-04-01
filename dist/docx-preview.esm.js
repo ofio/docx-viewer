@@ -5237,13 +5237,15 @@ class HtmlRendererSync {
     }
     createPageContent(props) {
         const oArticle = createElement('article');
-        const { count, space, separator } = props === null || props === void 0 ? void 0 : props.columns;
-        if (count > 1) {
-            oArticle.style.columnCount = `${count}`;
-            oArticle.style.columnGap = space;
-        }
-        if (separator) {
-            oArticle.style.columnRule = '1px solid black';
+        if (props.columns) {
+            const { count, space, separator } = props.columns;
+            if (count > 1) {
+                oArticle.style.columnCount = `${count}`;
+                oArticle.style.columnGap = space;
+            }
+            if (separator) {
+                oArticle.style.columnRule = '1px solid black';
+            }
         }
         return oArticle;
     }
