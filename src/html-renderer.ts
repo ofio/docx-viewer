@@ -624,7 +624,7 @@ export class HtmlRenderer {
 			// 标记顶层元素的层级level
 			elem.level = 1;
 			// 添加elem进入当前操作page
-			current_page.elements.push(elem);
+			current_page.children.push(elem);
 
 			/* 段落基本结构：paragraph => run => text... */
 			if (elem.type == DomType.Paragraph) {
@@ -670,7 +670,7 @@ export class HtmlRenderer {
 								// 判断前一个p段落，
 								// 如果含有分页符、分节符，那它们一定位于上一个page，数组为空；
 								// 如果前一个段落是普通段落，数组长度大于0，则代表文字过多超过一页，需要自动分页
-								return (current_page.elements.length > 2 || !this.options.ignoreLastRenderedPageBreak);
+								return (current_page.children.length > 2 || !this.options.ignoreLastRenderedPageBreak);
 							}
 							// 分页符
 							if ((t as WmlBreak).break === "page") {
@@ -686,7 +686,7 @@ export class HtmlRenderer {
 					// 一般情况下，标记当前page：已拆分
 					current_page.isSplit = true;
 					// 检测分页符之前的所有元素是否存在表格
-					const exist_table: boolean = current_page.elements.some(
+					const exist_table: boolean = current_page.children.some(
 						elem => elem.type === DomType.Table
 					);
 					// 存在表格
@@ -695,7 +695,7 @@ export class HtmlRenderer {
 						current_page.isSplit = false;
 					}
 					// 检测分页符之前的所有元素是否存在目录
-					let exist_TOC: boolean = current_page.elements.some((paragraph) => {
+					let exist_TOC: boolean = current_page.children.some((paragraph) => {
 						return paragraph.children.some((elem) => {
 							if (elem.type === DomType.Hyperlink) {
 								return (elem as WmlHyperlink)?.href?.includes('Toc')
@@ -743,7 +743,7 @@ export class HtmlRenderer {
 						// 保存Break索引前面的Run
 						p.children = origin_run.slice(0, pBreakIndex);
 						// 添加新段落
-						current_page.elements.push(new_paragraph);
+						current_page.children.push(new_paragraph);
 
 						if (is_split) {
 							// Run下面原始的元素
@@ -793,7 +793,7 @@ export class HtmlRenderer {
 			pages = this.splitPage(document.children);
 		} else {
 			// 不分页则，只有一个page
-			pages = [new Page({ sectProps: document.props, elements: document.children, } as PageProps)];
+			pages = [new Page({ sectProps: document.props, children: document.children, } as PageProps)];
 		}
 		// 缓存分页的结果
 		document.pages = pages;
@@ -842,7 +842,7 @@ export class HtmlRenderer {
 		}
 
 		// 生成article内容
-		this.renderElements(page.elements, contentElement);
+		this.renderElements(page.children, contentElement);
 		// 放入page
 		pageElement.appendChild(contentElement);
 
@@ -1178,9 +1178,6 @@ export class HtmlRenderer {
 			return null;
 
 		const result = createElement("span");
-
-		if (elem.id)
-			result.id = elem.id;
 
 		this.renderClass(elem, result);
 		this.renderStyleValues(elem.cssStyle, result);

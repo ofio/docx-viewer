@@ -1,5 +1,6 @@
 export enum DomType {
 	Document = "document",
+	Page = "page",
 	Paragraph = "paragraph",
 	Run = "run",
 	Break = "break",
@@ -67,10 +68,16 @@ export interface OpenXmlElement {
 	children?: OpenXmlElement[];
 	cssStyle?: Record<string, any>;
 	props?: Record<string, any>;
+	// 元素层级
 	level?: number;
-
-	styleName?: string; //style name
-	className?: string; //class mods
+	// 元素数组索引
+	index?: number;
+	// 溢出索引，数组，有多个元素溢出
+	breakIndex?: number[];
+	//style name
+	styleName?: string;
+	//class mods
+	className?: string;
 
 	parent?: OpenXmlElement;
 }
@@ -80,6 +87,9 @@ export abstract class OpenXmlElementBase implements OpenXmlElement {
 	children?: OpenXmlElement[] = [];
 	cssStyle?: Record<string, any> = {};
 	props?: Record<string, any>;
+
+	index?: number;
+	breakIndex?: number[];
 
 	className?: string;
 	styleName?: string;

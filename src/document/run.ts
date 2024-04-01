@@ -3,9 +3,8 @@ import { CommonProperties, parseCommonProperty } from "./common";
 import { OpenXmlElement } from "./dom";
 
 export interface WmlRun extends OpenXmlElement, RunProperties {
-    id?: string;
     verticalAlign?: string;
-	fieldRun?: boolean;  
+	fieldRun?: boolean;
 }
 
 export interface RunProperties extends CommonProperties {

@@ -1,4 +1,5 @@
 import JSZip from 'jszip';
+import _ from 'lodash';
 import Konva from 'konva';
 
 /******************************************************************************
@@ -903,6 +904,7 @@ class StylesPart extends Part {
 var DomType;
 (function (DomType) {
     DomType["Document"] = "document";
+    DomType["Page"] = "page";
     DomType["Paragraph"] = "paragraph";
     DomType["Run"] = "run";
     DomType["Break"] = "break";
@@ -1001,6 +1003,7 @@ class BaseHeaderFooterPart extends Part {
     }
     parseXml(root) {
         this.rootElement = this.createRootElement();
+        this.rootElement.level = 1;
         this.rootElement.children = this._documentParser.parseBodyElements(root);
     }
 }
@@ -1677,6 +1680,10 @@ class DocumentParser {
                 case "sdt":
                     children.push(...this.parseSdt(elem, (e) => this.parseBodyElements(e)));
                     break;
+                default:
+                    if (this.options.debug) {
+                        console.warn(`DOCX:%c Unknown Body Element：${elem.localName}`, 'color:red');
+                    }
             }
         }
         return children;
@@ -1691,6 +1698,10 @@ class DocumentParser {
                 case "docDefaults":
                     result.push(this.parseDefaultStyles(n));
                     break;
+                default:
+                    if (this.options.debug) {
+                        console.warn(`DOCX:%c Unknown Style File：${n.localName}`, 'color:grey');
+                    }
             }
         });
         return result;
@@ -1721,6 +1732,10 @@ class DocumentParser {
                             values: this.parseDefaultProperties(pPr, {})
                         });
                     break;
+                default:
+                    if (this.options.debug) {
+                        console.warn(`DOCX:%c Unknown Default Style：${c.localName}`, 'color:grey');
+                    }
             }
         });
         return result;
@@ -1745,6 +1760,10 @@ class DocumentParser {
             case "character":
                 result.target = "span";
                 break;
+            default:
+                if (this.options.debug) {
+                    console.warn(`DOCX:%c Unknown Node Type：${node}`, 'color:grey');
+                }
         }
         xmlUtil.foreach(node, n => {
             switch (n.localName) {
@@ -1795,9 +1814,10 @@ class DocumentParser {
                 case "unhideWhenUsed":
                 case "autoRedefine":
                 case "uiPriority":
-                    break;
                 default:
-                    this.options.debug && console.warn(`DOCX: Unknown style element: ${n.localName}`);
+                    if (this.options.debug) {
+                        console.warn(`DOCX:%c Unknown Style element：${n.localName}`, 'color:blue');
+                    }
             }
         });
         return result;
@@ -1867,6 +1887,10 @@ class DocumentParser {
                         values: this.parseDefaultProperties(n, {})
                     });
                     break;
+                default:
+                    if (this.options.debug) {
+                        console.warn(`DOCX:%c Unknown Table Style：${n.localName}`, 'color:grey');
+                    }
             }
         });
         return result;
@@ -1889,6 +1913,10 @@ class DocumentParser {
                     let abstractNumId = globalXmlParser.elementAttr(n, "abstractNumId", "val");
                     mapping[abstractNumId] = numId;
                     break;
+                default:
+                    if (this.options.debug) {
+                        console.warn(`DOCX:%c Unknown Numbering File：${n.localName}`, 'color:grey');
+                    }
             }
         });
         result.forEach(x => x.id = mapping[x.id]);
@@ -1912,6 +1940,10 @@ class DocumentParser {
                 case "lvl":
                     result.push(this.parseNumberingLevel(id, n, bullets));
                     break;
+                default:
+                    if (this.options.debug) {
+                        console.warn(`DOCX:%c Unknown Abstract Numbering：${n.localName}`, 'color:grey');
+                    }
             }
         });
         return result;
@@ -1953,6 +1985,10 @@ class DocumentParser {
                 case "suff":
                     result.suff = globalXmlParser.attr(n, "val");
                     break;
+                default:
+                    if (this.options.debug) {
+                        console.warn(`DOCX:%c Unknown Numbering Level：${n.localName}`, 'color:grey');
+                    }
             }
         });
         return result;
@@ -2013,6 +2049,10 @@ class DocumentParser {
                 case "del":
                     wmlParagraph.children.push(this.parseDeleted(el, (e) => this.parseParagraph(e)));
                     break;
+                default:
+                    if (this.options.debug) {
+                        console.warn(`DOCX:%c Unknown Paragraph Element：${el.localName}`, 'color:grey');
+                    }
             }
         }
         if (wmlParagraph.children.length === 0) {
@@ -2040,6 +2080,9 @@ class DocumentParser {
                 case "rPr":
                     break;
                 default:
+                    if (this.options.debug) {
+                        console.warn(`DOCX:%c Unknown Paragraph Property：${c.localName}`, 'color:grey');
+                    }
                     return false;
             }
             return true;
@@ -2063,6 +2106,10 @@ class DocumentParser {
                 case "r":
                     result.children.push(this.parseRun(c, result));
                     break;
+                default:
+                    if (this.options.debug) {
+                        console.warn(`DOCX:%c Unknown Hyperlink Element：${c.localName}`, 'color:grey');
+                    }
             }
         });
         return result;
@@ -2167,6 +2214,10 @@ class DocumentParser {
                 case "rPr":
                     this.parseRunProperties(c, result);
                     break;
+                default:
+                    if (this.options.debug) {
+                        console.warn(`DOCX:%c Unknown Run Element：${c.localName}`, 'color:grey');
+                    }
             }
         });
         return result;
@@ -2185,12 +2236,12 @@ class DocumentParser {
                 result.children.push(run);
             }
             else if (el.localName == propsTag) {
-                result.props = this.parseMathProperies(el);
+                result.props = this.parseMathProperties(el);
             }
         }
         return result;
     }
-    parseMathProperies(elem) {
+    parseMathProperties(elem) {
         const result = {};
         for (const el of globalXmlParser.elements(elem)) {
             switch (el.localName) {
@@ -2212,6 +2263,10 @@ class DocumentParser {
                 case "endChr":
                     result.endChar = globalXmlParser.attr(el, "val");
                     break;
+                default:
+                    if (this.options.debug) {
+                        console.warn(`DOCX:%c Unknown Math Property：${el.localName}`, 'color:grey');
+                    }
             }
         }
         return result;
@@ -2226,6 +2281,9 @@ class DocumentParser {
                     run.verticalAlign = values.valueOfVertAlign(c, true);
                     break;
                 default:
+                    if (this.options.debug) {
+                        console.warn(`DOCX:%c Unknown Run Property：${c.localName}`, 'color:grey');
+                    }
                     return false;
             }
             return true;
@@ -2260,6 +2318,10 @@ class DocumentParser {
                 case "inline":
                 case "anchor":
                     return this.parseDrawingWrapper(n);
+                default:
+                    if (this.options.debug) {
+                        console.warn(`DOCX:%c Unknown Drawing Element：${n.localName}`, 'color:grey');
+                    }
             }
         }
     }
@@ -2383,6 +2445,10 @@ class DocumentParser {
                     let polygonNode = globalXmlParser.element(n, "wrapPolygon");
                     this.parsePolygon(polygonNode, result);
                     break;
+                default:
+                    if (this.options.debug) {
+                        console.warn(`DOCX:%c Unknown Drawing Property：${n.localName}`, 'color:grey');
+                    }
             }
         }
         let { extent, effectExtent } = result.props;
@@ -2461,7 +2527,7 @@ class DocumentParser {
                             }
                             break;
                         default:
-                            console.warn(`text wrap picture on ${wrapText} is not supported！`);
+                            console.error(`text wrap picture on ${wrapText} is not supported！`);
                             break;
                     }
                     result.cssStyle["box-sizing"] = "content-box";
@@ -2502,7 +2568,7 @@ class DocumentParser {
                             }
                             break;
                         default:
-                            console.warn(`text wrap picture on ${wrapText} is not supported！`);
+                            console.error(`text wrap picture on ${wrapText} is not supported！`);
                             break;
                     }
                     break;
@@ -2568,7 +2634,7 @@ class DocumentParser {
                     }
                     break;
                 default:
-                    console.warn(`text wrap picture on ${wrapText} is not supported！`);
+                    console.error(`text wrap picture on ${wrapText} is not supported！`);
                     break;
             }
             let point = `${revise_x} ${revise_y}`;
@@ -2584,6 +2650,10 @@ class DocumentParser {
                     return this.parseShape(n);
                 case "pic":
                     return this.parsePicture(n);
+                default:
+                    if (this.options.debug) {
+                        console.warn(`DOCX:%c Unknown Graphic Element：${n.localName}`, 'color:grey');
+                    }
             }
         }
         return null;
@@ -2597,6 +2667,14 @@ class DocumentParser {
                 case "cNvCnPr":
                 case "spPr":
                     return this.parseShapeProperties(n, shape);
+                case "style":
+                case "txbx":
+                case "linkedTxbx":
+                case "bodyPr":
+                default:
+                    if (this.options.debug) {
+                        console.warn(`DOCX:%c Unknown Shape Element：${n.localName}`, 'color:grey');
+                    }
             }
         }
         return null;
@@ -2622,6 +2700,24 @@ class DocumentParser {
                     }
                     this.parseTransform2D(n, target);
                     break;
+                case "custGeom":
+                case "prstGeom":
+                case "noFill":
+                case "solidFill":
+                case "gradFill":
+                case "blipFill":
+                case "pattFill":
+                case "grpFill":
+                case "ln":
+                case "effectLst":
+                case "effectDag":
+                case "scene3d":
+                case "sp3d":
+                case "extLst":
+                default:
+                    if (this.options.debug) {
+                        console.warn(`DOCX:%c Unknown Shape Property：${n.localName}`, 'color:grey');
+                    }
             }
         }
         return null;
@@ -2648,6 +2744,10 @@ class DocumentParser {
                 case "spPr":
                     this.parseShapeProperties(n, result);
                     break;
+                default:
+                    if (this.options.debug) {
+                        console.warn(`DOCX:%c Unknown Picture Element：${n.localName}`, 'color:grey');
+                    }
             }
         }
         return result;
@@ -2679,6 +2779,10 @@ class DocumentParser {
                     target.cssStyle["left"] = globalXmlParser.lengthAttr(n, "x", LengthUsage.Emu);
                     target.cssStyle["top"] = globalXmlParser.lengthAttr(n, "y", LengthUsage.Emu);
                     break;
+                default:
+                    if (this.options.debug) {
+                        console.warn(`DOCX:%c Unknown Transform2D Element：${n.localName}`, 'color:grey');
+                    }
             }
         }
     }
@@ -2698,6 +2802,14 @@ class DocumentParser {
                     target.props.clip.type = 'inset';
                     target.props.clip.path = { top, right, bottom, left };
                     break;
+                case "stretch":
+                    break;
+                case "tile":
+                    break;
+                default:
+                    if (this.options.debug) {
+                        console.warn(`DOCX:%c Unknown Blip Fill Element：${n.localName}`, 'color:grey');
+                    }
             }
         }
     }
@@ -2719,8 +2831,9 @@ class DocumentParser {
                     target.cssStyle["opacity"] = opacity;
                     break;
                 default:
-                    if (this.options.debug)
-                        console.warn(`DOCX: Unknown document element: ${n.localName}`);
+                    if (this.options.debug) {
+                        console.warn(`DOCX:%c Unknown Blip Element：${n.localName}`, 'color:grey');
+                    }
                     break;
             }
         }
@@ -2738,6 +2851,10 @@ class DocumentParser {
                 case "tr":
                     result.children.push(this.parseTableRow(c));
                     break;
+                default:
+                    if (this.options.debug) {
+                        console.warn(`DOCX:%c Unknown Table Element：${c.localName}`, 'color:grey');
+                    }
             }
         });
         return result;
@@ -2749,6 +2866,12 @@ class DocumentParser {
                 case "gridCol":
                     result.push({ width: globalXmlParser.lengthAttr(n, "w") });
                     break;
+                case "tblGridChange":
+                    break;
+                default:
+                    if (this.options.debug) {
+                        console.warn(`DOCX:%c Unknown Table Columns Element：${n.localName}`, 'color:grey');
+                    }
             }
         });
         return result;
@@ -2774,6 +2897,9 @@ class DocumentParser {
                     table.rowBandSize = globalXmlParser.intAttr(c, "val");
                     break;
                 default:
+                    if (this.options.debug) {
+                        console.warn(`DOCX:%c Unknown Table Property：${c.localName}`, 'color:grey');
+                    }
                     return false;
             }
             return true;
@@ -2788,6 +2914,10 @@ class DocumentParser {
                 delete table.cssStyle["text-align"];
                 table.cssStyle["margin-left"] = "auto";
                 break;
+            default:
+                if (this.options.debug) {
+                    console.warn(`DOCX:%c Unknown Table Align：${table.cssStyle["text-align"]}`, 'color:grey');
+                }
         }
     }
     parseTablePosition(node, table) {
@@ -2814,6 +2944,10 @@ class DocumentParser {
                 case "trPr":
                     this.parseTableRowProperties(c, result);
                     break;
+                default:
+                    if (this.options.debug) {
+                        console.warn(`DOCX:%c Unknown Table Row Element：${c.localName}`, 'color:grey');
+                    }
             }
         });
         return result;
@@ -2828,6 +2962,9 @@ class DocumentParser {
                     row.isHeader = globalXmlParser.boolAttr(c, "val", true);
                     break;
                 default:
+                    if (this.options.debug) {
+                        console.warn(`DOCX:%c Unknown Table Row Property：${c.localName}`, 'color:grey');
+                    }
                     return false;
             }
             return true;
@@ -2846,6 +2983,10 @@ class DocumentParser {
                 case "tcPr":
                     this.parseTableCellProperties(c, result);
                     break;
+                default:
+                    if (this.options.debug) {
+                        console.warn(`DOCX:%c Unknown Table Cell Element：${c.localName}`, 'color:grey');
+                    }
             }
         });
         return result;
@@ -2864,6 +3005,9 @@ class DocumentParser {
                     cell.className = values.classNameOfCnfStyle(c);
                     break;
                 default:
+                    if (this.options.debug) {
+                        console.warn(`DOCX:%c Unknown Table Cell Property：${c.localName}`, 'color:grey');
+                    }
                     return false;
             }
             return true;
@@ -3012,8 +3156,9 @@ class DocumentParser {
                 case "widowControl":
                 case "bidi":
                 default:
-                    if (this.options.debug)
-                        console.warn(`DOCX: Unknown document element: ${elem.localName}.${c.localName}`);
+                    if (this.options.debug) {
+                        console.warn(`DOCX:%c Unknown Property Element：${elem.localName}.${c.localName}`, 'color:green');
+                    }
                     break;
             }
         });
@@ -3056,10 +3201,15 @@ class DocumentParser {
             case "none":
                 style["text-decoration"] = "none";
                 break;
+            default:
+                if (this.options.debug) {
+                    console.warn(`DOCX:%c Unknown Underline Property：${val}`, 'color:grey');
+                }
         }
         let col = xmlUtil.colorAttr(node, "color");
-        if (col)
+        if (col) {
             style["text-decoration-color"] = col;
+        }
     }
     parseFont(node, style) {
         let fonts = [];
@@ -3138,6 +3288,10 @@ class DocumentParser {
                 case "bottom":
                     output["padding-bottom"] = values.valueOfMargin(c);
                     break;
+                default:
+                    if (this.options.debug) {
+                        console.warn(`DOCX:%c Unknown Margin Property：${c.localName}`, 'color:grey');
+                    }
             }
         });
     }
@@ -3169,6 +3323,10 @@ class DocumentParser {
                 case "bottom":
                     output["border-bottom"] = values.valueOfBorder(c);
                     break;
+                default:
+                    if (this.options.debug) {
+                        console.warn(`DOCX:%c Unknown Border Property：${c.localName}`, 'color:grey');
+                    }
             }
         });
     }
@@ -3390,10 +3548,12 @@ function lengthToPoint(length) {
 }
 
 class Page {
-    constructor({ sectProps, elements = [], isSplit = false, isFirstPage = false, isLastPage = false, breakIndex = 0, contentElement, checkingOverflow = false, }) {
+    constructor({ sectProps, children = [], isSplit = false, isFirstPage = false, isLastPage = false, breakIndex = [], contentElement, checkingOverflow = false, }) {
+        this.type = DomType.Page;
+        this.level = 1;
         this.pageId = uuid();
         this.sectProps = sectProps;
-        this.elements = elements;
+        this.children = children;
         this.isSplit = isSplit;
         this.isFirstPage = isFirstPage;
         this.isLastPage = isLastPage;
@@ -3769,7 +3929,7 @@ class HtmlRenderer {
         const pages = [current_page];
         for (const elem of elements) {
             elem.level = 1;
-            current_page.elements.push(elem);
+            current_page.children.push(elem);
             if (elem.type == DomType.Paragraph) {
                 const p = elem;
                 const sectProps = p.sectionProps;
@@ -3793,7 +3953,7 @@ class HtmlRenderer {
                                 return false;
                             }
                             if (t.break == "lastRenderedPageBreak") {
-                                return (current_page.elements.length > 2 || !this.options.ignoreLastRenderedPageBreak);
+                                return (current_page.children.length > 2 || !this.options.ignoreLastRenderedPageBreak);
                             }
                             if (t.break === "page") {
                                 return true;
@@ -3805,11 +3965,11 @@ class HtmlRenderer {
                 }
                 if (pBreakIndex != -1) {
                     current_page.isSplit = true;
-                    const exist_table = current_page.elements.some(elem => elem.type === DomType.Table);
+                    const exist_table = current_page.children.some(elem => elem.type === DomType.Table);
                     if (exist_table) {
                         current_page.isSplit = false;
                     }
-                    let exist_TOC = current_page.elements.some((paragraph) => {
+                    let exist_TOC = current_page.children.some((paragraph) => {
                         return paragraph.children.some((elem) => {
                             var _a;
                             if (elem.type === DomType.Hyperlink) {
@@ -3834,7 +3994,7 @@ class HtmlRenderer {
                         let origin_run = p.children;
                         const new_paragraph = Object.assign(Object.assign({}, p), { children: origin_run.slice(pBreakIndex) });
                         p.children = origin_run.slice(0, pBreakIndex);
-                        current_page.elements.push(new_paragraph);
+                        current_page.children.push(new_paragraph);
                         if (is_split) {
                             const origin_elements = breakRun.children;
                             const newRun = Object.assign(Object.assign({}, breakRun), { children: origin_elements.slice(0, rBreakIndex) });
@@ -3867,7 +4027,7 @@ class HtmlRenderer {
             pages = this.splitPage(document.children);
         }
         else {
-            pages = [new Page({ sectProps: document.props, elements: document.children, })];
+            pages = [new Page({ sectProps: document.props, children: document.children, })];
         }
         document.pages = pages;
         let prevProps = null;
@@ -3895,7 +4055,7 @@ class HtmlRenderer {
         if (this.options.breakPages) {
             contentElement.style.minHeight = props.contentSize.height;
         }
-        this.renderElements(page.elements, contentElement);
+        this.renderElements(page.children, contentElement);
         pageElement.appendChild(contentElement);
         if (this.options.renderFootnotes) {
             this.renderNotes(this.currentFootnoteIds, this.footnoteMap, pageElement);
@@ -4138,8 +4298,6 @@ class HtmlRenderer {
         if (elem.fieldRun)
             return null;
         const result = createElement$1("span");
-        if (elem.id)
-            result.id = elem.id;
         this.renderClass(elem, result);
         this.renderStyleValues(elem.cssStyle, result);
         if (elem.verticalAlign) {
@@ -4529,7 +4687,11 @@ var Overflow;
 (function (Overflow) {
     Overflow["TRUE"] = "true";
     Overflow["FALSE"] = "false";
+    Overflow["SELF"] = "self";
+    Overflow["FULL"] = "full";
+    Overflow["PART"] = "part";
     Overflow["UNKNOWN"] = "undetected";
+    Overflow["IGNORE"] = "ignore";
 })(Overflow || (Overflow = {}));
 class HtmlRendererSync {
     constructor() {
@@ -4864,6 +5026,7 @@ class HtmlRendererSync {
         if (element.children) {
             for (const e of element.children) {
                 e.parent = element;
+                e.level = (element === null || element === void 0 ? void 0 : element.level) + 1;
                 if (e.type == DomType.Table) {
                     this.processTable(e);
                     this.processElement(e);
@@ -4890,13 +5053,12 @@ class HtmlRendererSync {
             }
         }
     }
-    splitPage(elements) {
+    splitPageBySymbol(elements) {
         var _a;
         let current_page = new Page({});
         const pages = [current_page];
         for (const elem of elements) {
-            elem.level = 1;
-            current_page.elements.push(elem);
+            current_page.children.push(elem);
             if (elem.type == DomType.Paragraph) {
                 const p = elem;
                 const sectProps = p.sectionProps;
@@ -4920,7 +5082,7 @@ class HtmlRendererSync {
                                 return false;
                             }
                             if (t.break == 'lastRenderedPageBreak') {
-                                return (current_page.elements.length > 2 || !this.options.ignoreLastRenderedPageBreak);
+                                return (current_page.children.length > 2 || !this.options.ignoreLastRenderedPageBreak);
                             }
                             if (t.break === 'page') {
                                 return true;
@@ -4932,11 +5094,11 @@ class HtmlRendererSync {
                 }
                 if (pBreakIndex != -1) {
                     current_page.isSplit = true;
-                    const exist_table = current_page.elements.some(elem => elem.type === DomType.Table);
+                    const exist_table = current_page.children.some(elem => elem.type === DomType.Table);
                     if (exist_table) {
                         current_page.isSplit = false;
                     }
-                    let exist_TOC = current_page.elements.some((paragraph) => {
+                    let exist_TOC = current_page.children.some((paragraph) => {
                         return paragraph.children.some((elem) => {
                             var _a;
                             if (elem.type === DomType.Hyperlink) {
@@ -4961,7 +5123,7 @@ class HtmlRendererSync {
                         const origin_runs = p.children;
                         const new_paragraph = Object.assign(Object.assign({}, p), { children: origin_runs.slice(pBreakIndex) });
                         p.children = origin_runs.slice(0, pBreakIndex);
-                        current_page.elements.push(new_paragraph);
+                        current_page.children.push(new_paragraph);
                         if (is_split) {
                             const origin_elements = breakRun.children;
                             const newRun = Object.assign(Object.assign({}, breakRun), { children: origin_elements.slice(0, rBreakIndex) });
@@ -4988,21 +5150,21 @@ class HtmlRendererSync {
     }
     renderPages(document) {
         return __awaiter(this, void 0, void 0, function* () {
-            this.processElement(document);
             let pages;
             if (this.options.breakPages) {
-                pages = this.splitPage(document.children);
+                pages = this.splitPageBySymbol(document.children);
             }
             else {
-                pages = [new Page({ sectProps: document.props, elements: document.children, })];
+                pages = [new Page({ sectProps: document.props, children: document.children, })];
             }
             document.pages = pages;
             let prevProps = null;
-            let origin_pages = structuredClone(pages);
+            let origin_pages = [...pages];
             for (let i = 0; i < origin_pages.length; i++) {
                 this.currentFootnoteIds = [];
                 const page = origin_pages[i];
                 const { sectProps } = page;
+                this.processElement(page);
                 page.sectProps = sectProps !== null && sectProps !== void 0 ? sectProps : document.props;
                 page.isFirstPage = prevProps != page.sectProps;
                 page.isLastPage = i === origin_pages.length - 1;
@@ -5015,7 +5177,8 @@ class HtmlRendererSync {
     }
     renderPage() {
         return __awaiter(this, void 0, void 0, function* () {
-            const { pageId, sectProps, elements, isFirstPage, isLastPage } = this.currentPage;
+            const { pageId, sectProps, children, isFirstPage, isLastPage } = this.currentPage;
+            this.processElement(this.currentPage);
             const pageElement = this.createPage(this.className, sectProps);
             this.renderStyleValues(this.document.documentPart.body.cssStyle, pageElement);
             let pages = this.document.documentPart.body.pages;
@@ -5042,7 +5205,7 @@ class HtmlRendererSync {
             this.currentPage.contentElement = contentElement;
             pageElement.appendChild(contentElement);
             this.currentPage.checkingOverflow = true;
-            let is_overflow = yield this.renderElements(elements, contentElement);
+            let is_overflow = yield this.renderElements(children, contentElement);
             if (is_overflow === Overflow.FALSE) {
                 this.currentPage.isSplit = true;
                 pages[pageIndex] = this.currentPage;
@@ -5140,21 +5303,106 @@ class HtmlRendererSync {
             }
         });
     }
-    renderElements(elems, parent) {
+    renderElements(children, parent) {
         var _a;
         return __awaiter(this, void 0, void 0, function* () {
-            let is_overflow = Overflow.FALSE;
-            for (let i = 0; i < elems.length; i++) {
-                if (elems[i].level === 1) {
-                    this.currentPage.breakIndex = i;
+            let overflow = Overflow.UNKNOWN;
+            let pages = this.document.documentPart.body.pages;
+            let { pageId, isSplit, sectProps, children: current_page_children } = this.currentPage;
+            let pageIndex = pages.findIndex((page) => page.pageId === pageId);
+            for (let i = 0; i < children.length; i++) {
+                const elem = children[i];
+                elem.index = i;
+                if (!elem.breakIndex) {
+                    elem.breakIndex = [];
                 }
-                const element = (yield this.renderElement(elems[i], parent));
-                if (((_a = element === null || element === void 0 ? void 0 : element.dataset) === null || _a === void 0 ? void 0 : _a.overflow) === Overflow.TRUE) {
-                    is_overflow = Overflow.TRUE;
+                const rendered_element = yield this.renderElement(elem, parent);
+                if (isSplit) {
+                    continue;
+                }
+                overflow = (_a = rendered_element === null || rendered_element === void 0 ? void 0 : rendered_element.dataset) === null || _a === void 0 ? void 0 : _a.overflow;
+                let action;
+                switch (overflow) {
+                    case Overflow.TRUE:
+                    case Overflow.FULL:
+                    case Overflow.SELF:
+                        elem.parent.breakIndex.push(i);
+                        removeElements(rendered_element, parent);
+                        action = 'break';
+                        break;
+                    case Overflow.PART:
+                        elem.parent.breakIndex.push(i);
+                        action = 'break';
+                        break;
+                    case Overflow.FALSE:
+                    case Overflow.UNKNOWN:
+                    case Overflow.IGNORE:
+                        action = 'continue';
+                        break;
+                    default:
+                        action = 'continue';
+                        console.error('unhandled overflow', overflow, elem);
+                }
+                if (elem.type === DomType.Cell) {
+                    action = 'continue';
+                }
+                if (action === 'continue') {
+                    continue;
+                }
+                if (elem.level > 2) {
+                    overflow = i > 0 ? Overflow.PART : Overflow.FULL;
+                    break;
+                }
+                if (elem.level === 2) {
+                    if (elem.type === DomType.Table) {
+                        let next_page_children = current_page_children.splice(i);
+                        const next_page = new Page({ sectProps, children: next_page_children });
+                        this.splitPageByBreakIndex(this.currentPage, next_page);
+                        this.currentPage.isSplit = true;
+                        this.currentPage.checkingOverflow = false;
+                        pages[pageIndex] = this.currentPage;
+                        pages.splice(pageIndex + 1, 0, next_page);
+                        this.currentPage = next_page;
+                        yield this.renderPage();
+                    }
+                    if (elem.type === DomType.Paragraph) {
+                        let next_page_children = current_page_children.splice(i);
+                        const next_page = new Page({ sectProps, children: next_page_children });
+                        this.splitPageByBreakIndex(this.currentPage, next_page);
+                        this.currentPage.isSplit = true;
+                        this.currentPage.checkingOverflow = false;
+                        pages[pageIndex] = this.currentPage;
+                        pages.splice(pageIndex + 1, 0, next_page);
+                        this.currentPage = next_page;
+                        yield this.renderPage();
+                    }
                     break;
                 }
             }
-            return is_overflow;
+            return overflow;
+        });
+    }
+    splitPageByBreakIndex(current, next) {
+        next.children.forEach((child, i) => {
+            let { type, breakIndex, children } = child;
+            if (!breakIndex || !breakIndex.length) {
+                return;
+            }
+            let copy = _.cloneDeep(child);
+            if (type === DomType.Row) {
+                current.children.push(copy);
+            }
+            else {
+                const unbrokenChildren = children.splice(0, breakIndex[0]);
+                if (current.type === DomType.Row) {
+                    current.children[i].children = unbrokenChildren;
+                }
+                else {
+                    copy.children = unbrokenChildren;
+                    current.children.push(copy);
+                }
+            }
+            this.splitPageByBreakIndex(copy, child);
         });
     }
     renderElement(elem, parent) {
@@ -5177,10 +5425,7 @@ class HtmlRendererSync {
                     oNode = yield this.renderTableRow(elem, parent);
                     break;
                 case DomType.Cell:
-                    oNode = yield this.renderTableCell(elem);
-                    if (parent) {
-                        appendChildren(parent, oNode);
-                    }
+                    oNode = yield this.renderTableCell(elem, parent);
                     break;
                 case DomType.Hyperlink:
                     oNode = yield this.renderHyperlink(elem, parent);
@@ -5192,10 +5437,7 @@ class HtmlRendererSync {
                     oNode = yield this.renderImage(elem, parent);
                     break;
                 case DomType.BookmarkStart:
-                    oNode = this.renderBookmarkStart(elem);
-                    if (parent) {
-                        appendChildren(parent, oNode);
-                    }
+                    oNode = this.renderBookmarkStart(elem, parent);
                     break;
                 case DomType.BookmarkEnd:
                     oNode = null;
@@ -5439,38 +5681,20 @@ class HtmlRendererSync {
             return yield this.renderElements(elem.children, parent);
         });
     }
-    appendChildren(parent, children, xml_element) {
+    appendChildren(parent, children) {
         return __awaiter(this, void 0, void 0, function* () {
             appendChildren(parent, children);
-            let is_overflow = false;
-            let { pageId, sectProps, isSplit, contentElement, breakIndex, checkingOverflow, elements: origin_elements } = this.currentPage;
+            let { isSplit, contentElement, checkingOverflow, } = this.currentPage;
             if (isSplit) {
                 return Overflow.UNKNOWN;
             }
             if (checkingOverflow) {
-                is_overflow = checkOverflow(contentElement);
-                if (is_overflow) {
-                    if ((xml_element === null || xml_element === void 0 ? void 0 : xml_element.type) === DomType.Row) {
-                        const table = origin_elements[breakIndex];
-                        const row_index = table.children.findIndex(elem => elem === xml_element);
-                        const table_headers = table.children.filter((row) => row.isHeader);
-                        table.children.splice(0, row_index);
-                        table.children = [...table_headers, ...table.children];
-                    }
-                    let elements = origin_elements.splice(breakIndex);
-                    removeElements(children, parent);
-                    let pages = this.document.documentPart.body.pages;
-                    let pageIndex = pages.findIndex((page) => page.pageId === pageId);
-                    this.currentPage.isSplit = true;
-                    this.currentPage.checkingOverflow = false;
-                    const page = new Page({ sectProps, elements });
-                    pages[pageIndex] = this.currentPage;
-                    pages.splice(pageIndex + 1, 0, page);
-                    this.currentPage = page;
-                    yield this.renderPage();
-                }
+                let isOverflow = checkOverflow(contentElement);
+                return isOverflow ? Overflow.TRUE : Overflow.FALSE;
             }
-            return is_overflow ? Overflow.TRUE : Overflow.FALSE;
+            else {
+                return Overflow.UNKNOWN;
+            }
         });
     }
     renderContainer(elem, tagName, props) {
@@ -5511,12 +5735,11 @@ class HtmlRendererSync {
                 oParagraph.classList.add('clearfix');
             }
             oParagraph.style.position = 'relative';
-            if (parent) {
-                const is_overflow = yield this.appendChildren(parent, oParagraph);
-                if (is_overflow === Overflow.TRUE) {
-                    oParagraph.dataset.overflow = Overflow.TRUE;
-                    return oParagraph;
-                }
+            let is_overflow;
+            is_overflow = yield this.appendChildren(parent, oParagraph);
+            if (is_overflow === Overflow.TRUE) {
+                oParagraph.dataset.overflow = Overflow.SELF;
+                return oParagraph;
             }
             oParagraph.dataset.overflow = yield this.renderChildren(elem, oParagraph);
             return oParagraph;
@@ -5528,35 +5751,29 @@ class HtmlRendererSync {
                 return null;
             }
             const oSpan = createElement('span');
-            if (elem.id) {
-                oSpan.id = elem.id;
-            }
             this.renderClass(elem, oSpan);
             this.renderStyleValues(elem.cssStyle, oSpan);
-            if (parent) {
-                const is_overflow = yield this.appendChildren(parent, oSpan);
-                if (is_overflow === Overflow.TRUE) {
-                    oSpan.dataset.overflow = Overflow.TRUE;
-                    return oSpan;
-                }
+            let is_overflow;
+            is_overflow = yield this.appendChildren(parent, oSpan);
+            if (is_overflow === Overflow.TRUE) {
+                oSpan.dataset.overflow = Overflow.SELF;
+                return oSpan;
             }
             if (elem.verticalAlign) {
-                const wrapper = createElement(elem.verticalAlign);
-                oSpan.dataset.overflow = yield this.renderChildren(elem, wrapper);
-                oSpan.dataset.overflow = yield this.appendChildren(oSpan, wrapper);
+                const oScript = createElement(elem.verticalAlign);
+                appendChildren(oSpan, oScript);
+                oSpan.dataset.overflow = yield this.renderChildren(elem, oScript);
+                return oSpan;
             }
-            else {
-                oSpan.dataset.overflow = yield this.renderChildren(elem, oSpan);
-            }
+            oSpan.dataset.overflow = yield this.renderChildren(elem, oSpan);
             return oSpan;
         });
     }
     renderText(elem, parent) {
         return __awaiter(this, void 0, void 0, function* () {
             const oText = document.createTextNode(elem.text);
-            if (parent) {
-                appendChildren(parent, oText);
-            }
+            oText.dataset = {};
+            oText.dataset.overflow = yield this.appendChildren(parent, oText);
             return oText;
         });
     }
@@ -5570,15 +5787,14 @@ class HtmlRendererSync {
             this.currentCellPosition = { col: 0, row: 0 };
             this.renderClass(elem, oTable);
             this.renderStyleValues(elem.cssStyle, oTable);
-            if (parent) {
-                const is_overflow = yield this.appendChildren(parent, oTable);
-                if (is_overflow === Overflow.TRUE) {
-                    oTable.dataset.overflow = Overflow.TRUE;
-                    return oTable;
-                }
+            let is_overflow;
+            is_overflow = yield this.appendChildren(parent, oTable);
+            if (is_overflow === Overflow.TRUE) {
+                oTable.dataset.overflow = Overflow.SELF;
+                return oTable;
             }
             if (elem.columns) {
-                yield this.renderTableColumns(elem.columns, oTable);
+                this.renderTableColumns(elem.columns, oTable);
             }
             oTable.dataset.overflow = yield this.renderChildren(elem, oTable);
             this.currentVerticalMerge = this.tableVerticalMerges.pop();
@@ -5587,20 +5803,16 @@ class HtmlRendererSync {
         });
     }
     renderTableColumns(columns, parent) {
-        return __awaiter(this, void 0, void 0, function* () {
-            const oColGroup = createElement('colgroup');
-            if (parent) {
-                appendChildren(parent, oColGroup);
+        const oColGroup = createElement('colgroup');
+        appendChildren(parent, oColGroup);
+        for (const col of columns) {
+            const oCol = createElement('col');
+            if (col.width) {
+                oCol.style.width = col.width;
             }
-            for (const col of columns) {
-                const oCol = createElement('col');
-                if (col.width) {
-                    oCol.style.width = col.width;
-                }
-                appendChildren(oColGroup, oCol);
-            }
-            return oColGroup;
-        });
+            appendChildren(oColGroup, oCol);
+        }
+        return oColGroup;
     }
     renderTableRow(elem, parent) {
         return __awaiter(this, void 0, void 0, function* () {
@@ -5609,14 +5821,17 @@ class HtmlRendererSync {
             this.renderClass(elem, oTableRow);
             this.renderStyleValues(elem.cssStyle, oTableRow);
             this.currentCellPosition.row++;
-            yield this.renderChildren(elem, oTableRow);
-            if (parent) {
-                oTableRow.dataset.overflow = yield this.appendChildren(parent, oTableRow, elem);
+            let is_overflow;
+            is_overflow = yield this.appendChildren(parent, oTableRow);
+            if (is_overflow === Overflow.TRUE) {
+                oTableRow.dataset.overflow = Overflow.SELF;
+                return oTableRow;
             }
+            oTableRow.dataset.overflow = yield this.renderChildren(elem, oTableRow);
             return oTableRow;
         });
     }
-    renderTableCell(elem) {
+    renderTableCell(elem, parent) {
         return __awaiter(this, void 0, void 0, function* () {
             const oTableCell = createElement('td');
             const key = this.currentCellPosition.col;
@@ -5639,7 +5854,13 @@ class HtmlRendererSync {
                 oTableCell.colSpan = elem.span;
             }
             this.currentCellPosition.col += oTableCell.colSpan;
-            yield this.renderChildren(elem, oTableCell);
+            let is_overflow;
+            is_overflow = yield this.appendChildren(parent, oTableCell);
+            if (is_overflow === Overflow.TRUE) {
+                oTableCell.dataset.overflow = Overflow.SELF;
+                return oTableCell;
+            }
+            oTableCell.dataset.overflow = yield this.renderChildren(elem, oTableCell);
             return oTableCell;
         });
     }
@@ -5647,12 +5868,11 @@ class HtmlRendererSync {
         return __awaiter(this, void 0, void 0, function* () {
             const oAnchor = createElement('a');
             this.renderStyleValues(elem.cssStyle, oAnchor);
-            if (parent) {
-                const is_overflow = yield this.appendChildren(parent, oAnchor);
-                if (is_overflow === Overflow.TRUE) {
-                    oAnchor.dataset.overflow = Overflow.TRUE;
-                    return oAnchor;
-                }
+            let is_overflow;
+            is_overflow = yield this.appendChildren(parent, oAnchor);
+            if (is_overflow === Overflow.TRUE) {
+                oAnchor.dataset.overflow = Overflow.SELF;
+                return oAnchor;
             }
             if (elem.href) {
                 oAnchor.href = elem.href;
@@ -5671,12 +5891,11 @@ class HtmlRendererSync {
             oDrawing.style.textIndent = '0px';
             oDrawing.dataset.wrap = elem === null || elem === void 0 ? void 0 : elem.props.wrapType;
             this.renderStyleValues(elem.cssStyle, oDrawing);
-            if (parent) {
-                const is_overflow = yield this.appendChildren(parent, oDrawing);
-                if (is_overflow === Overflow.TRUE) {
-                    oDrawing.dataset.overflow = Overflow.TRUE;
-                    return oDrawing;
-                }
+            let is_overflow;
+            is_overflow = yield this.appendChildren(parent, oDrawing);
+            if (is_overflow === Overflow.TRUE) {
+                oDrawing.dataset.overflow = Overflow.SELF;
+                return oDrawing;
             }
             oDrawing.dataset.overflow = yield this.renderChildren(elem, oDrawing);
             return oDrawing;
@@ -5694,9 +5913,7 @@ class HtmlRendererSync {
             else {
                 oImage.src = source;
             }
-            if (parent) {
-                oImage.dataset.overflow = yield this.appendChildren(parent, oImage);
-            }
+            oImage.dataset.overflow = yield this.appendChildren(parent, oImage);
             return oImage;
         });
     }
@@ -5710,7 +5927,7 @@ class HtmlRendererSync {
     }
     transformImage(elem, source) {
         return __awaiter(this, void 0, void 0, function* () {
-            const { width, height, is_clip, clip, is_transform, transform } = elem.props;
+            const { is_clip, clip, is_transform, transform } = elem.props;
             const img = new Image();
             img.src = source;
             yield img.decode();
@@ -5769,9 +5986,11 @@ class HtmlRendererSync {
             return result;
         });
     }
-    renderBookmarkStart(elem) {
+    renderBookmarkStart(elem, parent) {
         const oSpan = createElement('span');
         oSpan.id = elem.name;
+        appendChildren(parent, oSpan);
+        oSpan.dataset.overflow = Overflow.IGNORE;
         return oSpan;
     }
     renderTab(elem, parent) {
@@ -5792,40 +6011,36 @@ class HtmlRendererSync {
     }
     renderSymbol(elem, parent) {
         return __awaiter(this, void 0, void 0, function* () {
-            const oSpan = createElement('span');
-            oSpan.style.fontFamily = elem.font;
-            oSpan.innerHTML = `&#x${elem.char};`;
-            if (parent) {
-                yield this.appendChildren(parent, oSpan);
-            }
-            return oSpan;
+            const oSymbol = createElement('span');
+            oSymbol.style.fontFamily = elem.font;
+            oSymbol.innerHTML = `&#x${elem.char};`;
+            oSymbol.dataset.overflow = yield this.appendChildren(parent, oSymbol);
+            return oSymbol;
         });
     }
     renderBreak(elem, parent) {
         return __awaiter(this, void 0, void 0, function* () {
-            let oBr;
+            let oBreak;
             switch (elem.break) {
                 case 'page':
-                    oBr = createElement('br');
-                    oBr.classList.add('break', 'page');
+                    oBreak = createElement('br');
+                    oBreak.classList.add('break', 'page');
                     break;
                 case 'textWrapping':
-                    oBr = createElement('br');
-                    oBr.classList.add('break', 'textWrap');
+                    oBreak = createElement('br');
+                    oBreak.classList.add('break', 'textWrap');
                     break;
                 case 'column':
-                    oBr = createElement('br');
-                    oBr.classList.add('break', 'column');
+                    oBreak = createElement('br');
+                    oBreak.classList.add('break', 'column');
                     break;
                 case 'lastRenderedPageBreak':
-                    oBr = createElement('wbr');
-                    oBr.classList.add('break', 'lastRenderedPageBreak');
+                    oBreak = createElement('wbr');
+                    oBreak.classList.add('break', 'lastRenderedPageBreak');
                     break;
             }
-            if (parent) {
-                appendChildren(parent, oBr);
-            }
-            return oBr;
+            oBreak.dataset.overflow = yield this.appendChildren(parent, oBreak);
+            return oBreak;
         });
     }
     renderInserted(elem) {
