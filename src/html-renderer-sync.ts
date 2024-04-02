@@ -853,22 +853,6 @@ export class HtmlRendererSync {
 				pageElement
 			);
 		}
-		// 渲染page脚注
-		if (this.options.renderFootnotes) {
-			await this.renderNotes(
-				this.currentFootnoteIds,
-				this.footnoteMap,
-				pageElement
-			);
-		}
-		// 渲染page尾注，判断最后一页
-		if (this.options.renderEndnotes && isLastPage) {
-			await this.renderNotes(
-				this.currentEndnoteIds,
-				this.endnoteMap,
-				pageElement
-			);
-		}
 		// 渲染page页脚
 		if (this.options.renderFooters) {
 			await this.renderHeaderFooterRef(
@@ -879,7 +863,6 @@ export class HtmlRendererSync {
 				pageElement
 			);
 		}
-
 		// TODO 分栏情况下，有可能一个page一种分栏，在分节符（continuous）情况下，一个page拥有多种分栏；
 
 		// page内容区---Article元素
@@ -909,6 +892,22 @@ export class HtmlRendererSync {
 		}
 		// 标识--结束溢出计算
 		this.currentPage.checkingOverflow = false;
+		// 渲染page脚注
+		if (this.options.renderFootnotes) {
+			await this.renderNotes(
+				this.currentFootnoteIds,
+				this.footnoteMap,
+				pageElement
+			);
+		}
+		// 渲染page尾注，判断最后一页
+		if (this.options.renderEndnotes && isLastPage) {
+			await this.renderNotes(
+				this.currentEndnoteIds,
+				this.endnoteMap,
+				pageElement
+			);
+		}
 	}
 
 	// 创建Page
@@ -1013,6 +1012,7 @@ export class HtmlRendererSync {
 		}
 	}
 
+	// TODO 字体太大，尾注位置不对
 	// 渲染脚注/尾注
 	async renderNotes(noteIds: string[], notesMap: Record<string, WmlBaseNote>, parent: HTMLElement) {
 		const notes = noteIds.map(id => notesMap[id]).filter(x => x);
@@ -1109,62 +1109,23 @@ export class HtmlRendererSync {
 			}
 			// 顶层元素：溢出
 			if (elem.level === 2) {
-				// 表格
-				if (elem.type === DomType.Table) {
-					// 根据breakIndex索引，删除后续元素，原始数组保留前面已经渲染的元素
-					let next_page_children: OpenXmlElement[] = current_page_children.splice(i);
-					// 生成新的page，新Page的sectionProps沿用前一页的sectionProps
-					const next_page: Page = new Page({ sectProps, children: next_page_children } as PageProps);
-					// 根据breakIndex索引拆分页面
-					this.splitPageByBreakIndex(this.currentPage, next_page);
-					// 修改当前Page的状态
-					this.currentPage.isSplit = true;
-					this.currentPage.checkingOverflow = false;
-					// 替换当前page
-					pages[pageIndex] = this.currentPage;
-					// 缓存拆分出去的新page
-					pages.splice(pageIndex + 1, 0, next_page);
-					// 新Page覆盖current_page的属性
-					this.currentPage = next_page;
-					// 重启新一个page的渲染
-					await this.renderPage();
-					// if (is_overflow) {
-					// 	// 溢出元素 == row
-					// 	if (xml_element?.type === DomType.Row) {
-					// 		const table: OpenXmlElement = origin_elements[breakIndex];
-					// 		// 溢出元素所在tr的索引;
-					// 		const row_index = table.children.findIndex(
-					// 			elem => elem === xml_element
-					// 		);
-					// 		// 查找表格中的table header，可能有多行
-					// 		const table_headers = table.children.filter((row: WmlTableRow) => row.isHeader);
-					// 		// 删除table前面已经渲染的row，保留后续未渲染元素
-					// 		table.children.splice(0, row_index);
-					// 		// 填充table header
-					// 		table.children = [...table_headers, ...table.children];
-					// 	}
-					// }
-				}
-				// 段落
-				if (elem.type === DomType.Paragraph) {
-					// 根据breakIndex索引，删除后续元素，原始数组保留前面已经渲染的元素
-					let next_page_children: OpenXmlElement[] = current_page_children.splice(i);
-					// 生成新的page，新Page的sectionProps沿用前一页的sectionProps
-					const next_page: Page = new Page({ sectProps, children: next_page_children } as PageProps);
-					// 根据breakIndex索引拆分页面
-					this.splitPageByBreakIndex(this.currentPage, next_page);
-					// 修改当前Page的状态
-					this.currentPage.isSplit = true;
-					this.currentPage.checkingOverflow = false;
-					// 替换当前page
-					pages[pageIndex] = this.currentPage;
-					// 缓存拆分出去的新page
-					pages.splice(pageIndex + 1, 0, next_page);
-					// 新Page覆盖current_page的属性
-					this.currentPage = next_page;
-					// 重启新一个page的渲染
-					await this.renderPage();
-				}
+				// 根据breakIndex索引，删除后续元素，原始数组保留前面已经渲染的元素
+				let next_page_children: OpenXmlElement[] = current_page_children.splice(i);
+				// 生成新的page，新Page的sectionProps沿用前一页的sectionProps
+				const next_page: Page = new Page({ sectProps, children: next_page_children } as PageProps);
+				// 根据breakIndex索引拆分页面
+				this.splitPageByBreakIndex(this.currentPage, next_page);
+				// 修改当前Page的状态
+				this.currentPage.isSplit = true;
+				this.currentPage.checkingOverflow = false;
+				// 替换当前page
+				pages[pageIndex] = this.currentPage;
+				// 缓存拆分出去的新page
+				pages.splice(pageIndex + 1, 0, next_page);
+				// 新Page覆盖current_page的属性
+				this.currentPage = next_page;
+				// 重启新一个page的渲染
+				await this.renderPage();
 				// 跳出循环
 				break;
 			}
@@ -1185,6 +1146,12 @@ export class HtmlRendererSync {
 			}
 			// 复制child的元素
 			let copy: OpenXmlElement = _.cloneDeep(child);
+			// 		// 查找表格中的table header，可能有多行
+			// 		const table_headers = table.children.filter((row: WmlTableRow) => row.isHeader);
+			// 		// 删除table前面已经渲染的row，保留后续未渲染元素
+			// 		table.children.splice(0, row_index);
+			// 		// 填充table header
+			// 		table.children = [...table_headers, ...table.children];
 			// 如果当前元素是表格Row，无需拆分，复制Row至current_page
 			if (type === DomType.Row) {
 				current.children.push(copy);
@@ -1276,17 +1243,11 @@ export class HtmlRendererSync {
 				break;
 
 			case DomType.Inserted:
-				oNode = await this.renderInserted(elem);
-				if (parent) {
-					await this.appendChildren(parent as HTMLElement, oNode);
-				}
+				oNode = await this.renderInserted(elem, parent as HTMLElement);
 				break;
 
 			case DomType.Deleted:
-				oNode = await this.renderDeleted(elem);
-				if (parent) {
-					await this.appendChildren(parent as HTMLElement, oNode);
-				}
+				oNode = await this.renderDeleted(elem, parent as HTMLElement);
 				break;
 
 			case DomType.DeletedText:
@@ -1595,9 +1556,10 @@ export class HtmlRendererSync {
 	}
 
 	async renderContainer(elem: OpenXmlElement, tagName: keyof HTMLElementTagNameMap, props?: Record<string, any>) {
-		const parent = createElement(tagName, props);
-		await this.renderChildren(elem, parent);
-		return parent;
+		const oContainer = createElement(tagName, props);
+
+		oContainer.dataset.overflow = await this.renderChildren(elem, oContainer);
+		return oContainer;
 	}
 
 	async renderContainerNS(elem: OpenXmlElement, ns: string, tagName: string, props?: Record<string, any>) {
@@ -2047,9 +2009,16 @@ export class HtmlRendererSync {
 		const oSymbol = createElement('span');
 		oSymbol.style.fontFamily = elem.font;
 		oSymbol.innerHTML = `&#x${elem.char};`;
+		// 溢出标识
+		let is_overflow: Overflow;
+		// oSymbol作为子元素插入，针对此元素进行溢出检测
+		is_overflow = await this.appendChildren(parent, oSymbol);
 
-		// 作为子元素插入，执行溢出检测
-		oSymbol.dataset.overflow = await this.appendChildren(parent, oSymbol);
+		if (is_overflow === Overflow.TRUE) {
+			oSymbol.dataset.overflow = Overflow.SELF;
+		}
+
+		oSymbol.dataset.overflow = is_overflow;
 
 		return oSymbol;
 	}
@@ -2085,43 +2054,73 @@ export class HtmlRendererSync {
 				break;
 			default:
 		}
-		// 作为子元素插入，执行溢出检测
-		oBreak.dataset.overflow = await this.appendChildren(parent, oBreak);
+		// 溢出标识
+		let is_overflow: Overflow;
+		// oBreak作为子元素插入，针对此元素执行溢出检测
+		is_overflow = await this.appendChildren(parent, oBreak);
+
+		if (is_overflow === Overflow.TRUE) {
+			oBreak.dataset.overflow = Overflow.SELF;
+		}
+
+		oBreak.dataset.overflow = is_overflow;
 
 		return oBreak;
 	}
 
-	// TODO 需要处理溢出
-	renderInserted(elem: OpenXmlElement) {
-		if (this.options.renderChanges) {
-			return this.renderContainer(elem, 'ins');
-		}
+	// TODO 修订标识：修订人，修订日期等信息
+	// TODO 修订标识：表格
+	async renderInserted(elem: OpenXmlElement, parent: HTMLElement) {
+		// 根据option，是否渲染修订文本，确定tagName
+		let tagName: keyof HTMLElementTagNameMap = this.options.renderChanges ? 'ins' : 'span';
+		// 创建元素
+		const oInserted: HTMLModElement | HTMLSpanElement = createElement(tagName);
+		// 溢出标识
+		let is_overflow: Overflow;
+		// oInserted作为子元素插入,针对此元素进行溢出检测
+		is_overflow = await this.appendChildren(parent, oInserted);
+		if (is_overflow === Overflow.TRUE) {
+			oInserted.dataset.overflow = Overflow.SELF;
 
-		return this.renderContainer(elem, 'span');
+			return oInserted;
+		}
+		// 针对oInserted后代子元素进行溢出检测
+		oInserted.dataset.overflow = await this.renderChildren(elem, oInserted);
+
+		return oInserted;
 	}
 
-	// TODO 需要处理溢出
-	async renderDeleted(elem: OpenXmlElement) {
-		if (this.options.renderChanges) {
-			return await this.renderContainer(elem, 'del');
+	// 渲染删除标记
+	async renderDeleted(elem: OpenXmlElement, parent: HTMLElement) {
+		let oDeleted = createElement('del');
+		// 根据option，是否渲染修订文本
+		if (this.options.renderChanges === false) {
+			// 隐藏修订文本
+			oDeleted.style.display = 'none';
 		}
-		return null;
+		// 溢出标识
+		let is_overflow: Overflow;
+		// oDeleted作为子元素插入,针对此元素进行溢出检测
+		is_overflow = await this.appendChildren(parent, oDeleted);
+
+		if (is_overflow === Overflow.TRUE) {
+			oDeleted.dataset.overflow = Overflow.SELF;
+
+			return oDeleted;
+		}
+		// 针对oDeleted后代子元素进行溢出检测
+		oDeleted.dataset.overflow = await this.renderChildren(elem, oDeleted);
+
+		return oDeleted;
 	}
 
-	// TODO 需要处理溢出
-	async renderDeletedText(elem: WmlText, parent?: HTMLElement) {
-		let oDeletedText: Text;
-
-		if (this.options.renderEndnotes) {
-			oDeletedText = document.createTextNode(elem.text);
-			// TODO 作为子元素插入，执行溢出检测
-			if (parent) {
-				await this.appendChildren(parent, oDeletedText);
-			}
-		} else {
-			oDeletedText = null;
+	// 渲染删除文本
+	async renderDeletedText(elem: WmlText, parent: HTMLElement) {
+		// 根据option，是否渲染修订文本
+		if (this.options.renderChanges === false) {
+			// 隐藏修订文本
 		}
-		return oDeletedText;
+		return this.renderText(elem, parent);
 	}
 
 	// 注释开始
@@ -2168,6 +2167,7 @@ export class HtmlRendererSync {
 		return oElement;
 	}
 
+	// 渲染脚注
 	renderFootnoteReference(elem: WmlNoteReference) {
 		const oSup = createElement('sup');
 		this.currentFootnoteIds.push(elem.id);
@@ -2175,6 +2175,7 @@ export class HtmlRendererSync {
 		return oSup;
 	}
 
+	// 渲染尾注
 	renderEndnoteReference(elem: WmlNoteReference) {
 		const oSup = createElement('sup');
 		this.currentEndnoteIds.push(elem.id);

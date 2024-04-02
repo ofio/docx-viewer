@@ -26,6 +26,7 @@
     "@rollup/plugin-strip": "^3.0.4",
     "@rollup/plugin-terser": "^0.4.4",
     "@rollup/plugin-typescript": "^11.1.6",
+    "@types/lodash": "^4.17.0",
     "diff": "^5.0.0",
     "jasmine-core": "^5.1.0",
     "karma": "^6.3.9",

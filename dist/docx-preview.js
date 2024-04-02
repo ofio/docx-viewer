@@ -5188,12 +5188,6 @@
                 if (this.options.renderHeaders) {
                     yield this.renderHeaderFooterRef(sectProps.headerRefs, sectProps, pageIndex, isFirstPage, pageElement);
                 }
-                if (this.options.renderFootnotes) {
-                    yield this.renderNotes(this.currentFootnoteIds, this.footnoteMap, pageElement);
-                }
-                if (this.options.renderEndnotes && isLastPage) {
-                    yield this.renderNotes(this.currentEndnoteIds, this.endnoteMap, pageElement);
-                }
                 if (this.options.renderFooters) {
                     yield this.renderHeaderFooterRef(sectProps.footerRefs, sectProps, pageIndex, isFirstPage, pageElement);
                 }
@@ -5213,6 +5207,12 @@
                     pages[pageIndex] = this.currentPage;
                 }
                 this.currentPage.checkingOverflow = false;
+                if (this.options.renderFootnotes) {
+                    yield this.renderNotes(this.currentFootnoteIds, this.footnoteMap, pageElement);
+                }
+                if (this.options.renderEndnotes && isLastPage) {
+                    yield this.renderNotes(this.currentEndnoteIds, this.endnoteMap, pageElement);
+                }
             });
         }
         createPage(className, props) {
@@ -5358,28 +5358,15 @@
                         break;
                     }
                     if (elem.level === 2) {
-                        if (elem.type === DomType.Table) {
-                            let next_page_children = current_page_children.splice(i);
-                            const next_page = new Page({ sectProps, children: next_page_children });
-                            this.splitPageByBreakIndex(this.currentPage, next_page);
-                            this.currentPage.isSplit = true;
-                            this.currentPage.checkingOverflow = false;
-                            pages[pageIndex] = this.currentPage;
-                            pages.splice(pageIndex + 1, 0, next_page);
-                            this.currentPage = next_page;
-                            yield this.renderPage();
-                        }
-                        if (elem.type === DomType.Paragraph) {
-                            let next_page_children = current_page_children.splice(i);
-                            const next_page = new Page({ sectProps, children: next_page_children });
-                            this.splitPageByBreakIndex(this.currentPage, next_page);
-                            this.currentPage.isSplit = true;
-                            this.currentPage.checkingOverflow = false;
-                            pages[pageIndex] = this.currentPage;
-                            pages.splice(pageIndex + 1, 0, next_page);
-                            this.currentPage = next_page;
-                            yield this.renderPage();
-                        }
+                        let next_page_children = current_page_children.splice(i);
+                        const next_page = new Page({ sectProps, children: next_page_children });
+                        this.splitPageByBreakIndex(this.currentPage, next_page);
+                        this.currentPage.isSplit = true;
+                        this.currentPage.checkingOverflow = false;
+                        pages[pageIndex] = this.currentPage;
+                        pages.splice(pageIndex + 1, 0, next_page);
+                        this.currentPage = next_page;
+                        yield this.renderPage();
                         break;
                     }
                 }
@@ -5456,16 +5443,10 @@
                         oNode = yield this.renderBreak(elem, parent);
                         break;
                     case DomType.Inserted:
-                        oNode = yield this.renderInserted(elem);
-                        if (parent) {
-                            yield this.appendChildren(parent, oNode);
-                        }
+                        oNode = yield this.renderInserted(elem, parent);
                         break;
                     case DomType.Deleted:
-                        oNode = yield this.renderDeleted(elem);
-                        if (parent) {
-                            yield this.appendChildren(parent, oNode);
-                        }
+                        oNode = yield this.renderDeleted(elem, parent);
                         break;
                     case DomType.DeletedText:
                         oNode = yield this.renderDeletedText(elem, parent);
@@ -5703,9 +5684,9 @@
         }
         renderContainer(elem, tagName, props) {
             return __awaiter(this, void 0, void 0, function* () {
-                const parent = createElement(tagName, props);
-                yield this.renderChildren(elem, parent);
-                return parent;
+                const oContainer = createElement(tagName, props);
+                oContainer.dataset.overflow = yield this.renderChildren(elem, oContainer);
+                return oContainer;
             });
         }
         renderContainerNS(elem, ns, tagName, props) {
@@ -6018,7 +5999,12 @@
                 const oSymbol = createElement('span');
                 oSymbol.style.fontFamily = elem.font;
                 oSymbol.innerHTML = `&#x${elem.char};`;
-                oSymbol.dataset.overflow = yield this.appendChildren(parent, oSymbol);
+                let is_overflow;
+                is_overflow = yield this.appendChildren(parent, oSymbol);
+                if (is_overflow === Overflow.TRUE) {
+                    oSymbol.dataset.overflow = Overflow.SELF;
+                }
+                oSymbol.dataset.overflow = is_overflow;
                 return oSymbol;
             });
         }
@@ -6043,37 +6029,49 @@
                         oBreak.classList.add('break', 'lastRenderedPageBreak');
                         break;
                 }
-                oBreak.dataset.overflow = yield this.appendChildren(parent, oBreak);
+                let is_overflow;
+                is_overflow = yield this.appendChildren(parent, oBreak);
+                if (is_overflow === Overflow.TRUE) {
+                    oBreak.dataset.overflow = Overflow.SELF;
+                }
+                oBreak.dataset.overflow = is_overflow;
                 return oBreak;
             });
         }
-        renderInserted(elem) {
-            if (this.options.renderChanges) {
-                return this.renderContainer(elem, 'ins');
-            }
-            return this.renderContainer(elem, 'span');
-        }
-        renderDeleted(elem) {
+        renderInserted(elem, parent) {
             return __awaiter(this, void 0, void 0, function* () {
-                if (this.options.renderChanges) {
-                    return yield this.renderContainer(elem, 'del');
+                let tagName = this.options.renderChanges ? 'ins' : 'span';
+                const oInserted = createElement(tagName);
+                let is_overflow;
+                is_overflow = yield this.appendChildren(parent, oInserted);
+                if (is_overflow === Overflow.TRUE) {
+                    oInserted.dataset.overflow = Overflow.SELF;
+                    return oInserted;
                 }
-                return null;
+                oInserted.dataset.overflow = yield this.renderChildren(elem, oInserted);
+                return oInserted;
+            });
+        }
+        renderDeleted(elem, parent) {
+            return __awaiter(this, void 0, void 0, function* () {
+                let oDeleted = createElement('del');
+                if (this.options.renderChanges === false) {
+                    oDeleted.style.display = 'none';
+                }
+                let is_overflow;
+                is_overflow = yield this.appendChildren(parent, oDeleted);
+                if (is_overflow === Overflow.TRUE) {
+                    oDeleted.dataset.overflow = Overflow.SELF;
+                    return oDeleted;
+                }
+                oDeleted.dataset.overflow = yield this.renderChildren(elem, oDeleted);
+                return oDeleted;
             });
         }
         renderDeletedText(elem, parent) {
             return __awaiter(this, void 0, void 0, function* () {
-                let oDeletedText;
-                if (this.options.renderEndnotes) {
-                    oDeletedText = document.createTextNode(elem.text);
-                    if (parent) {
-                        yield this.appendChildren(parent, oDeletedText);
-                    }
-                }
-                else {
-                    oDeletedText = null;
-                }
-                return oDeletedText;
+                if (this.options.renderChanges === false) ;
+                return this.renderText(elem, parent);
             });
         }
         renderCommentRangeStart(commentStart) {

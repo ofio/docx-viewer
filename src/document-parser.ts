@@ -1410,7 +1410,7 @@ export class DocumentParser {
 	// 解析图形shape
 	parseShape(node: Element) {
 		let shape: OpenXmlElement = { type: DomType.Shape, cssStyle: {} }
-		// TODO	预制图形
+		// TODO 预制图形
 		for (let n of xml.elements(node)) {
 			switch (n.localName) {
 				case "cNvPr":
