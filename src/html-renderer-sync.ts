@@ -70,10 +70,13 @@ export class HtmlRendererSync {
 
 	// 当前操作的Page
 	currentPage: Page;
-
+	// 表格垂直合并集合，用于嵌套表格
 	tableVerticalMerges: CellVerticalMergeType[] = [];
+	// 当前Table的垂直合并
 	currentVerticalMerge: CellVerticalMergeType = null;
+	// 表格行列位置集合，用于嵌套表格
 	tableCellPositions: CellPos[] = [];
+	// 当前Table的行列位置
 	currentCellPosition: CellPos = null;
 
 	footnoteMap: Record<string, WmlFootnote> = {};
@@ -172,7 +175,8 @@ export class HtmlRendererSync {
 		this.renderKonva();
 		// 主文档--内容
 		await this.renderPages(document.documentPart.body);
-
+		// 渲染完成所有Page, 隐藏Stage
+		this.konva_stage.visible(false);
 		// 刷新制表符
 		this.refreshTabStops();
 	}
@@ -1090,7 +1094,9 @@ export class HtmlRendererSync {
 
 				default:
 					action = 'continue';
-					console.error('unhandled overflow', overflow, elem)
+					if (this.options.debug) {
+						console.error('unhandled overflow', overflow, elem);
+					}
 			}
 			// TableRow中存在多个td溢出
 			if (elem.type === DomType.Cell) {
@@ -1734,14 +1740,12 @@ export class HtmlRendererSync {
 	async renderTableRow(elem: OpenXmlElement, parent: HTMLElement) {
 		// 创建元素
 		const oTableRow = createElement('tr');
-
+		// 初始化列位置为0
 		this.currentCellPosition.col = 0;
 		// 渲染class
 		this.renderClass(elem, oTableRow);
 		// 渲染style
 		this.renderStyleValues(elem.cssStyle, oTableRow);
-
-		this.currentCellPosition.row++;
 		// 溢出标识
 		let is_overflow: Overflow;
 		// 作为子元素插入,针对此元素进行溢出检测
@@ -1753,6 +1757,8 @@ export class HtmlRendererSync {
 		}
 		// 针对后代子元素进行溢出检测
 		oTableRow.dataset.overflow = await this.renderChildren(elem, oTableRow);
+		// 行位置+1
+		this.currentCellPosition.row++;
 
 		return oTableRow;
 	}
@@ -1761,9 +1767,9 @@ export class HtmlRendererSync {
 	async renderTableCell(elem: WmlTableCell, parent: HTMLElement) {
 		// 创建元素
 		const oTableCell = createElement('td');
-
+		// 获取当前cell的列位置
 		const key = this.currentCellPosition.col;
-
+		// 当前单元格是否合并
 		if (elem.verticalMerge) {
 			if (elem.verticalMerge == 'restart') {
 				this.currentVerticalMerge[key] = oTableCell;
@@ -1779,11 +1785,11 @@ export class HtmlRendererSync {
 		this.renderClass(elem, oTableCell);
 		// 渲染style
 		this.renderStyleValues(elem.cssStyle, oTableCell);
-
+		// 根据span属性设置列合并
 		if (elem.span) {
 			oTableCell.colSpan = elem.span;
 		}
-
+		// 递增当前cell的列位置
 		this.currentCellPosition.col += oTableCell.colSpan;
 		// 溢出标识
 		let is_overflow: Overflow;
@@ -1894,6 +1900,8 @@ export class HtmlRendererSync {
 		this.konva_layer = new Konva.Layer({ listening: false });
 		// 添加Stage元素
 		this.konva_stage.add(this.konva_layer);
+		// 渲染初始化，显示Stage
+		this.konva_stage.visible(true);
 	}
 
 	// canvas画布转换，处理旋转、裁剪、翻转等情况
@@ -1907,8 +1915,6 @@ export class HtmlRendererSync {
 		await img.decode();
 		// 图片原始尺寸
 		const { naturalWidth, naturalHeight } = img;
-		// 显示Stage
-		this.konva_stage.visible(true);
 		// 设置Stage宽高
 		this.konva_stage.width(naturalWidth);
 		this.konva_stage.height(naturalHeight);
@@ -1967,8 +1973,7 @@ export class HtmlRendererSync {
 			const blob = (await group.toBlob()) as Blob;
 			result = URL.createObjectURL(blob);
 		}
-		// 隐藏Stage
-		this.konva_stage.visible(false);
+
 
 		return result;
 	}

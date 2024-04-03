@@ -4758,6 +4758,7 @@ class HtmlRendererSync {
             }
             this.renderKonva();
             yield this.renderPages(document.documentPart.body);
+            this.konva_stage.visible(false);
             this.refreshTabStops();
         });
     }
@@ -5343,7 +5344,9 @@ class HtmlRendererSync {
                         break;
                     default:
                         action = 'continue';
-                        console.error('unhandled overflow', overflow, elem);
+                        if (this.options.debug) {
+                            console.error('unhandled overflow', overflow, elem);
+                        }
                 }
                 if (elem.type === DomType.Cell) {
                     action = 'continue';
@@ -5803,7 +5806,6 @@ class HtmlRendererSync {
             this.currentCellPosition.col = 0;
             this.renderClass(elem, oTableRow);
             this.renderStyleValues(elem.cssStyle, oTableRow);
-            this.currentCellPosition.row++;
             let is_overflow;
             is_overflow = yield this.appendChildren(parent, oTableRow);
             if (is_overflow === Overflow.TRUE) {
@@ -5811,6 +5813,7 @@ class HtmlRendererSync {
                 return oTableRow;
             }
             oTableRow.dataset.overflow = yield this.renderChildren(elem, oTableRow);
+            this.currentCellPosition.row++;
             return oTableRow;
         });
     }
@@ -5907,6 +5910,7 @@ class HtmlRendererSync {
         this.konva_stage = new Konva.Stage({ container: 'konva-container' });
         this.konva_layer = new Konva.Layer({ listening: false });
         this.konva_stage.add(this.konva_layer);
+        this.konva_stage.visible(true);
     }
     transformImage(elem, source) {
         return __awaiter(this, void 0, void 0, function* () {
@@ -5915,7 +5919,6 @@ class HtmlRendererSync {
             img.src = source;
             yield img.decode();
             const { naturalWidth, naturalHeight } = img;
-            this.konva_stage.visible(true);
             this.konva_stage.width(naturalWidth);
             this.konva_stage.height(naturalHeight);
             this.konva_layer.removeChildren();
@@ -5965,7 +5968,6 @@ class HtmlRendererSync {
                 const blob = (yield group.toBlob());
                 result = URL.createObjectURL(blob);
             }
-            this.konva_stage.visible(false);
             return result;
         });
     }
