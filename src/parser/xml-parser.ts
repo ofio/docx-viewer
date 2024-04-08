@@ -57,11 +57,11 @@ export class XmlParser {
 		let el = this.element(elem, localName);
 		return el ? this.attr(el, attrLocalName) : undefined;
 	}
-
+	// xml element's attributes
 	attrs(elem: Element) {
 		return Array.from(elem.attributes);
 	}
-
+	// find xml element's attribute
 	attr(elem: Element, localName: string): string {
 		for (let i = 0, l = elem.attributes.length; i < l; i++) {
 			let a = elem.attributes.item(i);

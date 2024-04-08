@@ -236,7 +236,7 @@ export class DocumentParser {
 			basedOn: null,
 			hidden: false,
 			id: xml.attr(node, "styleId"),
-			isDefault: xml.boolAttr(node, "default"),
+			isDefault: xml.boolAttr(node, "default", false),
 			linked: null,
 			locked: false,
 			name: null,
@@ -245,7 +245,7 @@ export class DocumentParser {
 			styles: [],
 			target: null,
 			uiPriority: Infinity,
-			unhideWhenUsed: null,
+			unhideWhenUsed: false,
 		};
 
 		switch (xml.attr(node, "type")) {
@@ -2052,8 +2052,14 @@ export class DocumentParser {
 
 				// Character Spacing Adjustment
 				case "spacing":
-					if (elem.localName == "pPr")
+					// Paragraph
+					if (elem.localName == "pPr") {
+						this.parseSpacingBetweenLines(c, style);
+					}
+					// Run
+					if (elem.localName == "rPr") {
 						this.parseSpacing(c, style);
+					}
 					break;
 
 				// Paragraph Mark Is Always Hidden
@@ -2295,33 +2301,91 @@ export class DocumentParser {
 		if (right || end) style["padding-right"] = right || end;
 	}
 
-	// TODO css中的line-height与word中的行距有区别，后期需重构
+	// the additional amount of character pitch to the contents of a run
 	parseSpacing(node: Element, style: Record<string, string>) {
-		let before = xml.lengthAttr(node, "before");
-		let after = xml.lengthAttr(node, "after");
-		let line = xml.intAttr(node, "line", null);
-		let lineRule = xml.attr(node, "lineRule");
+		for (const attr of xml.attrs(node)) {
+			switch (attr.localName) {
+				// Character Spacing Adjustment
+				case "val":
+					style["margin-bottom"] = xml.lengthAttr(node, "val");
+					break;
+				default:
+					if (this.options.debug) {
+						console.warn(`DOCX:%c Unknown Spacing Property：${attr.localName}`, 'color:grey');
+					}
+			}
+		}
+	}
 
-		if (before) style["margin-top"] = before;
-		if (after) style["margin-bottom"] = after;
+	// Spacing Between Lines and Above/Below Paragraph
+	parseSpacingBetweenLines(node: Element, style: Record<string, string>) {
+		// line-height
+		let line: number;
 
-		if (line !== null) {
-			switch (lineRule) {
-				case "auto":
-					style["line-height"] = `${(line / 240).toFixed(2)}`;
+		for (const attr of xml.attrs(node)) {
+			switch (attr.localName) {
+				// Spacing after the last line in each paragraph
+				case "after":
+					style["margin-bottom"] = xml.lengthAttr(node, "after");
 					break;
 
-				case "atLeast":
-					style["line-height"] = `calc(100% + ${line / 20}pt)`;
+				// Automatically Determine Spacing after the last line in each paragraph
+				case "afterAutospacing":
 					break;
 
-				case "Exact":
-					style["line-height"] = `${line / 20}pt`;
+				// Spacing Below Paragraph in Line Units
+				case "afterLines":
+					style["margin-bottom"] = xml.lengthAttr(node, "afterLines");
+					break;
+
+				// Spacing before the first line in each paragraph
+				case "before":
+					style["margin-top"] = xml.lengthAttr(node, "before");
+					break;
+
+				// Automatically Determine Spacing before the first line in each paragraph
+				case "beforeAutospacing":
+					break;
+
+				// Spacing Above Paragraph in Line Units
+				case "beforeLines":
+					style["margin-top"] = xml.lengthAttr(node, "beforeLines");
+					break;
+
+				//  the amount of vertical spacing between lines of text within this paragraph.
+				case "line":
+					line = xml.intAttr(node, "line", null);
+					break;
+
+				// Type of Spacing Between Lines
+				case "lineRule":
+					let lineRule = xml.attr(node, "lineRule");
+					switch (lineRule) {
+						// Automatically Determined Line Height.
+						case "auto":
+							style["line-height"] = `${(line / 240).toFixed(2)}`;
+							break;
+
+						// Minimum Line Height.
+						case "atLeast":
+							style["line-height"] = `calc(100% + ${line / 20}pt)`;
+							break;
+
+						// Exact Line Height.
+						case "Exact":
+							style["line-height"] = `${line / 20}pt`;
+							break;
+
+						default:
+							style["line-height"] = style["min-height"] = `${line / 20}pt`
+							break;
+					}
 					break;
 
 				default:
-					style["line-height"] = style["min-height"] = `${line / 20}pt`
-					break;
+					if (this.options.debug) {
+						console.warn(`DOCX:%c Unknown Spacing Property：${attr.localName}`, 'color:grey');
+					}
 			}
 		}
 	}
@@ -2439,6 +2503,7 @@ class xmlUtil {
 	}
 }
 
+// TODO 此处方法存在重复，XmlParser Class 中已存在类似的方法，需要统一
 class values {
 	static themeValue(c: Element, attr: string) {
 		let val = xml.attr(c, attr);
