@@ -203,11 +203,12 @@ export class DocumentParser {
 				case "rPrDefault":
 					let rPr = xml.element(c, "rPr");
 
-					if (rPr)
+					if (rPr) {
 						result.styles.push({
 							target: "span",
 							values: this.parseDefaultProperties(rPr, {})
 						});
+					}
 					break;
 
 				case "pPrDefault":
@@ -230,14 +231,21 @@ export class DocumentParser {
 	}
 
 	parseStyle(node: Element): IDomStyle {
-		let result = <IDomStyle>{
+		let result: IDomStyle = <IDomStyle>{
+			autoRedefine: false,
+			basedOn: null,
+			hidden: false,
 			id: xml.attr(node, "styleId"),
 			isDefault: xml.boolAttr(node, "default"),
+			linked: null,
+			locked: false,
 			name: null,
-			target: null,
-			basedOn: null,
+			primaryStyle: false,
+			semiHidden: false,
 			styles: [],
-			linked: null
+			target: null,
+			uiPriority: Infinity,
+			unhideWhenUsed: null,
 		};
 
 		switch (xml.attr(node, "type")) {
@@ -259,26 +267,63 @@ export class DocumentParser {
 
 		xmlUtil.foreach(node, n => {
 			switch (n.localName) {
-				case "basedOn":
-					result.basedOn = xml.attr(n, "val");
-					break;
-
-				case "name":
-					result.name = xml.attr(n, "val");
-					break;
-
-				case "link":
-					result.linked = xml.attr(n, "val");
-					break;
-
-				case "next":
-					result.next = xml.attr(n, "val");
-					break;
-
+				// Alternate Style Names
 				case "aliases":
 					result.aliases = xml.attr(n, "val").split(",");
 					break;
 
+				// Automatically Merge User Formatting Into Style Definition.
+				// that change is stored on the style and therefore propagated to all locations where the style is in use.
+				case "autoRedefine":
+					result.autoRedefine = true;
+					break;
+
+				// Parent Style ID
+				case "basedOn":
+					result.basedOn = xml.attr(n, "val");
+					break;
+
+				// Hide Style From User Interface
+				case "hidden":
+					result.hidden = true;
+					break;
+
+				// Linked Style Reference
+				case "link":
+					result.linked = xml.attr(n, "val");
+					break;
+
+				// Style Cannot Be Applied
+				case "locked":
+					result.locked = true;
+					break;
+
+				// Primary Style Name
+				case "name":
+					result.name = xml.attr(n, "val");
+					break;
+
+				// Style For Next Paragraph
+				case "next":
+					result.next = xml.attr(n, "val");
+					break;
+
+				// E-Mail Message Text Style
+				case "personal":
+					result.personal = xml.boolAttr(n, "val");
+					break;
+
+				// E-Mail Message Composition Style
+				case "personalCompose":
+					result.personalCompose = xml.boolAttr(n, "val");
+					break;
+
+				// E-Mail Message Reply Style
+				case "personalReply":
+					result.personalReply = xml.boolAttr(n, "val");
+					break;
+
+				// Style Paragraph Properties
 				case "pPr":
 					result.styles.push({
 						target: "p",
@@ -287,6 +332,12 @@ export class DocumentParser {
 					result.paragraphProps = parseParagraphProperties(n, xml);
 					break;
 
+				// Specifies Primary Style
+				case "qFormat":
+					result.primaryStyle = true;
+					break;
+
+				// Run Properties
 				case "rPr":
 					result.styles.push({
 						target: "span",
@@ -295,26 +346,49 @@ export class DocumentParser {
 					result.runProps = parseRunProperties(n, xml);
 					break;
 
+				// Revision Identifier for Style Definition.Single Session Revision Save ID.
+				case "rsid":
+					result.rsid = xml.hexAttr(n, "val");
+					break;
+
+				// 	Hide Style From Main User Interface.
+				// 	This setting is intended to define a style property which allows styles to be seen and modified in an advanced user interface, without exposing the style in a less advanced setting
+				case "semiHidden":
+					result.semiHidden = true;
+					break;
+
+				// Style Table Properties
 				case "tblPr":
+				// Style Table Cell Properties
 				case "tcPr":
+				// Style Table Row Properties
+				case "trPr":
+					//TODO: maybe move to processor
 					result.styles.push({
-						target: "td", //TODO: maybe move to processor
+						target: "td",
 						values: this.parseDefaultProperties(n, {})
 					});
 					break;
 
+				// Style Conditional Table Formatting Properties
 				case "tblStylePr":
-					for (let s of this.parseTableStyle(n))
+					for (let s of this.parseTableStyle(n)) {
 						result.styles.push(s);
+					}
 					break;
 
-				case "rsid":
-				case "qFormat":
-				case "hidden":
-				case "semiHidden":
-				case "unhideWhenUsed":
-				case "autoRedefine":
+				// Optional User Interface Sorting Order
+				// This element specifies a number which can be used to sort the set of style definitions in a user interface when this document is loaded by an application
+				// If this element is omitted, then the style shall have more or less an Infinity value and shall be sorted to the end of the list of style definitions
 				case "uiPriority":
+					result.uiPriority = xml.intAttr(n, "val", Infinity);
+					break;
+
+				// 	Remove Semi-Hidden Property When Style Is Used
+				case "unhideWhenUsed":
+					result.unhideWhenUsed = true;
+					break;
+
 				default:
 					if (this.options.debug) {
 						console.warn(`DOCX:%c Unknown Style element：${n.localName}`, 'color:blue');
@@ -1933,7 +2007,7 @@ export class DocumentParser {
 					//style['letter-spacing'] = xml.lengthAttr(elem, 'val', LengthUsage.FontSize);
 					break;
 
-				// Languages for Run Content
+				// Languages for Run Content,check spelling and grammar
 				case "lang":
 					style["$lang"] = xml.attr(c, "val");
 					break;

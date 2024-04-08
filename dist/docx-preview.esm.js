@@ -1718,11 +1718,12 @@ class DocumentParser {
             switch (c.localName) {
                 case "rPrDefault":
                     let rPr = globalXmlParser.element(c, "rPr");
-                    if (rPr)
+                    if (rPr) {
                         result.styles.push({
                             target: "span",
                             values: this.parseDefaultProperties(rPr, {})
                         });
+                    }
                     break;
                 case "pPrDefault":
                     let pPr = globalXmlParser.element(c, "pPr");
@@ -1742,13 +1743,20 @@ class DocumentParser {
     }
     parseStyle(node) {
         let result = {
+            autoRedefine: false,
+            basedOn: null,
+            hidden: false,
             id: globalXmlParser.attr(node, "styleId"),
             isDefault: globalXmlParser.boolAttr(node, "default"),
+            linked: null,
+            locked: false,
             name: null,
-            target: null,
-            basedOn: null,
+            primaryStyle: false,
+            semiHidden: false,
             styles: [],
-            linked: null
+            target: null,
+            uiPriority: Infinity,
+            unhideWhenUsed: null,
         };
         switch (globalXmlParser.attr(node, "type")) {
             case "paragraph":
@@ -1767,20 +1775,38 @@ class DocumentParser {
         }
         xmlUtil.foreach(node, n => {
             switch (n.localName) {
+                case "aliases":
+                    result.aliases = globalXmlParser.attr(n, "val").split(",");
+                    break;
+                case "autoRedefine":
+                    result.autoRedefine = true;
+                    break;
                 case "basedOn":
                     result.basedOn = globalXmlParser.attr(n, "val");
                     break;
-                case "name":
-                    result.name = globalXmlParser.attr(n, "val");
+                case "hidden":
+                    result.hidden = true;
                     break;
                 case "link":
                     result.linked = globalXmlParser.attr(n, "val");
                     break;
+                case "locked":
+                    result.locked = true;
+                    break;
+                case "name":
+                    result.name = globalXmlParser.attr(n, "val");
+                    break;
                 case "next":
                     result.next = globalXmlParser.attr(n, "val");
                     break;
-                case "aliases":
-                    result.aliases = globalXmlParser.attr(n, "val").split(",");
+                case "personal":
+                    result.personal = globalXmlParser.boolAttr(n, "val");
+                    break;
+                case "personalCompose":
+                    result.personalCompose = globalXmlParser.boolAttr(n, "val");
+                    break;
+                case "personalReply":
+                    result.personalReply = globalXmlParser.boolAttr(n, "val");
                     break;
                 case "pPr":
                     result.styles.push({
@@ -1789,6 +1815,9 @@ class DocumentParser {
                     });
                     result.paragraphProps = parseParagraphProperties(n, globalXmlParser);
                     break;
+                case "qFormat":
+                    result.primaryStyle = true;
+                    break;
                 case "rPr":
                     result.styles.push({
                         target: "span",
@@ -1796,24 +1825,31 @@ class DocumentParser {
                     });
                     result.runProps = parseRunProperties(n, globalXmlParser);
                     break;
+                case "rsid":
+                    result.rsid = globalXmlParser.hexAttr(n, "val");
+                    break;
+                case "semiHidden":
+                    result.semiHidden = true;
+                    break;
                 case "tblPr":
                 case "tcPr":
+                case "trPr":
                     result.styles.push({
                         target: "td",
                         values: this.parseDefaultProperties(n, {})
                     });
                     break;
                 case "tblStylePr":
-                    for (let s of this.parseTableStyle(n))
+                    for (let s of this.parseTableStyle(n)) {
                         result.styles.push(s);
+                    }
                     break;
-                case "rsid":
-                case "qFormat":
-                case "hidden":
-                case "semiHidden":
-                case "unhideWhenUsed":
-                case "autoRedefine":
                 case "uiPriority":
+                    result.uiPriority = globalXmlParser.intAttr(n, "val", Infinity);
+                    break;
+                case "unhideWhenUsed":
+                    result.unhideWhenUsed = true;
+                    break;
                 default:
                     if (this.options.debug) {
                         console.warn(`DOCX:%c Unknown Style element：${n.localName}`, 'color:blue');
