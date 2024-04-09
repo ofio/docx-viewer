@@ -10,7 +10,7 @@ const umdOutput = {
 	globals: {
 		jszip: 'JSZip',
 		konva: 'Konva',
-		lodash: '_',
+		"lodash-es": '_',
 	}
 };
 

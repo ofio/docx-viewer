@@ -1,8 +1,27 @@
 (function (global, factory) {
-    typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('jszip'), require('lodash'), require('konva')) :
-    typeof define === 'function' && define.amd ? define(['exports', 'jszip', 'lodash', 'konva'], factory) :
+    typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('jszip'), require('lodash-es'), require('konva')) :
+    typeof define === 'function' && define.amd ? define(['exports', 'jszip', 'lodash-es', 'konva'], factory) :
     (global = typeof globalThis !== 'undefined' ? globalThis : global || self, factory(global.docx = {}, global.JSZip, global._, global.Konva));
 })(this, (function (exports, JSZip, _, Konva) { 'use strict';
+
+    function _interopNamespaceDefault(e) {
+        var n = Object.create(null);
+        if (e) {
+            Object.keys(e).forEach(function (k) {
+                if (k !== 'default') {
+                    var d = Object.getOwnPropertyDescriptor(e, k);
+                    Object.defineProperty(n, k, d.get ? d : {
+                        enumerable: true,
+                        get: function () { return e[k]; }
+                    });
+                }
+            });
+        }
+        n.default = e;
+        return Object.freeze(n);
+    }
+
+    var ___namespace = /*#__PURE__*/_interopNamespaceDefault(_);
 
     /******************************************************************************
     Copyright (c) Microsoft Corporation.
@@ -399,12 +418,6 @@
             return `${base}${path}`;
         }
     }
-    function keyBy(array, by) {
-        return array.reduce((a, x) => {
-            a[by(x)] = x;
-            return a;
-        }, {});
-    }
     function blobToBase64(blob) {
         return new Promise((resolve, reject) => {
             const reader = new FileReader();
@@ -412,30 +425,6 @@
             reader.onerror = () => reject();
             reader.readAsDataURL(blob);
         });
-    }
-    function isObject(item) {
-        return item && typeof item === 'object' && !Array.isArray(item);
-    }
-    function isString(item) {
-        return typeof item === 'string' || item instanceof String;
-    }
-    function mergeDeep(target, ...sources) {
-        var _a;
-        if (!sources.length)
-            return target;
-        const source = sources.shift();
-        if (isObject(target) && isObject(source)) {
-            for (const key in source) {
-                if (isObject(source[key])) {
-                    const val = (_a = target[key]) !== null && _a !== void 0 ? _a : (target[key] = {});
-                    mergeDeep(val, source[key]);
-                }
-                else {
-                    target[key] = source[key];
-                }
-            }
-        }
-        return mergeDeep(target, ...sources);
     }
     function asArray(val) {
         return Array.isArray(val) ? val : [val];
@@ -1283,7 +1272,7 @@
         }
         parseXml(root) {
             this.comments = this._documentParser.parseComments(root);
-            this.commentMap = keyBy(this.comments, x => x.id);
+            this.commentMap = ___namespace.keyBy(this.comments, 'id');
         }
     }
 
@@ -1749,7 +1738,7 @@
                 basedOn: null,
                 hidden: false,
                 id: globalXmlParser.attr(node, "styleId"),
-                isDefault: globalXmlParser.boolAttr(node, "default"),
+                isDefault: globalXmlParser.boolAttr(node, "default", false),
                 linked: null,
                 locked: false,
                 name: null,
@@ -1758,7 +1747,7 @@
                 styles: [],
                 target: null,
                 uiPriority: Infinity,
-                unhideWhenUsed: null,
+                unhideWhenUsed: false,
             };
             switch (globalXmlParser.attr(node, "type")) {
                 case "paragraph":
@@ -3109,8 +3098,12 @@
                         break;
                     case "snapToGrid":
                     case "spacing":
-                        if (elem.localName == "pPr")
+                        if (elem.localName == "pPr") {
+                            this.parseSpacingBetweenLines(c, style);
+                        }
+                        if (elem.localName == "rPr") {
                             this.parseSpacing(c, style);
+                        }
                         break;
                     case "specVanish":
                     case "strike":
@@ -3286,28 +3279,62 @@
                 style["padding-right"] = right || end;
         }
         parseSpacing(node, style) {
-            let before = globalXmlParser.lengthAttr(node, "before");
-            let after = globalXmlParser.lengthAttr(node, "after");
-            let line = globalXmlParser.intAttr(node, "line", null);
-            let lineRule = globalXmlParser.attr(node, "lineRule");
-            if (before)
-                style["margin-top"] = before;
-            if (after)
-                style["margin-bottom"] = after;
-            if (line !== null) {
-                switch (lineRule) {
-                    case "auto":
-                        style["line-height"] = `${(line / 240).toFixed(2)}`;
-                        break;
-                    case "atLeast":
-                        style["line-height"] = `calc(100% + ${line / 20}pt)`;
-                        break;
-                    case "Exact":
-                        style["line-height"] = `${line / 20}pt`;
+            for (const attr of globalXmlParser.attrs(node)) {
+                switch (attr.localName) {
+                    case "val":
+                        style["margin-bottom"] = globalXmlParser.lengthAttr(node, "val");
                         break;
                     default:
-                        style["line-height"] = style["min-height"] = `${line / 20}pt`;
+                        if (this.options.debug) {
+                            console.warn(`DOCX:%c Unknown Spacing Property：${attr.localName}`, 'color:grey');
+                        }
+                }
+            }
+        }
+        parseSpacingBetweenLines(node, style) {
+            let line;
+            for (const attr of globalXmlParser.attrs(node)) {
+                switch (attr.localName) {
+                    case "after":
+                        style["margin-bottom"] = globalXmlParser.lengthAttr(node, "after");
                         break;
+                    case "afterAutospacing":
+                        break;
+                    case "afterLines":
+                        style["margin-bottom"] = globalXmlParser.lengthAttr(node, "afterLines");
+                        break;
+                    case "before":
+                        style["margin-top"] = globalXmlParser.lengthAttr(node, "before");
+                        break;
+                    case "beforeAutospacing":
+                        break;
+                    case "beforeLines":
+                        style["margin-top"] = globalXmlParser.lengthAttr(node, "beforeLines");
+                        break;
+                    case "line":
+                        line = globalXmlParser.intAttr(node, "line", null);
+                        break;
+                    case "lineRule":
+                        let lineRule = globalXmlParser.attr(node, "lineRule");
+                        switch (lineRule) {
+                            case "auto":
+                                style["line-height"] = `${(line / 240).toFixed(2)}`;
+                                break;
+                            case "atLeast":
+                                style["line-height"] = `calc(100% + ${line / 20}pt)`;
+                                break;
+                            case "Exact":
+                                style["line-height"] = `${line / 20}pt`;
+                                break;
+                            default:
+                                style["line-height"] = style["min-height"] = `${line / 20}pt`;
+                                break;
+                        }
+                        break;
+                    default:
+                        if (this.options.debug) {
+                            console.warn(`DOCX:%c Unknown Spacing Property：${attr.localName}`, 'color:grey');
+                        }
                 }
             }
         }
@@ -3659,10 +3686,10 @@
                 this.renderFontTable(document.fontTablePart, styleContainer);
             }
             if (document.footnotesPart) {
-                this.footnoteMap = keyBy(document.footnotesPart.notes, x => x.id);
+                this.footnoteMap = ___namespace.keyBy(document.footnotesPart.notes, 'id');
             }
             if (document.endnotesPart) {
-                this.endnoteMap = keyBy(document.endnotesPart.notes, x => x.id);
+                this.endnoteMap = ___namespace.keyBy(document.endnotesPart.notes, 'id');
             }
             if (document.settingsPart) {
                 this.defaultTabSize = (_a = document.settingsPart.settings) === null || _a === void 0 ? void 0 : _a.defaultTabStop;
@@ -3721,12 +3748,12 @@
             return className ? `${this.className}_${escapeClassName(className)}` : this.className;
         }
         processStyles(styles) {
-            const stylesMap = keyBy(styles.filter(x => x.id != null), x => x.id);
+            const stylesMap = ___namespace.keyBy(styles.filter(x => x.id != null), 'id');
             for (const style of styles.filter(x => x.basedOn)) {
                 let baseStyle = stylesMap[style.basedOn];
                 if (baseStyle) {
-                    style.paragraphProps = mergeDeep(style.paragraphProps, baseStyle.paragraphProps);
-                    style.runProps = mergeDeep(style.runProps, baseStyle.runProps);
+                    style.paragraphProps = ___namespace.merge(style.paragraphProps, baseStyle.paragraphProps);
+                    style.runProps = ___namespace.merge(style.runProps, baseStyle.runProps);
                     for (const baseValues of baseStyle.styles) {
                         const styleValues = style.styles.find(x => x.target == baseValues.target);
                         if (styleValues) {
@@ -3750,7 +3777,7 @@
             var _a;
             let styleText = "";
             const stylesMap = this.styleMap;
-            const defaultStyles = keyBy(styles.filter(s => s.isDefault), s => s.target);
+            const defaultStyles = ___namespace.keyBy(styles.filter(s => s.isDefault), 'target');
             for (const style of styles) {
                 let subStyles = style.styles;
                 if (style.linked) {
@@ -4560,7 +4587,7 @@
         renderMmlNary(elem) {
             var _a, _b;
             const children = [];
-            const grouped = keyBy(elem.children, x => x.type);
+            const grouped = ___namespace.keyBy(elem.children, 'type');
             const sup = grouped[DomType.MmlSuperArgument];
             const sub = grouped[DomType.MmlSubArgument];
             const supElem = sup ? createElementNS$1(ns$1.mathML, "mo", null, asArray(this.renderElement(sup))) : null;
@@ -4583,7 +4610,7 @@
         }
         renderMmlPreSubSuper(elem) {
             const children = [];
-            const grouped = keyBy(elem.children, x => x.type);
+            const grouped = ___namespace.keyBy(elem.children, 'type');
             const sup = grouped[DomType.MmlSuperArgument];
             const sub = grouped[DomType.MmlSubArgument];
             const supElem = sup ? createElementNS$1(ns$1.mathML, "mo", null, asArray(this.renderElement(sup))) : null;
@@ -4700,7 +4727,7 @@
     }
     function appendChildren$1(parent, children) {
         children.forEach(child => {
-            parent.appendChild(isString(child) ? document.createTextNode(child) : child);
+            parent.appendChild(___namespace.isString(child) ? document.createTextNode(child) : child);
         });
     }
     function createStyleElement$1(cssText) {
@@ -4779,10 +4806,10 @@
                     this.renderFontTable(document.fontTablePart, styleContainer);
                 }
                 if (document.footnotesPart) {
-                    this.footnoteMap = keyBy(document.footnotesPart.notes, x => x.id);
+                    this.footnoteMap = ___namespace.keyBy(document.footnotesPart.notes, 'id');
                 }
                 if (document.endnotesPart) {
-                    this.endnoteMap = keyBy(document.endnotesPart.notes, x => x.id);
+                    this.endnoteMap = ___namespace.keyBy(document.endnotesPart.notes, 'id');
                 }
                 if (document.settingsPart) {
                     this.defaultTabSize = (_a = document.settingsPart.settings) === null || _a === void 0 ? void 0 : _a.defaultTabStop;
@@ -4845,12 +4872,14 @@
             return className ? `${this.className}_${escapeClassName(className)}` : this.className;
         }
         processStyles(styles) {
-            let stylesMap = keyBy(styles.filter(x => x.id != null), x => x.id);
-            for (const style of styles.filter(x => x.basedOn)) {
+            let styleCollection = styles.filter(x => x.id != null);
+            let stylesMap = ___namespace.keyBy(styleCollection, 'id');
+            let stylesWithBase = styleCollection.filter(x => x.basedOn);
+            for (const style of stylesWithBase) {
                 const baseStyle = stylesMap[style.basedOn];
                 if (baseStyle) {
-                    style.paragraphProps = mergeDeep(style.paragraphProps, baseStyle.paragraphProps);
-                    style.runProps = mergeDeep(style.runProps, baseStyle.runProps);
+                    style.paragraphProps = ___namespace.merge(style.paragraphProps, baseStyle.paragraphProps);
+                    style.runProps = ___namespace.merge(style.runProps, baseStyle.runProps);
                     for (let baseValues of baseStyle.styles) {
                         let styleValues = style.styles.find(x => x.target == baseValues.target);
                         if (styleValues) {
@@ -4874,7 +4903,7 @@
             var _a;
             let styleText = "";
             let stylesMap = this.styleMap;
-            let defaultStyles = keyBy(styles.filter(s => s.isDefault), s => s.target);
+            let defaultStyles = ___namespace.keyBy(styles.filter(s => s.isDefault), 'target');
             for (const style of styles) {
                 let subStyles = style.styles;
                 if (style.linked) {
@@ -5418,7 +5447,7 @@
                 if (!breakIndex || !breakIndex.length) {
                     return;
                 }
-                let copy = _.cloneDeep(child);
+                let copy = ___namespace.cloneDeep(child);
                 if (type === DomType.Row) {
                     current.children.push(copy);
                 }
@@ -6231,7 +6260,7 @@
             var _a, _b;
             return __awaiter(this, void 0, void 0, function* () {
                 const children = [];
-                const grouped = keyBy(elem.children, x => x.type);
+                const grouped = ___namespace.keyBy(elem.children, 'type');
                 const sup = grouped[DomType.MmlSuperArgument];
                 const sub = grouped[DomType.MmlSubArgument];
                 let supElem = sup ? createElementNS(ns.mathML, "mo", null, asArray(yield this.renderElement(sup))) : null;
@@ -6258,7 +6287,7 @@
         renderMmlPreSubSuper(elem) {
             return __awaiter(this, void 0, void 0, function* () {
                 const children = [];
-                const grouped = keyBy(elem.children, x => x.type);
+                const grouped = ___namespace.keyBy(elem.children, 'type');
                 const sup = grouped[DomType.MmlSuperArgument];
                 const sub = grouped[DomType.MmlSubArgument];
                 let supElem = sup ? createElementNS(ns.mathML, "mo", null, asArray(yield this.renderElement(sup))) : null;
@@ -6407,7 +6436,7 @@
             parent.append(...children);
         }
         else if (children) {
-            if (isString(children)) {
+            if (___namespace.isString(children)) {
                 parent.append(children);
             }
             else {

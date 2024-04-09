@@ -20,7 +20,8 @@ import { CommonProperties } from './document/common';
 import { Options } from './docx-preview';
 import { DocumentElement } from './document/document';
 import { WmlParagraph } from './document/paragraph';
-import { asArray, escapeClassName, isString, keyBy, mergeDeep, uuid } from './utils';
+import * as _ from 'lodash-es';
+import { asArray, escapeClassName, uuid } from './utils';
 import { computePixelToPoint, updateTabStop } from './javascript';
 import { FontTablePart } from './font-table/font-table';
 import { FooterHeaderReference, SectionProperties, SectionType } from './document/section';
@@ -157,11 +158,11 @@ export class HtmlRenderer {
 		}
 		// 生成脚注部分的Map
 		if (document.footnotesPart) {
-			this.footnoteMap = keyBy(document.footnotesPart.notes, x => x.id);
+			this.footnoteMap = _.keyBy(document.footnotesPart.notes, 'id');
 		}
 		// 生成尾注部分的Map
 		if (document.endnotesPart) {
-			this.endnoteMap = keyBy(document.endnotesPart.notes, x => x.id);
+			this.endnoteMap = _.keyBy(document.endnotesPart.notes, 'id');
 		}
 		// 文档设置
 		if (document.settingsPart) {
@@ -237,15 +238,15 @@ export class HtmlRenderer {
 	// 处理样式继承
 	processStyles(styles: IDomStyle[]) {
 		//
-		const stylesMap = keyBy(styles.filter(x => x.id != null), x => x.id);
+		const stylesMap = _.keyBy(styles.filter(x => x.id != null), 'id');
 		// 遍历base_on关系,合并样式
 		for (const style of styles.filter(x => x.basedOn)) {
 			let baseStyle = stylesMap[style.basedOn];
 
 			if (baseStyle) {
 				// 深度合并
-				style.paragraphProps = mergeDeep(style.paragraphProps, baseStyle.paragraphProps);
-				style.runProps = mergeDeep(style.runProps, baseStyle.runProps);
+				style.paragraphProps = _.merge(style.paragraphProps, baseStyle.paragraphProps);
+				style.runProps = _.merge(style.runProps, baseStyle.runProps);
 
 				for (const baseValues of baseStyle.styles) {
 					const styleValues = style.styles.find(x => x.target == baseValues.target);
@@ -271,7 +272,7 @@ export class HtmlRenderer {
 	renderStyles(styles: IDomStyle[]): HTMLElement {
 		let styleText = "";
 		const stylesMap = this.styleMap;
-		const defaultStyles = keyBy(styles.filter(s => s.isDefault), s => s.target);
+		const defaultStyles = _.keyBy(styles.filter(s => s.isDefault), 'target');
 
 		for (const style of styles) {
 			let subStyles = style.styles;
@@ -1473,7 +1474,7 @@ export class HtmlRenderer {
 
 	renderMmlNary(elem: OpenXmlElement): HTMLElement {
 		const children = [];
-		const grouped = keyBy(elem.children, x => x.type);
+		const grouped = _.keyBy(elem.children, 'type');
 
 		const sup = grouped[DomType.MmlSuperArgument];
 		const sub = grouped[DomType.MmlSubArgument];
@@ -1500,7 +1501,7 @@ export class HtmlRenderer {
 
 	renderMmlPreSubSuper(elem: OpenXmlElement) {
 		const children = [];
-		const grouped = keyBy(elem.children, x => x.type);
+		const grouped = _.keyBy(elem.children, 'type');
 
 		const sup = grouped[DomType.MmlSuperArgument];
 		const sub = grouped[DomType.MmlSubArgument];
@@ -1659,7 +1660,7 @@ function removeAllElements(elem: HTMLElement) {
 // 插入子元素
 function appendChildren(parent: HTMLElement | Element, children: (Node | string)[]) {
 	children.forEach(child => {
-		parent.appendChild(isString(child) ? document.createTextNode(child) : child)
+		parent.appendChild(_.isString(child) ? document.createTextNode(child) : child)
 	});
 }
 

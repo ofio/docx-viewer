@@ -4,8 +4,8 @@ import { CommonProperties } from './document/common';
 import { Options } from './docx-preview';
 import { DocumentElement } from './document/document';
 import { WmlParagraph } from './document/paragraph';
-import _ from 'lodash';
-import { asArray, escapeClassName, isString, keyBy, mergeDeep, uuid } from './utils';
+import * as _ from 'lodash-es';
+import { asArray, escapeClassName, uuid } from './utils';
 import { computePixelToPoint, updateTabStop } from './javascript';
 import { FontTablePart } from './font-table/font-table';
 import { FooterHeaderReference, SectionProperties, SectionType } from './document/section';
@@ -154,11 +154,11 @@ export class HtmlRendererSync {
 		}
 		// 生成脚注部分的Map
 		if (document.footnotesPart) {
-			this.footnoteMap = keyBy(document.footnotesPart.notes, x => x.id);
+			this.footnoteMap = _.keyBy(document.footnotesPart.notes, 'id');
 		}
 		// 生成尾注部分的Map
 		if (document.endnotesPart) {
-			this.endnoteMap = keyBy(document.endnotesPart.notes, x => x.id);
+			this.endnoteMap = _.keyBy(document.endnotesPart.notes, 'id');
 		}
 		// 文档设置
 		if (document.settingsPart) {
@@ -238,16 +238,22 @@ export class HtmlRendererSync {
 
 	// 处理样式继承
 	processStyles(styles: IDomStyle[]) {
-		//
-		let stylesMap = keyBy(styles.filter(x => x.id != null), x => x.id);
+		// 去除默认样式
+		let styleCollection = styles.filter(x => x.id != null);
+		// 根据id生成style集合
+		let stylesMap = _.keyBy(styleCollection, 'id');
+
+		// 筛选出依赖其他style的样式
+		let stylesWithBase = styleCollection.filter(x => x.basedOn);
 		// 遍历base_on关系,合并样式
-		for (const style of styles.filter(x => x.basedOn)) {
+		for (const style of stylesWithBase) {
+			// 其所依赖的style
 			const baseStyle = stylesMap[style.basedOn];
 
 			if (baseStyle) {
 				// 深度合并
-				style.paragraphProps = mergeDeep(style.paragraphProps, baseStyle.paragraphProps);
-				style.runProps = mergeDeep(style.runProps, baseStyle.runProps);
+				style.paragraphProps = _.merge(style.paragraphProps, baseStyle.paragraphProps);
+				style.runProps = _.merge(style.runProps, baseStyle.runProps);
 
 				for (let baseValues of baseStyle.styles) {
 					let styleValues = style.styles.find(x => x.target == baseValues.target);
@@ -273,7 +279,7 @@ export class HtmlRendererSync {
 	renderStyles(styles: IDomStyle[]): HTMLElement {
 		let styleText = "";
 		let stylesMap = this.styleMap;
-		let defaultStyles = keyBy(styles.filter(s => s.isDefault), s => s.target);
+		let defaultStyles = _.keyBy(styles.filter(s => s.isDefault), 'target');
 
 		for (const style of styles) {
 			let subStyles = style.styles;
@@ -2271,7 +2277,7 @@ export class HtmlRendererSync {
 
 	async renderMmlNary(elem: OpenXmlElement): Promise<MathMLElement> {
 		const children = [];
-		const grouped = keyBy(elem.children, x => x.type);
+		const grouped = _.keyBy(elem.children, 'type');
 
 		const sup = grouped[DomType.MmlSuperArgument];
 		const sub = grouped[DomType.MmlSubArgument];
@@ -2302,7 +2308,7 @@ export class HtmlRendererSync {
 
 	async renderMmlPreSubSuper(elem: OpenXmlElement) {
 		const children = [];
-		const grouped = keyBy(elem.children, x => x.type);
+		const grouped = _.keyBy(elem.children, 'type');
 
 		const sup = grouped[DomType.MmlSuperArgument];
 		const sub = grouped[DomType.MmlSubArgument];
@@ -2501,7 +2507,7 @@ function appendChildren(parent: Element, children: ChildrenType): void {
 	if (Array.isArray(children)) {
 		parent.append(...children);
 	} else if (children) {
-		if (isString(children)) {
+		if (_.isString(children)) {
 			parent.append(children);
 		} else {
 			parent.appendChild(children);

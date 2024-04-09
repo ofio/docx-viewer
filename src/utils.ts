@@ -20,13 +20,6 @@ export function resolvePath(path: string, base: string): string {
 	}
 }
 
-export function keyBy<T = any>(array: T[], by: (x: T) => any): Record<any, T> {
-	return array.reduce((a, x) => {
-		a[by(x)] = x;
-		return a;
-	}, {});
-}
-
 export function blobToBase64(blob: Blob): Promise<string> {
 	return new Promise((resolve, reject) => {
 		const reader = new FileReader();
@@ -34,35 +27,6 @@ export function blobToBase64(blob: Blob): Promise<string> {
 		reader.onerror = () => reject();
 		reader.readAsDataURL(blob);
 	});
-}
-
-export function isObject(item) {
-	return item && typeof item === 'object' && !Array.isArray(item);
-}
-
-export function isString(item: unknown): item is string {
-	return typeof item === 'string' || item instanceof String;
-}
-
-// 对象深度合并
-export function mergeDeep(target, ...sources) {
-	if (!sources.length)
-		return target;
-
-	const source = sources.shift();
-
-	if (isObject(target) && isObject(source)) {
-		for (const key in source) {
-			if (isObject(source[key])) {
-				const val = target[key] ?? (target[key] = {});
-				mergeDeep(val, source[key]);
-			} else {
-				target[key] = source[key];
-			}
-		}
-	}
-
-	return mergeDeep(target, ...sources);
 }
 
 export function parseCssRules(text: string): Record<string, string> {
@@ -94,7 +58,7 @@ export function uuid(): string {
 		}
 		if (typeof crypto.getRandomValues === 'function' && typeof Uint8Array === 'function') {
 			// https://stackoverflow.com/questions/105034/how-to-create-a-guid-uuid
-			const callback = (c) => {
+			const callback = (c: any) => {
 				const num = Number(c);
 				return (num ^ (crypto.getRandomValues(new Uint8Array(1))[0] & (15 >> (num / 4)))).toString(16);
 			};
