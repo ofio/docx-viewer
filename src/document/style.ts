@@ -5,6 +5,7 @@ export interface IDomStyle {
 	aliases?: string[];
 	autoRedefine?: boolean;
 	basedOn?: string;
+	customStyle?: boolean;
 	cssName?: string;
 	hidden?: boolean;
 	id: string;

@@ -1733,11 +1733,14 @@ class DocumentParser {
         };
         for (const attr of globalXmlParser.attrs(node)) {
             switch (attr.localName) {
-                case "styleId":
-                    result.id = globalXmlParser.attr(node, "styleId");
+                case "customStyle":
+                    result.customStyle = globalXmlParser.boolAttr(node, "customStyle", false);
                     break;
                 case "default":
                     result.isDefault = globalXmlParser.boolAttr(node, "default", false);
+                    break;
+                case "styleId":
+                    result.id = globalXmlParser.attr(node, "styleId");
                     break;
                 case "type":
                     result.type = globalXmlParser.attr(node, "type");
@@ -3465,8 +3468,9 @@ class values {
     }
     static valueOfBorder(c) {
         let type = globalXmlParser.attr(c, "val");
-        if (type == "nil")
+        if (type == "nil") {
             return "none";
+        }
         let color = xmlUtil.colorAttr(c, "color");
         let size = globalXmlParser.lengthAttr(c, "sz", LengthUsage.Border);
         return `${size} solid ${color == "auto" ? autos.borderColor : color}`;

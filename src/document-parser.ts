@@ -240,14 +240,19 @@ export class DocumentParser {
 		};
 		for (const attr of xml.attrs(node)) {
 			switch (attr.localName) {
-				// Style ID
-				case "styleId":
-					result.id = xml.attr(node, "styleId");
+				// User-Defined Style
+				case "customStyle":
+					result.customStyle = xml.boolAttr(node, "customStyle", false);
 					break;
 
 				// Default Style
 				case "default":
 					result.isDefault = xml.boolAttr(node, "default", false);
+					break;
+
+				// Style ID
+				case "styleId":
+					result.id = xml.attr(node, "styleId");
 					break;
 
 				// Style Type
@@ -2572,12 +2577,12 @@ class values {
 		return xml.lengthAttr(c, "w");
 	}
 
-	// TODO 处理空值
 	static valueOfBorder(c: Element) {
 		let type = xml.attr(c, "val");
 
-		if (type == "nil")
+		if (type == "nil") {
 			return "none";
+		}
 
 		let color = xmlUtil.colorAttr(c, "color");
 		let size = xml.lengthAttr(c, "sz", LengthUsage.Border);
