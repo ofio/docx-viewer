@@ -600,6 +600,12 @@ function parseSectionProperties(elem, xml = globalXmlParser) {
             case "pgNumType":
                 section.pageNumber = parsePageNumber(e, xml);
                 break;
+            case "docGrid":
+                break;
+            default:
+                if (this.options.debug) {
+                    console.warn(`DOCX:%c Unknown Section Property：${elem.localName}`, 'color:#f75607');
+                }
         }
     }
     let { width, height } = origin.pageSize;
@@ -1682,7 +1688,7 @@ class DocumentParser {
                     break;
                 default:
                     if (this.options.debug) {
-                        console.warn(`DOCX:%c Unknown Style File：${n.localName}`, 'color:grey');
+                        console.warn(`DOCX:%c Unknown Style File：${n.localName}`, 'color:#f75607');
                     }
             }
         });
@@ -1717,7 +1723,7 @@ class DocumentParser {
                     break;
                 default:
                     if (this.options.debug) {
-                        console.warn(`DOCX:%c Unknown Default Style：${c.localName}`, 'color:grey');
+                        console.warn(`DOCX:%c Unknown Default Style：${c.localName}`, 'color:#f75607');
                     }
             }
         });
@@ -1755,13 +1761,13 @@ class DocumentParser {
                     }
                     else {
                         if (this.options && this.options.debug) {
-                            console.warn(`DOCX:%c Unknown Style Type：${result.type}`, 'color:grey');
+                            console.warn(`DOCX:%c Unknown Style Type：${result.type}`, 'color:#f75607');
                         }
                     }
                     break;
                 default:
                     if (this.options.debug) {
-                        console.warn(`DOCX:%c Unknown Style Property：${attr.localName}`, 'color:grey');
+                        console.warn(`DOCX:%c Unknown Style Property：${attr.localName}`, 'color:#f75607');
                     }
             }
         }
@@ -1927,7 +1933,7 @@ class DocumentParser {
                     break;
                 default:
                     if (this.options.debug) {
-                        console.warn(`DOCX:%c Unknown Table Style：${n.localName}`, 'color:grey');
+                        console.warn(`DOCX:%c Unknown Table Style：${n.localName}`, 'color:#f75607');
                     }
             }
         });
@@ -1953,7 +1959,7 @@ class DocumentParser {
                     break;
                 default:
                     if (this.options.debug) {
-                        console.warn(`DOCX:%c Unknown Numbering File：${n.localName}`, 'color:grey');
+                        console.warn(`DOCX:%c Unknown Numbering File：${n.localName}`, 'color:#f75607');
                     }
             }
         });
@@ -1980,7 +1986,7 @@ class DocumentParser {
                     break;
                 default:
                     if (this.options.debug) {
-                        console.warn(`DOCX:%c Unknown Abstract Numbering：${n.localName}`, 'color:grey');
+                        console.warn(`DOCX:%c Unknown Abstract Numbering：${n.localName}`, 'color:#f75607');
                     }
             }
         });
@@ -2025,7 +2031,7 @@ class DocumentParser {
                     break;
                 default:
                     if (this.options.debug) {
-                        console.warn(`DOCX:%c Unknown Numbering Level：${n.localName}`, 'color:grey');
+                        console.warn(`DOCX:%c Unknown Numbering Level：${n.localName}`, 'color:#f75607');
                     }
             }
         });
@@ -2089,7 +2095,7 @@ class DocumentParser {
                     break;
                 default:
                     if (this.options.debug) {
-                        console.warn(`DOCX:%c Unknown Paragraph Element：${el.localName}`, 'color:grey');
+                        console.warn(`DOCX:%c Unknown Paragraph Element：${el.localName}`, 'color:#f75607');
                     }
             }
         }
@@ -2143,7 +2149,7 @@ class DocumentParser {
                     break;
                 default:
                     if (this.options.debug) {
-                        console.warn(`DOCX:%c Unknown Hyperlink Element：${c.localName}`, 'color:grey');
+                        console.warn(`DOCX:%c Unknown Hyperlink Element：${c.localName}`, 'color:#f75607');
                     }
             }
         });
@@ -2251,7 +2257,7 @@ class DocumentParser {
                     break;
                 default:
                     if (this.options.debug) {
-                        console.warn(`DOCX:%c Unknown Run Element：${c.localName}`, 'color:grey');
+                        console.warn(`DOCX:%c Unknown Run Element：${c.localName}`, 'color:#f75607');
                     }
             }
         });
@@ -2300,7 +2306,7 @@ class DocumentParser {
                     break;
                 default:
                     if (this.options.debug) {
-                        console.warn(`DOCX:%c Unknown Math Property：${el.localName}`, 'color:grey');
+                        console.warn(`DOCX:%c Unknown Math Property：${el.localName}`, 'color:#f75607');
                     }
             }
         }
@@ -2352,7 +2358,7 @@ class DocumentParser {
                     return this.parseDrawingWrapper(n);
                 default:
                     if (this.options.debug) {
-                        console.warn(`DOCX:%c Unknown Drawing Element：${n.localName}`, 'color:grey');
+                        console.warn(`DOCX:%c Unknown Drawing Element：${n.localName}`, 'color:#f75607');
                     }
             }
         }
@@ -2479,7 +2485,7 @@ class DocumentParser {
                     break;
                 default:
                     if (this.options.debug) {
-                        console.warn(`DOCX:%c Unknown Drawing Property：${n.localName}`, 'color:grey');
+                        console.warn(`DOCX:%c Unknown Drawing Property：${n.localName}`, 'color:#f75607');
                     }
             }
         }
@@ -2684,7 +2690,7 @@ class DocumentParser {
                     return this.parsePicture(n);
                 default:
                     if (this.options.debug) {
-                        console.warn(`DOCX:%c Unknown Graphic Element：${n.localName}`, 'color:grey');
+                        console.warn(`DOCX:%c Unknown Graphic Element：${n.localName}`, 'color:#f75607');
                     }
             }
         }
@@ -2705,7 +2711,7 @@ class DocumentParser {
                 case "bodyPr":
                 default:
                     if (this.options.debug) {
-                        console.warn(`DOCX:%c Unknown Shape Element：${n.localName}`, 'color:grey');
+                        console.warn(`DOCX:%c Unknown Shape Element：${n.localName}`, 'color:#f75607');
                     }
             }
         }
@@ -2748,7 +2754,7 @@ class DocumentParser {
                 case "extLst":
                 default:
                     if (this.options.debug) {
-                        console.warn(`DOCX:%c Unknown Shape Property：${n.localName}`, 'color:grey');
+                        console.warn(`DOCX:%c Unknown Shape Property：${n.localName}`, 'color:#f75607');
                     }
             }
         }
@@ -2778,7 +2784,7 @@ class DocumentParser {
                     break;
                 default:
                     if (this.options.debug) {
-                        console.warn(`DOCX:%c Unknown Picture Element：${n.localName}`, 'color:grey');
+                        console.warn(`DOCX:%c Unknown Picture Element：${n.localName}`, 'color:#f75607');
                     }
             }
         }
@@ -2813,7 +2819,7 @@ class DocumentParser {
                     break;
                 default:
                     if (this.options.debug) {
-                        console.warn(`DOCX:%c Unknown Transform2D Element：${n.localName}`, 'color:grey');
+                        console.warn(`DOCX:%c Unknown Transform2D Element：${n.localName}`, 'color:#f75607');
                     }
             }
         }
@@ -2840,7 +2846,7 @@ class DocumentParser {
                     break;
                 default:
                     if (this.options.debug) {
-                        console.warn(`DOCX:%c Unknown Blip Fill Element：${n.localName}`, 'color:grey');
+                        console.warn(`DOCX:%c Unknown Blip Fill Element：${n.localName}`, 'color:#f75607');
                     }
             }
         }
@@ -2864,7 +2870,7 @@ class DocumentParser {
                     break;
                 default:
                     if (this.options.debug) {
-                        console.warn(`DOCX:%c Unknown Blip Element：${n.localName}`, 'color:grey');
+                        console.warn(`DOCX:%c Unknown Blip Element：${n.localName}`, 'color:#f75607');
                     }
                     break;
             }
@@ -2885,7 +2891,7 @@ class DocumentParser {
                     break;
                 default:
                     if (this.options.debug) {
-                        console.warn(`DOCX:%c Unknown Table Element：${c.localName}`, 'color:grey');
+                        console.warn(`DOCX:%c Unknown Table Element：${c.localName}`, 'color:#f75607');
                     }
             }
         });
@@ -2902,7 +2908,7 @@ class DocumentParser {
                     break;
                 default:
                     if (this.options.debug) {
-                        console.warn(`DOCX:%c Unknown Table Columns Element：${n.localName}`, 'color:grey');
+                        console.warn(`DOCX:%c Unknown Table Columns Element：${n.localName}`, 'color:#f75607');
                     }
             }
         });
@@ -2945,7 +2951,7 @@ class DocumentParser {
                 break;
             default:
                 if (this.options.debug) {
-                    console.warn(`DOCX:%c Unknown Table Align：${table.cssStyle["text-align"]}`, 'color:grey');
+                    console.warn(`DOCX:%c Unknown Table Align：${table.cssStyle["text-align"]}`, 'color:#f75607');
                 }
         }
     }
@@ -2975,7 +2981,7 @@ class DocumentParser {
                     break;
                 default:
                     if (this.options.debug) {
-                        console.warn(`DOCX:%c Unknown Table Row Element：${c.localName}`, 'color:grey');
+                        console.warn(`DOCX:%c Unknown Table Row Element：${c.localName}`, 'color:#f75607');
                     }
             }
         });
@@ -3011,7 +3017,7 @@ class DocumentParser {
                     break;
                 default:
                     if (this.options.debug) {
-                        console.warn(`DOCX:%c Unknown Table Cell Element：${c.localName}`, 'color:grey');
+                        console.warn(`DOCX:%c Unknown Table Cell Element：${c.localName}`, 'color:#f75607');
                     }
             }
         });
@@ -3251,7 +3257,7 @@ class DocumentParser {
                 break;
             default:
                 if (this.options.debug) {
-                    console.warn(`DOCX:%c Unknown Underline Property：${val}`, 'color:grey');
+                    console.warn(`DOCX:%c Unknown Underline Property：${val}`, 'color:#f75607');
                 }
         }
         let col = xmlUtil.colorAttr(node, "color");
@@ -3303,7 +3309,7 @@ class DocumentParser {
                     break;
                 default:
                     if (this.options.debug) {
-                        console.warn(`DOCX:%c Unknown Spacing Property：${attr.localName}`, 'color:grey');
+                        console.warn(`DOCX:%c Unknown Spacing Property：${attr.localName}`, 'color:#f75607');
                     }
             }
         }
@@ -3350,7 +3356,7 @@ class DocumentParser {
                     break;
                 default:
                     if (this.options.debug) {
-                        console.warn(`DOCX:%c Unknown Spacing Property：${attr.localName}`, 'color:grey');
+                        console.warn(`DOCX:%c Unknown Spacing Property：${attr.localName}`, 'color:#f75607');
                     }
             }
         }
@@ -3372,7 +3378,7 @@ class DocumentParser {
                     break;
                 default:
                     if (this.options.debug) {
-                        console.warn(`DOCX:%c Unknown Margin Property：${c.localName}`, 'color:grey');
+                        console.warn(`DOCX:%c Unknown Margin Property：${c.localName}`, 'color:#f75607');
                     }
             }
         });
@@ -3407,7 +3413,7 @@ class DocumentParser {
                     break;
                 default:
                     if (this.options.debug) {
-                        console.warn(`DOCX:%c Unknown Border Property：${c.localName}`, 'color:grey');
+                        console.warn(`DOCX:%c Unknown Border Property：${c.localName}`, 'color:#f75607');
                     }
             }
         });

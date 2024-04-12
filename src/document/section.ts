@@ -156,9 +156,15 @@ export function parseSectionProperties(elem: Element, xml: XmlParser = globalXml
 			case "pgNumType":
 				section.pageNumber = parsePageNumber(e, xml);
 				break;
-			// 文档网格线
+
+			// TODO 文档网格线
 			case "docGrid":
+
 				break;
+			default:
+				if (this.options.debug) {
+					console.warn(`DOCX:%c Unknown Section Property：${elem.localName}`, 'color:#f75607');
+				}
 		}
 	}
 

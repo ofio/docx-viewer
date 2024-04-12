@@ -156,6 +156,11 @@ export class DocumentParser {
 				case "sdt":
 					children.push(...this.parseSdt(elem, (e: Element) => this.parseBodyElements(e)));
 					break;
+
+				case "sectPr":
+					// ignore,section property has parsed in parseDocumentFile
+					break;
+
 				default:
 					if (this.options.debug) {
 						console.warn(`DOCX:%c Unknown Body Element：${elem.localName}`, 'color:red');
@@ -181,7 +186,7 @@ export class DocumentParser {
 					break;
 				default:
 					if (this.options.debug) {
-						console.warn(`DOCX:%c Unknown Style File：${n.localName}`, 'color:grey');
+						console.warn(`DOCX:%c Unknown Style File：${n.localName}`, 'color:#f75607');
 					}
 			}
 		});
@@ -222,7 +227,7 @@ export class DocumentParser {
 					break;
 				default:
 					if (this.options.debug) {
-						console.warn(`DOCX:%c Unknown Default Style：${c.localName}`, 'color:grey');
+						console.warn(`DOCX:%c Unknown Default Style：${c.localName}`, 'color:#f75607');
 					}
 			}
 		});
@@ -270,14 +275,14 @@ export class DocumentParser {
 					} else {
 						// 未知类型处理，确保在options.debug为false时也能处理
 						if (this.options && this.options.debug) {
-							console.warn(`DOCX:%c Unknown Style Type：${result.type}`, 'color:grey');
+							console.warn(`DOCX:%c Unknown Style Type：${result.type}`, 'color:#f75607');
 						}
 					}
 					break;
 
 				default:
 					if (this.options.debug) {
-						console.warn(`DOCX:%c Unknown Style Property：${attr.localName}`, 'color:grey');
+						console.warn(`DOCX:%c Unknown Style Property：${attr.localName}`, 'color:#f75607');
 					}
 			}
 		}
@@ -501,7 +506,7 @@ export class DocumentParser {
 					break;
 				default:
 					if (this.options.debug) {
-						console.warn(`DOCX:%c Unknown Table Style：${n.localName}`, 'color:grey');
+						console.warn(`DOCX:%c Unknown Table Style：${n.localName}`, 'color:#f75607');
 					}
 			}
 		});
@@ -532,7 +537,7 @@ export class DocumentParser {
 					break;
 				default:
 					if (this.options.debug) {
-						console.warn(`DOCX:%c Unknown Numbering File：${n.localName}`, 'color:grey');
+						console.warn(`DOCX:%c Unknown Numbering File：${n.localName}`, 'color:#f75607');
 					}
 			}
 		});
@@ -565,7 +570,7 @@ export class DocumentParser {
 					break;
 				default:
 					if (this.options.debug) {
-						console.warn(`DOCX:%c Unknown Abstract Numbering：${n.localName}`, 'color:grey');
+						console.warn(`DOCX:%c Unknown Abstract Numbering：${n.localName}`, 'color:#f75607');
 					}
 			}
 		});
@@ -620,7 +625,7 @@ export class DocumentParser {
 					break;
 				default:
 					if (this.options.debug) {
-						console.warn(`DOCX:%c Unknown Numbering Level：${n.localName}`, 'color:grey');
+						console.warn(`DOCX:%c Unknown Numbering Level：${n.localName}`, 'color:#f75607');
 					}
 			}
 		});
@@ -698,7 +703,7 @@ export class DocumentParser {
 					break;
 				default:
 					if (this.options.debug) {
-						console.warn(`DOCX:%c Unknown Paragraph Element：${el.localName}`, 'color:grey');
+						console.warn(`DOCX:%c Unknown Paragraph Element：${el.localName}`, 'color:#f75607');
 					}
 			}
 		}
@@ -772,7 +777,7 @@ export class DocumentParser {
 
 				default:
 					if (this.options.debug) {
-						console.warn(`DOCX:%c Unknown Hyperlink Element：${c.localName}`, 'color:grey');
+						console.warn(`DOCX:%c Unknown Hyperlink Element：${c.localName}`, 'color:#f75607');
 					}
 			}
 		});
@@ -903,7 +908,7 @@ export class DocumentParser {
 
 				default:
 					if (this.options.debug) {
-						console.warn(`DOCX:%c Unknown Run Element：${c.localName}`, 'color:grey');
+						console.warn(`DOCX:%c Unknown Run Element：${c.localName}`, 'color:#f75607');
 					}
 			}
 		});
@@ -963,7 +968,7 @@ export class DocumentParser {
 
 				default:
 					if (this.options.debug) {
-						console.warn(`DOCX:%c Unknown Math Property：${el.localName}`, 'color:grey');
+						console.warn(`DOCX:%c Unknown Math Property：${el.localName}`, 'color:#f75607');
 					}
 			}
 		}
@@ -1032,7 +1037,7 @@ export class DocumentParser {
 					return this.parseDrawingWrapper(n);
 				default:
 					if (this.options.debug) {
-						console.warn(`DOCX:%c Unknown Drawing Element：${n.localName}`, 'color:grey');
+						console.warn(`DOCX:%c Unknown Drawing Element：${n.localName}`, 'color:#f75607');
 					}
 			}
 		}
@@ -1204,7 +1209,7 @@ export class DocumentParser {
 					break;
 				default:
 					if (this.options.debug) {
-						console.warn(`DOCX:%c Unknown Drawing Property：${n.localName}`, 'color:grey');
+						console.warn(`DOCX:%c Unknown Drawing Property：${n.localName}`, 'color:#f75607');
 					}
 			}
 		}
@@ -1499,7 +1504,7 @@ export class DocumentParser {
 
 				default:
 					if (this.options.debug) {
-						console.warn(`DOCX:%c Unknown Graphic Element：${n.localName}`, 'color:grey');
+						console.warn(`DOCX:%c Unknown Graphic Element：${n.localName}`, 'color:#f75607');
 					}
 			}
 		}
@@ -1529,7 +1534,7 @@ export class DocumentParser {
 
 				default:
 					if (this.options.debug) {
-						console.warn(`DOCX:%c Unknown Shape Element：${n.localName}`, 'color:grey');
+						console.warn(`DOCX:%c Unknown Shape Element：${n.localName}`, 'color:#f75607');
 					}
 			}
 		}
@@ -1580,7 +1585,7 @@ export class DocumentParser {
 				case "extLst":
 				default:
 					if (this.options.debug) {
-						console.warn(`DOCX:%c Unknown Shape Property：${n.localName}`, 'color:grey');
+						console.warn(`DOCX:%c Unknown Shape Property：${n.localName}`, 'color:#f75607');
 					}
 			}
 		}
@@ -1613,7 +1618,7 @@ export class DocumentParser {
 					break;
 				default:
 					if (this.options.debug) {
-						console.warn(`DOCX:%c Unknown Picture Element：${n.localName}`, 'color:grey');
+						console.warn(`DOCX:%c Unknown Picture Element：${n.localName}`, 'color:#f75607');
 					}
 			}
 		}
@@ -1658,7 +1663,7 @@ export class DocumentParser {
 
 				default:
 					if (this.options.debug) {
-						console.warn(`DOCX:%c Unknown Transform2D Element：${n.localName}`, 'color:grey');
+						console.warn(`DOCX:%c Unknown Transform2D Element：${n.localName}`, 'color:#f75607');
 					}
 			}
 		}
@@ -1696,7 +1701,7 @@ export class DocumentParser {
 
 				default:
 					if (this.options.debug) {
-						console.warn(`DOCX:%c Unknown Blip Fill Element：${n.localName}`, 'color:grey');
+						console.warn(`DOCX:%c Unknown Blip Fill Element：${n.localName}`, 'color:#f75607');
 					}
 			}
 		}
@@ -1730,7 +1735,7 @@ export class DocumentParser {
 
 				default:
 					if (this.options.debug) {
-						console.warn(`DOCX:%c Unknown Blip Element：${n.localName}`, 'color:grey');
+						console.warn(`DOCX:%c Unknown Blip Element：${n.localName}`, 'color:#f75607');
 					}
 					break;
 			}
@@ -1757,7 +1762,7 @@ export class DocumentParser {
 
 				default:
 					if (this.options.debug) {
-						console.warn(`DOCX:%c Unknown Table Element：${c.localName}`, 'color:grey');
+						console.warn(`DOCX:%c Unknown Table Element：${c.localName}`, 'color:#f75607');
 					}
 			}
 		});
@@ -1780,7 +1785,7 @@ export class DocumentParser {
 
 				default:
 					if (this.options.debug) {
-						console.warn(`DOCX:%c Unknown Table Columns Element：${n.localName}`, 'color:grey');
+						console.warn(`DOCX:%c Unknown Table Columns Element：${n.localName}`, 'color:#f75607');
 					}
 			}
 		});
@@ -1837,7 +1842,7 @@ export class DocumentParser {
 
 			default:
 				if (this.options.debug) {
-					console.warn(`DOCX:%c Unknown Table Align：${table.cssStyle["text-align"]}`, 'color:grey');
+					console.warn(`DOCX:%c Unknown Table Align：${table.cssStyle["text-align"]}`, 'color:#f75607');
 				}
 		}
 	}
@@ -1875,7 +1880,7 @@ export class DocumentParser {
 
 				default:
 					if (this.options.debug) {
-						console.warn(`DOCX:%c Unknown Table Row Element：${c.localName}`, 'color:grey');
+						console.warn(`DOCX:%c Unknown Table Row Element：${c.localName}`, 'color:#f75607');
 					}
 			}
 		});
@@ -1922,7 +1927,7 @@ export class DocumentParser {
 
 				default:
 					if (this.options.debug) {
-						console.warn(`DOCX:%c Unknown Table Cell Element：${c.localName}`, 'color:grey');
+						console.warn(`DOCX:%c Unknown Table Cell Element：${c.localName}`, 'color:#f75607');
 					}
 			}
 		});
@@ -2117,12 +2122,15 @@ export class DocumentParser {
 
 				// Non-Complex Script Font Size
 				case "sz":
+					// TODO 通过字符编码库或API来判断字符的编码范围，从而确定字符类型，字符类型决定字体大小
 					style["font-size"] = style["min-height"] = xml.lengthAttr(c, "val", LengthUsage.FontSize);
 					// style["font-size"] = xml.lengthAttr(c, "val", LengthUsage.FontSize);
 					break;
 
 				// Complex Script Font Size
 				case "szCs":
+					// TODO 通过字符编码库或API来判断字符的编码范围，从而确定字符类型，字符类型决定字体大小
+					// style["font-size"] = style["min-height"] = xml.lengthAttr(c, "val", LengthUsage.FontSize);
 					break;
 
 				// Underline
@@ -2290,7 +2298,7 @@ export class DocumentParser {
 
 			default:
 				if (this.options.debug) {
-					console.warn(`DOCX:%c Unknown Underline Property：${val}`, 'color:grey');
+					console.warn(`DOCX:%c Unknown Underline Property：${val}`, 'color:#f75607');
 				}
 		}
 
@@ -2303,6 +2311,7 @@ export class DocumentParser {
 	}
 
 	// 转换Run字体，包含四种，ascii，eastAsia，ComplexScript，高 ANSI Font
+	// TODO 通过字符编码库或API来判断字符的编码范围，从而确定字符类型，字符类型决定字体大小
 	parseFont(node: Element, style: Record<string, string>) {
 		// 字体
 		let fonts = new Set();
@@ -2358,7 +2367,7 @@ export class DocumentParser {
 					break;
 				default:
 					if (this.options.debug) {
-						console.warn(`DOCX:%c Unknown Spacing Property：${attr.localName}`, 'color:grey');
+						console.warn(`DOCX:%c Unknown Spacing Property：${attr.localName}`, 'color:#f75607');
 					}
 			}
 		}
@@ -2431,7 +2440,7 @@ export class DocumentParser {
 
 				default:
 					if (this.options.debug) {
-						console.warn(`DOCX:%c Unknown Spacing Property：${attr.localName}`, 'color:grey');
+						console.warn(`DOCX:%c Unknown Spacing Property：${attr.localName}`, 'color:#f75607');
 					}
 			}
 		}
@@ -2458,7 +2467,7 @@ export class DocumentParser {
 
 				default:
 					if (this.options.debug) {
-						console.warn(`DOCX:%c Unknown Margin Property：${c.localName}`, 'color:grey');
+						console.warn(`DOCX:%c Unknown Margin Property：${c.localName}`, 'color:#f75607');
 					}
 			}
 		});
@@ -2502,7 +2511,7 @@ export class DocumentParser {
 
 				default:
 					if (this.options.debug) {
-						console.warn(`DOCX:%c Unknown Border Property：${c.localName}`, 'color:grey');
+						console.warn(`DOCX:%c Unknown Border Property：${c.localName}`, 'color:#f75607');
 					}
 			}
 		});
