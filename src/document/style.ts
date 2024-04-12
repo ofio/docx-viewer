@@ -10,25 +10,25 @@ export interface IDomStyle {
 	id: string;
 	isDefault?: boolean;
 	linked?: string;
-	locked: boolean;
+	locked?: boolean;
 	name?: string;
 	next?: string;
-	paragraphProps: ParagraphProperties;
+	paragraphProps?: ParagraphProperties;
 	personal?: boolean;
 	personalCompose?: boolean;
 	personalReply?: boolean;
 	primaryStyle?: boolean;
 	rsid?: number;
-	runProps: RunProperties;
+	rulesets: Ruleset[];
+	runProps?: RunProperties;
 	semiHidden?: boolean;
-	styles: IDomSubStyle[];
-	target: string;
+	type: string;
+	label?: string;
 	uiPriority?: number;
 	unhideWhenUsed?: boolean;
 }
 
-export interface IDomSubStyle {
+export interface Ruleset {
 	target: string;
-	mod?: string;
-	values: Record<string, string>;
+	declarations: Record<string, string>;
 }

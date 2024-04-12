@@ -5,7 +5,7 @@ import { parseSectionProperties, SectionProperties } from './document/section';
 import xml from './parser/xml-parser';
 import { parseRunProperties, WmlRun } from './document/run';
 import { parseBookmarkEnd, parseBookmarkStart } from './document/bookmarks';
-import { IDomStyle, IDomSubStyle } from './document/style';
+import { IDomStyle, Ruleset } from './document/style';
 import { WmlFieldChar, WmlFieldSimple, WmlInstructionText } from './document/fields';
 import { convertLength, LengthUsage, LengthUsageType } from './document/common';
 import { parseVmlElement } from './vml/vml';
@@ -191,11 +191,11 @@ export class DocumentParser {
 
 	parseDefaultStyles(node: Element): IDomStyle {
 		let result = <IDomStyle>{
+			basedOn: null,
 			id: null,
 			name: null,
-			target: null,
-			basedOn: null,
-			styles: []
+			rulesets: [],
+			type: null
 		};
 
 		xmlUtil.foreach(node, c => {
@@ -204,9 +204,9 @@ export class DocumentParser {
 					let rPr = xml.element(c, "rPr");
 
 					if (rPr) {
-						result.styles.push({
+						result.rulesets.push({
 							target: "span",
-							values: this.parseDefaultProperties(rPr, {})
+							declarations: this.parseDefaultProperties(rPr, {})
 						});
 					}
 					break;
@@ -215,9 +215,9 @@ export class DocumentParser {
 					let pPr = xml.element(c, "pPr");
 
 					if (pPr)
-						result.styles.push({
+						result.rulesets.push({
 							target: "p",
-							values: this.parseDefaultProperties(pPr, {})
+							declarations: this.parseDefaultProperties(pPr, {})
 						});
 					break;
 				default:
@@ -232,37 +232,49 @@ export class DocumentParser {
 
 	parseStyle(node: Element): IDomStyle {
 		let result: IDomStyle = <IDomStyle>{
-			autoRedefine: false,
 			basedOn: null,
-			hidden: false,
-			id: xml.attr(node, "styleId"),
-			isDefault: xml.boolAttr(node, "default", false),
-			linked: null,
-			locked: false,
+			id: null,
 			name: null,
-			primaryStyle: false,
-			semiHidden: false,
-			styles: [],
-			target: null,
-			uiPriority: Infinity,
-			unhideWhenUsed: false,
+			rulesets: [],
+			type: null,
 		};
+		for (const attr of xml.attrs(node)) {
+			switch (attr.localName) {
+				// Style ID
+				case "styleId":
+					result.id = xml.attr(node, "styleId");
+					break;
 
-		switch (xml.attr(node, "type")) {
-			case "paragraph":
-				result.target = "p";
-				break;
-			case "table":
-				result.target = "table";
-				break;
-			case "character":
-				result.target = "span";
-				break;
-			//case "numbering": result.target = "p"; break;
-			default:
-				if (this.options.debug) {
-					console.warn(`DOCX:%c Unknown Node Type：${node}`, 'color:grey');
-				}
+				// Default Style
+				case "default":
+					result.isDefault = xml.boolAttr(node, "default", false);
+					break;
+
+				// Style Type
+				case "type":
+					result.type = xml.attr(node, "type");
+					const typeToLabelMap = {
+						"paragraph": "p",
+						"table": "table",
+						"character": "span",
+						"numbering": "p",
+					};
+					// 检查result.type是否在映射中
+					if (typeToLabelMap.hasOwnProperty(result.type)) {
+						result.label = typeToLabelMap[result.type];
+					} else {
+						// 未知类型处理，确保在options.debug为false时也能处理
+						if (this.options && this.options.debug) {
+							console.warn(`DOCX:%c Unknown Style Type：${result.type}`, 'color:grey');
+						}
+					}
+					break;
+
+				default:
+					if (this.options.debug) {
+						console.warn(`DOCX:%c Unknown Style Property：${attr.localName}`, 'color:grey');
+					}
+			}
 		}
 
 		xmlUtil.foreach(node, n => {
@@ -325,9 +337,9 @@ export class DocumentParser {
 
 				// Style Paragraph Properties
 				case "pPr":
-					result.styles.push({
+					result.rulesets.push({
 						target: "p",
-						values: this.parseDefaultProperties(n, {})
+						declarations: this.parseDefaultProperties(n, {})
 					});
 					result.paragraphProps = parseParagraphProperties(n, xml);
 					break;
@@ -339,9 +351,9 @@ export class DocumentParser {
 
 				// Run Properties
 				case "rPr":
-					result.styles.push({
+					result.rulesets.push({
 						target: "span",
-						values: this.parseDefaultProperties(n, {})
+						declarations: this.parseDefaultProperties(n, {})
 					});
 					result.runProps = parseRunProperties(n, xml);
 					break;
@@ -359,21 +371,33 @@ export class DocumentParser {
 
 				// Style Table Properties
 				case "tblPr":
-				// Style Table Cell Properties
-				case "tcPr":
+					result.rulesets.push({
+						target: "td",
+						declarations: this.parseDefaultProperties(n, {})
+					});
+					break;
+
 				// Style Table Row Properties
 				case "trPr":
 					//TODO: maybe move to processor
-					result.styles.push({
+					result.rulesets.push({
+						target: "tr",
+						declarations: this.parseDefaultProperties(n, {})
+					});
+					break;
+
+				// Style Table Cell Properties
+				case "tcPr":
+					result.rulesets.push({
 						target: "td",
-						values: this.parseDefaultProperties(n, {})
+						declarations: this.parseDefaultProperties(n, {})
 					});
 					break;
 
 				// Style Conditional Table Formatting Properties
 				case "tblStylePr":
 					for (let s of this.parseTableStyle(n)) {
-						result.styles.push(s);
+						result.rulesets.push(s);
 					}
 					break;
 
@@ -399,7 +423,8 @@ export class DocumentParser {
 		return result;
 	}
 
-	parseTableStyle(node: Element): IDomSubStyle[] {
+	// TODO 表格style样式规则未生效
+	parseTableStyle(node: Element): Ruleset[] {
 		let result = [];
 
 		let type = xml.attr(node, "type");
@@ -2530,6 +2555,7 @@ class values {
 		return xml.lengthAttr(c, "w");
 	}
 
+	// TODO 处理空值
 	static valueOfBorder(c: Element) {
 		let type = xml.attr(c, "val");
 

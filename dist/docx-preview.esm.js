@@ -379,7 +379,19 @@ class FontTablePart extends Part {
 }
 
 function escapeClassName(className) {
-    return className === null || className === void 0 ? void 0 : className.replace(/[ .]+/g, '-').replace(/[&]+/g, 'and').toLowerCase();
+    if (className === undefined) {
+        throw new Error("className cannot be undefined. Please provide a valid string.");
+    }
+    const replacementRules = [
+        { pattern: /[ .]+/g, replacement: '-' },
+        { pattern: /[&]+/g, replacement: 'and' },
+        { pattern: /[#@]+/g, replacement: '' },
+    ];
+    let processedClassName = className;
+    for (const rule of replacementRules) {
+        processedClassName = processedClassName.replace(rule.pattern, rule.replacement);
+    }
+    return processedClassName.toLowerCase();
 }
 function splitPath(path) {
     let si = path.lastIndexOf('/') + 1;
@@ -462,8 +474,8 @@ class OpenXmlPackage {
         var _a, _b;
         return (_b = (_a = this.get(path)) === null || _a === void 0 ? void 0 : _a.async(type)) !== null && _b !== void 0 ? _b : Promise.resolve(null);
     }
-    loadRelationships(path = null) {
-        return __awaiter(this, void 0, void 0, function* () {
+    loadRelationships() {
+        return __awaiter(this, arguments, void 0, function* (path = null) {
             let relsPath = `_rels/.rels`;
             if (path != null) {
                 const [f, fn] = splitPath(path);
@@ -1285,8 +1297,8 @@ class WordDocument {
         return this._package.save(type);
     }
     loadRelationshipPart(path, type) {
-        var _a;
         return __awaiter(this, void 0, void 0, function* () {
+            var _a;
             if (this.partsMap[path])
                 return this.partsMap[path];
             if (!this._package.get(path))
@@ -1680,27 +1692,27 @@ class DocumentParser {
         let result = {
             id: null,
             name: null,
-            target: null,
+            type: null,
             basedOn: null,
-            styles: []
+            rulesets: []
         };
         xmlUtil.foreach(node, c => {
             switch (c.localName) {
                 case "rPrDefault":
                     let rPr = globalXmlParser.element(c, "rPr");
                     if (rPr) {
-                        result.styles.push({
+                        result.rulesets.push({
                             target: "span",
-                            values: this.parseDefaultProperties(rPr, {})
+                            declarations: this.parseDefaultProperties(rPr, {})
                         });
                     }
                     break;
                 case "pPrDefault":
                     let pPr = globalXmlParser.element(c, "pPr");
                     if (pPr)
-                        result.styles.push({
+                        result.rulesets.push({
                             target: "p",
-                            values: this.parseDefaultProperties(pPr, {})
+                            declarations: this.parseDefaultProperties(pPr, {})
                         });
                     break;
                 default:
@@ -1715,33 +1727,43 @@ class DocumentParser {
         let result = {
             autoRedefine: false,
             basedOn: null,
-            hidden: false,
-            id: globalXmlParser.attr(node, "styleId"),
-            isDefault: globalXmlParser.boolAttr(node, "default", false),
-            linked: null,
-            locked: false,
+            id: null,
+            isDefault: false,
             name: null,
-            primaryStyle: false,
-            semiHidden: false,
-            styles: [],
-            target: null,
+            rulesets: [],
+            type: null,
             uiPriority: Infinity,
-            unhideWhenUsed: false,
         };
-        switch (globalXmlParser.attr(node, "type")) {
-            case "paragraph":
-                result.target = "p";
-                break;
-            case "table":
-                result.target = "table";
-                break;
-            case "character":
-                result.target = "span";
-                break;
-            default:
-                if (this.options.debug) {
-                    console.warn(`DOCX:%c Unknown Node Type：${node}`, 'color:grey');
-                }
+        for (const attr of globalXmlParser.attrs(node)) {
+            switch (attr.localName) {
+                case "styleId":
+                    result.id = globalXmlParser.attr(node, "styleId");
+                    break;
+                case "default":
+                    result.isDefault = globalXmlParser.boolAttr(node, "default", false);
+                    break;
+                case "type":
+                    result.type = globalXmlParser.attr(node, "type");
+                    const typeToLabelMap = {
+                        "paragraph": "p",
+                        "table": "table",
+                        "character": "span",
+                        "numbering": "p",
+                    };
+                    if (typeToLabelMap.hasOwnProperty(result.type)) {
+                        result.label = typeToLabelMap[result.type];
+                    }
+                    else {
+                        if (this.options && this.options.debug) {
+                            console.warn(`DOCX:%c Unknown Style Type：${result.type}`, 'color:grey');
+                        }
+                    }
+                    break;
+                default:
+                    if (this.options.debug) {
+                        console.warn(`DOCX:%c Unknown Style Property：${attr.localName}`, 'color:grey');
+                    }
+            }
         }
         xmlUtil.foreach(node, n => {
             switch (n.localName) {
@@ -1779,9 +1801,9 @@ class DocumentParser {
                     result.personalReply = globalXmlParser.boolAttr(n, "val");
                     break;
                 case "pPr":
-                    result.styles.push({
+                    result.rulesets.push({
                         target: "p",
-                        values: this.parseDefaultProperties(n, {})
+                        declarations: this.parseDefaultProperties(n, {})
                     });
                     result.paragraphProps = parseParagraphProperties(n, globalXmlParser);
                     break;
@@ -1789,9 +1811,9 @@ class DocumentParser {
                     result.primaryStyle = true;
                     break;
                 case "rPr":
-                    result.styles.push({
+                    result.rulesets.push({
                         target: "span",
-                        values: this.parseDefaultProperties(n, {})
+                        declarations: this.parseDefaultProperties(n, {})
                     });
                     result.runProps = parseRunProperties(n, globalXmlParser);
                     break;
@@ -1802,16 +1824,26 @@ class DocumentParser {
                     result.semiHidden = true;
                     break;
                 case "tblPr":
-                case "tcPr":
-                case "trPr":
-                    result.styles.push({
+                    result.rulesets.push({
                         target: "td",
-                        values: this.parseDefaultProperties(n, {})
+                        declarations: this.parseDefaultProperties(n, {})
+                    });
+                    break;
+                case "trPr":
+                    result.rulesets.push({
+                        target: "tr",
+                        declarations: this.parseDefaultProperties(n, {})
+                    });
+                    break;
+                case "tcPr":
+                    result.rulesets.push({
+                        target: "td",
+                        declarations: this.parseDefaultProperties(n, {})
                     });
                     break;
                 case "tblStylePr":
                     for (let s of this.parseTableStyle(n)) {
-                        result.styles.push(s);
+                        result.rulesets.push(s);
                     }
                     break;
                 case "uiPriority":
@@ -3733,13 +3765,13 @@ class HtmlRenderer {
             if (baseStyle) {
                 style.paragraphProps = _.merge(style.paragraphProps, baseStyle.paragraphProps);
                 style.runProps = _.merge(style.runProps, baseStyle.runProps);
-                for (const baseValues of baseStyle.styles) {
-                    const styleValues = style.styles.find(x => x.target == baseValues.target);
+                for (const baseValues of baseStyle.rulesets) {
+                    const styleValues = style.rulesets.find(x => x.target == baseValues.target);
                     if (styleValues) {
-                        this.copyStyleProperties(baseValues.values, styleValues.values);
+                        this.copyStyleProperties(baseValues.declarations, styleValues.declarations);
                     }
                     else {
-                        style.styles.push(Object.assign(Object.assign({}, baseValues), { values: Object.assign({}, baseValues.values) }));
+                        style.rulesets.push(Object.assign(Object.assign({}, baseValues), { declarations: Object.assign({}, baseValues.declarations) }));
                     }
                 }
             }
@@ -3758,25 +3790,25 @@ class HtmlRenderer {
         const stylesMap = this.styleMap;
         const defaultStyles = _.keyBy(styles.filter(s => s.isDefault), 'target');
         for (const style of styles) {
-            let subStyles = style.styles;
+            let subStyles = style.rulesets;
             if (style.linked) {
                 let linkedStyle = style.linked && stylesMap[style.linked];
                 if (linkedStyle) {
-                    subStyles = subStyles.concat(linkedStyle.styles);
+                    subStyles = subStyles.concat(linkedStyle.rulesets);
                 }
                 else if (this.options.debug) {
                     console.warn(`Can't find linked style ${style.linked}`);
                 }
             }
             for (const subStyle of subStyles) {
-                let selector = `${(_a = style.target) !== null && _a !== void 0 ? _a : ''}.${style.cssName}`;
-                if (style.target != subStyle.target) {
+                let selector = `${(_a = style.type) !== null && _a !== void 0 ? _a : ''}.${style.cssName}`;
+                if (style.type != subStyle.target) {
                     selector += ` ${subStyle.target}`;
                 }
-                if (defaultStyles[style.target] == style) {
-                    selector = `.${this.className} ${style.target}, ` + selector;
+                if (defaultStyles[style.type] == style) {
+                    selector = `.${this.className} ${style.type}, ` + selector;
                 }
-                styleText += this.styleToString(selector, subStyle.values);
+                styleText += this.styleToString(selector, subStyle.declarations);
             }
         }
         return createStyleElement$1(styleText);
@@ -4753,9 +4785,9 @@ class HtmlRendererSync {
         this.currentTabs = [];
         this.tabsTimeout = 0;
     }
-    render(document, bodyContainer, styleContainer = null, options) {
-        var _a;
-        return __awaiter(this, void 0, void 0, function* () {
+    render(document_1, bodyContainer_1) {
+        return __awaiter(this, arguments, void 0, function* (document, bodyContainer, styleContainer = null, options) {
+            var _a;
             this.document = document;
             this.options = options;
             this.className = options.className;
@@ -4851,58 +4883,51 @@ class HtmlRendererSync {
         return className ? `${this.className}_${escapeClassName(className)}` : this.className;
     }
     processStyles(styles) {
-        let styleCollection = styles.filter(x => x.id != null);
-        let stylesMap = _.keyBy(styleCollection, 'id');
-        let stylesWithBase = styleCollection.filter(x => x.basedOn);
-        for (const style of stylesWithBase) {
-            const baseStyle = stylesMap[style.basedOn];
-            if (baseStyle) {
-                style.paragraphProps = _.merge(style.paragraphProps, baseStyle.paragraphProps);
-                style.runProps = _.merge(style.runProps, baseStyle.runProps);
-                for (let baseValues of baseStyle.styles) {
-                    let styleValues = style.styles.find(x => x.target == baseValues.target);
-                    if (styleValues) {
-                        this.copyStyleProperties(baseValues.values, styleValues.values);
+        styles.filter(x => x.id != null);
+        let stylesMap = _.keyBy(styles, 'id');
+        for (const childStyle of styles) {
+            childStyle.cssName = this.processStyleName(childStyle.id);
+            if (childStyle.basedOn === null) {
+                continue;
+            }
+            const parentStyle = stylesMap[childStyle.basedOn];
+            if (parentStyle) {
+                if (parentStyle === null || parentStyle === void 0 ? void 0 : parentStyle.paragraphProps) {
+                    childStyle.paragraphProps = _.merge({}, parentStyle === null || parentStyle === void 0 ? void 0 : parentStyle.paragraphProps, childStyle.paragraphProps);
+                }
+                if (parentStyle === null || parentStyle === void 0 ? void 0 : parentStyle.runProps) {
+                    childStyle.runProps = _.merge({}, parentStyle === null || parentStyle === void 0 ? void 0 : parentStyle.runProps, childStyle.runProps);
+                }
+                for (let parentRuleset of parentStyle.rulesets) {
+                    let childRuleset = childStyle.rulesets.find(r => r.target == parentRuleset.target);
+                    if (childRuleset) {
+                        childRuleset.declarations = _.merge({}, parentRuleset.declarations, childRuleset.declarations);
                     }
                     else {
-                        style.styles.push(Object.assign(Object.assign({}, baseValues), { values: Object.assign({}, baseValues.values) }));
+                        childStyle.rulesets.push(Object.assign({}, parentRuleset));
                     }
                 }
             }
             else if (this.options.debug) {
-                console.warn(`Can't find base style ${style.basedOn}`);
+                console.warn(`Can't find base style ${childStyle.basedOn}`);
             }
-        }
-        for (const style of styles) {
-            style.cssName = this.processStyleName(style.id);
         }
         return stylesMap;
     }
     renderStyles(styles) {
         var _a;
         let styleText = "";
-        let stylesMap = this.styleMap;
-        let defaultStyles = _.keyBy(styles.filter(s => s.isDefault), 'target');
+        this.styleMap;
         for (const style of styles) {
-            let subStyles = style.styles;
-            if (style.linked) {
-                const linkedStyle = style.linked && stylesMap[style.linked];
-                if (linkedStyle) {
-                    subStyles = subStyles.concat(linkedStyle.styles);
+            for (const ruleset of style.rulesets) {
+                let selector = `${(_a = style.label) !== null && _a !== void 0 ? _a : ''}.${style.cssName}`;
+                if (style.label !== ruleset.target) {
+                    selector += ` ${ruleset.target}`;
                 }
-                else if (this.options.debug) {
-                    console.warn(`Can't find linked style ${style.linked}`);
+                if (style.isDefault) {
+                    selector = `.${this.className} ${style.label}, ` + selector;
                 }
-            }
-            for (const subStyle of subStyles) {
-                let selector = `${(_a = style.target) !== null && _a !== void 0 ? _a : ''}.${style.cssName}`;
-                if (style.target != subStyle.target) {
-                    selector += ` ${subStyle.target}`;
-                }
-                if (defaultStyles[style.target] == style) {
-                    selector = `.${this.className} ${style.target}, ` + selector;
-                }
-                styleText += this.styleToString(selector, subStyle.values);
+                styleText += this.styleToString(selector, ruleset.declarations);
             }
         }
         return createStyleElement(styleText);
@@ -4960,13 +4985,13 @@ class HtmlRendererSync {
     numberingClass(id, lvl) {
         return `${this.className}-num-${id}-${lvl}`;
     }
-    styleToString(selectors, values, cssText = null) {
+    styleToString(selectors, declarations, cssText = null) {
         let result = `${selectors} {\r\n`;
-        for (const key in values) {
+        for (const key in declarations) {
             if (key.startsWith('$')) {
                 continue;
             }
-            result += `  ${key}: ${values[key]};\r\n`;
+            result += `  ${key}: ${declarations[key]};\r\n`;
         }
         if (cssText) {
             result += cssText;
@@ -5297,8 +5322,8 @@ class HtmlRendererSync {
         return oArticle;
     }
     renderHeaderFooterRef(refs, props, pageIndex, isFirstPage, parent) {
-        var _a, _b, _c, _d, _e, _f;
         return __awaiter(this, void 0, void 0, function* () {
+            var _a, _b, _c, _d, _e, _f;
             if (!refs)
                 return;
             let ref;
@@ -5353,8 +5378,8 @@ class HtmlRendererSync {
         });
     }
     renderElements(children, parent) {
-        var _a;
         return __awaiter(this, void 0, void 0, function* () {
+            var _a;
             let overflow = Overflow.UNKNOWN;
             let pages = this.document.documentPart.body.pages;
             let { pageId, isSplit, sectProps, children: current_page_children } = this.currentPage;
@@ -5744,8 +5769,8 @@ class HtmlRendererSync {
         });
     }
     renderParagraph(elem, parent) {
-        var _a, _b, _c, _d;
         return __awaiter(this, void 0, void 0, function* () {
+            var _a, _b, _c, _d;
             const oParagraph = createElement('p');
             oParagraph.dataset.uuid = uuid();
             this.renderClass(elem, oParagraph);
@@ -6025,8 +6050,8 @@ class HtmlRendererSync {
         return oSpan;
     }
     renderTab(elem, parent) {
-        var _a;
         return __awaiter(this, void 0, void 0, function* () {
+            var _a;
             const tabSpan = createElement('span');
             tabSpan.innerHTML = '&emsp;';
             if (this.options.experimental) {
@@ -6163,8 +6188,8 @@ class HtmlRendererSync {
         return oSup;
     }
     renderVmlElement(elem, parent) {
-        var _a, _b;
         return __awaiter(this, void 0, void 0, function* () {
+            var _a, _b;
             const oSvg = createSvgElement('svg');
             oSvg.setAttribute('style', elem.cssStyleText);
             const oChildren = yield this.renderVmlChildElement(elem);
@@ -6208,8 +6233,8 @@ class HtmlRendererSync {
         });
     }
     renderMmlRadical(elem) {
-        var _a;
         return __awaiter(this, void 0, void 0, function* () {
+            var _a;
             const base = elem.children.find(el => el.type == DomType.MmlBase);
             let oParent;
             if ((_a = elem.props) === null || _a === void 0 ? void 0 : _a.hideDegree) {
@@ -6224,8 +6249,8 @@ class HtmlRendererSync {
         });
     }
     renderMmlDelimiter(elem) {
-        var _a, _b;
         return __awaiter(this, void 0, void 0, function* () {
+            var _a, _b;
             const oMrow = createElementNS(ns.mathML, 'mrow', null);
             let oBegin = createElementNS(ns.mathML, "mo", null, [(_a = elem.props.beginChar) !== null && _a !== void 0 ? _a : '(']);
             appendChildren(oMrow, oBegin);
@@ -6236,8 +6261,8 @@ class HtmlRendererSync {
         });
     }
     renderMmlNary(elem) {
-        var _a, _b;
         return __awaiter(this, void 0, void 0, function* () {
+            var _a, _b;
             const children = [];
             const grouped = _.keyBy(elem.children, 'type');
             const sup = grouped[DomType.MmlSuperArgument];
@@ -6494,8 +6519,8 @@ function parseAsync(data, userOptions = null) {
     const ops = Object.assign(Object.assign({}, defaultOptions), userOptions);
     return WordDocument.load(data, new DocumentParser(ops), ops);
 }
-function renderAsync(data, bodyContainer, styleContainer = null, userOptions = null) {
-    return __awaiter(this, void 0, void 0, function* () {
+function renderAsync(data_1, bodyContainer_1) {
+    return __awaiter(this, arguments, void 0, function* (data, bodyContainer, styleContainer = null, userOptions = null) {
         const ops = Object.assign(Object.assign({}, defaultOptions), userOptions);
         const renderer = new HtmlRenderer();
         const doc = yield WordDocument.load(data, new DocumentParser(ops), ops);
@@ -6503,8 +6528,8 @@ function renderAsync(data, bodyContainer, styleContainer = null, userOptions = n
         return doc;
     });
 }
-function renderSync(data, bodyContainer, styleContainer = null, userOptions = null) {
-    return __awaiter(this, void 0, void 0, function* () {
+function renderSync(data_1, bodyContainer_1) {
+    return __awaiter(this, arguments, void 0, function* (data, bodyContainer, styleContainer = null, userOptions = null) {
         const ops = Object.assign(Object.assign({}, defaultOptions), userOptions);
         const renderer = new HtmlRendererSync();
         const doc = yield WordDocument.load(data, new DocumentParser(ops), ops);

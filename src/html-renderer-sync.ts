@@ -12,7 +12,7 @@ import { FooterHeaderReference, SectionProperties, SectionType } from './documen
 import { Page, PageProps } from './document/page';
 import { RunProperties, WmlRun } from './document/run';
 import { WmlBookmarkStart } from './document/bookmarks';
-import { IDomStyle } from './document/style';
+import { IDomStyle, Ruleset } from './document/style';
 import { WmlBaseNote, WmlFootnote } from './notes/elements';
 import { ThemePart } from './theme/theme-part';
 import { BaseHeaderFooterPart } from './header-footer/parts';
@@ -236,79 +236,77 @@ export class HtmlRendererSync {
 		return className ? `${this.className}_${escapeClassName(className)}` : this.className;
 	}
 
-	// 处理样式继承
+	// 处理样式继承，合并样式规则
+	// 在styles中，某一个样式baseOn依赖的styleId一定排在其前面，样式的继承关系是自上而下的，所以，只需要遍历一次，就可以完成所有样式的继承
 	processStyles(styles: IDomStyle[]) {
-		// 去除默认样式
+		// 去除默认样式：id为null的样式，即为默认样式
 		let styleCollection = styles.filter(x => x.id != null);
 		// 根据id生成style集合
-		let stylesMap = _.keyBy(styleCollection, 'id');
+		let stylesMap = _.keyBy(styles, 'id');
+		// 遍历依赖关系,合并其样式规则
+		for (const childStyle of styles) {
+			// 生成其className
+			childStyle.cssName = this.processStyleName(childStyle.id);
+			// 跳过基础Base样式
+			if (childStyle.basedOn === null) {
+				continue;
+			}
+			// 查询其所依赖的父级style
+			const parentStyle = stylesMap[childStyle.basedOn];
 
-		// 筛选出依赖其他style的样式
-		let stylesWithBase = styleCollection.filter(x => x.basedOn);
-		// 遍历base_on关系,合并样式
-		for (const style of stylesWithBase) {
-			// 其所依赖的style
-			const baseStyle = stylesMap[style.basedOn];
+			if (parentStyle) {
+				// 深度合并父级的段落、Run属性
+				if (parentStyle?.paragraphProps) {
+					childStyle.paragraphProps = _.merge({}, parentStyle?.paragraphProps, childStyle.paragraphProps);
+				}
+				if (parentStyle?.runProps) {
+					childStyle.runProps = _.merge({}, parentStyle?.runProps, childStyle.runProps);
+				}
+				// 遍历父级的样式规则
+				for (let parentRuleset of parentStyle.rulesets) {
+					// 根据target查找子级的样式规则
+					let childRuleset: Ruleset = childStyle.rulesets.find(r => r.target == parentRuleset.target);
 
-			if (baseStyle) {
-				// 深度合并
-				style.paragraphProps = _.merge(style.paragraphProps, baseStyle.paragraphProps);
-				style.runProps = _.merge(style.runProps, baseStyle.runProps);
-
-				for (let baseValues of baseStyle.styles) {
-					let styleValues = style.styles.find(x => x.target == baseValues.target);
-
-					if (styleValues) {
-						this.copyStyleProperties(baseValues.values, styleValues.values);
+					if (childRuleset) {
+						// 存在，深度合并，子级覆盖父级的样式规则
+						childRuleset.declarations = _.merge({}, parentRuleset.declarations, childRuleset.declarations);
 					} else {
-						style.styles.push({ ...baseValues, values: { ...baseValues.values } });
+						// 不存在，尾部添加
+						childStyle.rulesets.push({ ...parentRuleset });
 					}
 				}
 			} else if (this.options.debug) {
-				console.warn(`Can't find base style ${style.basedOn}`);
+				console.warn(`Can't find base style ${childStyle.basedOn}`);
 			}
-		}
-
-		for (const style of styles) {
-			style.cssName = this.processStyleName(style.id);
 		}
 
 		return stylesMap;
 	}
 
+	// 生成style样式
 	renderStyles(styles: IDomStyle[]): HTMLElement {
 		let styleText = "";
 		let stylesMap = this.styleMap;
-		let defaultStyles = _.keyBy(styles.filter(s => s.isDefault), 'target');
 
 		for (const style of styles) {
-			let subStyles = style.styles;
+			// TODO 处理链接样式:linked，注意两者互相链接，互相引用
 
-			if (style.linked) {
-				const linkedStyle = style.linked && stylesMap[style.linked];
-
-				if (linkedStyle) {
-					subStyles = subStyles.concat(linkedStyle.styles);
-				} else if (this.options.debug) {
-					console.warn(`Can't find linked style ${style.linked}`);
-				}
-			}
-
-			for (const subStyle of subStyles) {
+			for (const ruleset of style.rulesets) {
 				//TODO temporary disable modificators until test it well
-				let selector = `${style.target ?? ''}.${style.cssName}`; //${subStyle.mod ?? ''}
-
-				if (style.target != subStyle.target) {
-					selector += ` ${subStyle.target}`;
+				let selector = `${style.label ?? ''}.${style.cssName}`; //${subStyle.mod ?? ''}
+				// 样式目标不匹配，追加子级元素样式目标
+				if (style.label !== ruleset.target) {
+					selector += ` ${ruleset.target}`;
+				}
+				// 处理默认样式
+				if (style.isDefault) {
+					selector = `.${this.className} ${style.label}, ` + selector;
 				}
 
-				if (defaultStyles[style.target] == style) {
-					selector = `.${this.className} ${style.target}, ` + selector;
-				}
-
-				styleText += this.styleToString(selector, subStyle.values);
+				styleText += this.styleToString(selector, ruleset.declarations);
 			}
 		}
+
 
 		return createStyleElement(styleText);
 	}
@@ -385,15 +383,15 @@ export class HtmlRendererSync {
 		return `${this.className}-num-${id}-${lvl}`;
 	}
 
-	styleToString(selectors: string, values: Record<string, string>, cssText: string = null) {
+	styleToString(selectors: string, declarations: Record<string, string>, cssText: string = null) {
 		let result = `${selectors} {\r\n`;
 
-		for (const key in values) {
+		for (const key in declarations) {
 			if (key.startsWith('$')) {
 				continue;
 			}
 
-			result += `  ${key}: ${values[key]};\r\n`;
+			result += `  ${key}: ${declarations[key]};\r\n`;
 		}
 
 		if (cssText) {
@@ -1895,6 +1893,7 @@ export class HtmlRendererSync {
 
 	// 生成Konva框架--元素
 	renderKonva() {
+		// TODO 查询是否存在容器
 		// 创建konva容器元素
 		const oContainer = createElement('div');
 		oContainer.id = 'konva-container';

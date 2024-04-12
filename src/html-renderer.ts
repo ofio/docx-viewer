@@ -248,13 +248,13 @@ export class HtmlRenderer {
 				style.paragraphProps = _.merge(style.paragraphProps, baseStyle.paragraphProps);
 				style.runProps = _.merge(style.runProps, baseStyle.runProps);
 
-				for (const baseValues of baseStyle.styles) {
-					const styleValues = style.styles.find(x => x.target == baseValues.target);
+				for (const baseValues of baseStyle.rulesets) {
+					const styleValues = style.rulesets.find(x => x.target == baseValues.target);
 
 					if (styleValues) {
-						this.copyStyleProperties(baseValues.values, styleValues.values);
+						this.copyStyleProperties(baseValues.declarations, styleValues.declarations);
 					} else {
-						style.styles.push({ ...baseValues, values: { ...baseValues.values } });
+						style.rulesets.push({ ...baseValues, declarations: { ...baseValues.declarations } });
 					}
 				}
 			} else if (this.options.debug) {
@@ -275,13 +275,13 @@ export class HtmlRenderer {
 		const defaultStyles = _.keyBy(styles.filter(s => s.isDefault), 'target');
 
 		for (const style of styles) {
-			let subStyles = style.styles;
+			let subStyles = style.rulesets;
 
 			if (style.linked) {
 				let linkedStyle = style.linked && stylesMap[style.linked];
 
 				if (linkedStyle) {
-					subStyles = subStyles.concat(linkedStyle.styles);
+					subStyles = subStyles.concat(linkedStyle.rulesets);
 				} else if (this.options.debug) {
 					console.warn(`Can't find linked style ${style.linked}`);
 				}
@@ -289,17 +289,17 @@ export class HtmlRenderer {
 
 			for (const subStyle of subStyles) {
 				//TODO temporary disable modificators until test it well
-				let selector = `${style.target ?? ''}.${style.cssName}`; //${subStyle.mod ?? ''}
+				let selector = `${style.type ?? ''}.${style.cssName}`; //${subStyle.mod ?? ''}
 
-				if (style.target != subStyle.target) {
+				if (style.type != subStyle.target) {
 					selector += ` ${subStyle.target}`;
 				}
 
-				if (defaultStyles[style.target] == style) {
-					selector = `.${this.className} ${style.target}, ` + selector;
+				if (defaultStyles[style.type] == style) {
+					selector = `.${this.className} ${style.type}, ` + selector;
 				}
 
-				styleText += this.styleToString(selector, subStyle.values);
+				styleText += this.styleToString(selector, subStyle.declarations);
 			}
 		}
 
