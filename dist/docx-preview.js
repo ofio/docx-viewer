@@ -2136,9 +2136,6 @@
                     case "rPr":
                         break;
                     default:
-                        if (this.options.debug) {
-                            console.warn(`DOCX:%c Unknown Paragraph Property：${c.localName}`, 'color:grey');
-                        }
                         return false;
                 }
                 return true;
@@ -2950,9 +2947,6 @@
                         table.rowBandSize = globalXmlParser.intAttr(c, "val");
                         break;
                     default:
-                        if (this.options.debug) {
-                            console.warn(`DOCX:%c Unknown Table Property：${c.localName}`, 'color:grey');
-                        }
                         return false;
                 }
                 return true;
@@ -3015,9 +3009,6 @@
                         row.isHeader = globalXmlParser.boolAttr(c, "val", true);
                         break;
                     default:
-                        if (this.options.debug) {
-                            console.warn(`DOCX:%c Unknown Table Row Property：${c.localName}`, 'color:grey');
-                        }
                         return false;
                 }
                 return true;
@@ -3058,9 +3049,6 @@
                         cell.className = values.classNameOfCnfStyle(c);
                         break;
                     default:
-                        if (this.options.debug) {
-                            console.warn(`DOCX:%c Unknown Table Cell Property：${c.localName}`, 'color:grey');
-                        }
                         return false;
                 }
                 return true;

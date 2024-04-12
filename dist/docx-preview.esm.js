@@ -2115,9 +2115,6 @@ class DocumentParser {
                 case "rPr":
                     break;
                 default:
-                    if (this.options.debug) {
-                        console.warn(`DOCX:%c Unknown Paragraph Property：${c.localName}`, 'color:grey');
-                    }
                     return false;
             }
             return true;
@@ -2929,9 +2926,6 @@ class DocumentParser {
                     table.rowBandSize = globalXmlParser.intAttr(c, "val");
                     break;
                 default:
-                    if (this.options.debug) {
-                        console.warn(`DOCX:%c Unknown Table Property：${c.localName}`, 'color:grey');
-                    }
                     return false;
             }
             return true;
@@ -2994,9 +2988,6 @@ class DocumentParser {
                     row.isHeader = globalXmlParser.boolAttr(c, "val", true);
                     break;
                 default:
-                    if (this.options.debug) {
-                        console.warn(`DOCX:%c Unknown Table Row Property：${c.localName}`, 'color:grey');
-                    }
                     return false;
             }
             return true;
@@ -3037,9 +3028,6 @@ class DocumentParser {
                     cell.className = values.classNameOfCnfStyle(c);
                     break;
                 default:
-                    if (this.options.debug) {
-                        console.warn(`DOCX:%c Unknown Table Cell Property：${c.localName}`, 'color:grey');
-                    }
                     return false;
             }
             return true;

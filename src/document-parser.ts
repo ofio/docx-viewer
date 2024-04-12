@@ -733,9 +733,7 @@ export class DocumentParser {
 					break;
 
 				default:
-					if (this.options.debug) {
-						console.warn(`DOCX:%c Unknown Paragraph Property：${c.localName}`, 'color:grey');
-					}
+					// pass other properties to parseDefaultProperties function
 					return false;
 			}
 
@@ -1813,9 +1811,7 @@ export class DocumentParser {
 					break;
 
 				default:
-					if (this.options.debug) {
-						console.warn(`DOCX:%c Unknown Table Property：${c.localName}`, 'color:grey');
-					}
+					// pass other properties to parseDefaultProperties function
 					return false;
 			}
 
@@ -1894,9 +1890,7 @@ export class DocumentParser {
 					break;
 
 				default:
-					if (this.options.debug) {
-						console.warn(`DOCX:%c Unknown Table Row Property：${c.localName}`, 'color:grey');
-					}
+					// pass other properties to parseDefaultProperties function
 					return false;
 			}
 
@@ -1947,9 +1941,7 @@ export class DocumentParser {
 					break;
 
 				default:
-					if (this.options.debug) {
-						console.warn(`DOCX:%c Unknown Table Cell Property：${c.localName}`, 'color:grey');
-					}
+					// pass other properties to parseDefaultProperties function
 					return false;
 			}
 
