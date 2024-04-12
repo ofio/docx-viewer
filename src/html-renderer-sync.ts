@@ -239,8 +239,6 @@ export class HtmlRendererSync {
 	// 处理样式继承，合并样式规则
 	// 在styles中，某一个样式baseOn依赖的styleId一定排在其前面，样式的继承关系是自上而下的，所以，只需要遍历一次，就可以完成所有样式的继承
 	processStyles(styles: IDomStyle[]) {
-		// 去除默认样式：id为null的样式，即为默认样式
-		let styleCollection = styles.filter(x => x.id != null);
 		// 根据id生成style集合
 		let stylesMap = _.keyBy(styles, 'id');
 		// 遍历依赖关系,合并其样式规则
@@ -286,8 +284,6 @@ export class HtmlRendererSync {
 	// 生成style样式
 	renderStyles(styles: IDomStyle[]): HTMLElement {
 		let styleText = "";
-		let stylesMap = this.styleMap;
-
 		for (const style of styles) {
 			// TODO 处理链接样式:linked，注意两者互相链接，互相引用
 
@@ -306,7 +302,6 @@ export class HtmlRendererSync {
 				styleText += this.styleToString(selector, ruleset.declarations);
 			}
 		}
-
 
 		return createStyleElement(styleText);
 	}

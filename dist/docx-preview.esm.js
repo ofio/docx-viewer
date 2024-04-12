@@ -1690,11 +1690,11 @@ class DocumentParser {
     }
     parseDefaultStyles(node) {
         let result = {
+            basedOn: null,
             id: null,
             name: null,
-            type: null,
-            basedOn: null,
-            rulesets: []
+            rulesets: [],
+            type: null
         };
         xmlUtil.foreach(node, c => {
             switch (c.localName) {
@@ -1725,14 +1725,11 @@ class DocumentParser {
     }
     parseStyle(node) {
         let result = {
-            autoRedefine: false,
             basedOn: null,
             id: null,
-            isDefault: false,
             name: null,
             rulesets: [],
             type: null,
-            uiPriority: Infinity,
         };
         for (const attr of globalXmlParser.attrs(node)) {
             switch (attr.localName) {
@@ -2319,9 +2316,6 @@ class DocumentParser {
                     run.verticalAlign = values.valueOfVertAlign(c, true);
                     break;
                 default:
-                    if (this.options.debug) {
-                        console.warn(`DOCX:%c Unknown Run Property：${c.localName}`, 'color:grey');
-                    }
                     return false;
             }
             return true;
@@ -3054,13 +3048,15 @@ class DocumentParser {
     parseDefaultProperties(elem, style = null, childStyle = null, handler = null) {
         style = style || {};
         xmlUtil.foreach(elem, c => {
-            if (handler === null || handler === void 0 ? void 0 : handler(c))
+            if (handler === null || handler === void 0 ? void 0 : handler(c)) {
                 return;
+            }
             switch (c.localName) {
                 case "b":
                     style["font-weight"] = globalXmlParser.boolAttr(c, "val", true) ? "bold" : "normal";
                     break;
                 case "bCs":
+                    break;
                 case "bdr":
                     style["border"] = values.valueOfBorder(c);
                     break;
@@ -3071,12 +3067,19 @@ class DocumentParser {
                     style["color"] = xmlUtil.colorAttr(c, "val", null, autos.color);
                     break;
                 case "cs":
+                    break;
                 case "dstrike":
+                    break;
                 case "eastAsianLayout":
+                    break;
                 case "effect":
+                    break;
                 case "em":
+                    break;
                 case "emboss":
+                    break;
                 case "fitText":
+                    break;
                 case "highlight":
                     style["background-color"] = xmlUtil.colorAttr(c, "val", null, autos.highlight);
                     break;
@@ -3084,14 +3087,18 @@ class DocumentParser {
                     style["font-style"] = globalXmlParser.boolAttr(c, "val", true) ? "italic" : "normal";
                     break;
                 case "iCs":
+                    break;
                 case "imprint":
+                    break;
                 case "kern":
                     break;
                 case "lang":
                     style["$lang"] = globalXmlParser.attr(c, "val");
                     break;
                 case "noProof":
+                    break;
                 case "outline":
+                    break;
                 case "position":
                     style.verticalAlign = globalXmlParser.lengthAttr(c, "val", LengthUsage.FontSize);
                     break;
@@ -3099,8 +3106,11 @@ class DocumentParser {
                     this.parseFont(c, style);
                     break;
                 case "rPrChange":
+                    break;
                 case "rtl":
+                    break;
                 case "shadow":
+                    break;
                 case "shd":
                     style["background-color"] = xmlUtil.colorAttr(c, "fill", null, autos.shd);
                     break;
@@ -3108,6 +3118,7 @@ class DocumentParser {
                     style["font-variant"] = globalXmlParser.boolAttr(c, "val", true) ? "small-caps" : "none";
                     break;
                 case "snapToGrid":
+                    break;
                 case "spacing":
                     if (elem.localName == "pPr") {
                         this.parseSpacingBetweenLines(c, style);
@@ -3117,6 +3128,7 @@ class DocumentParser {
                     }
                     break;
                 case "specVanish":
+                    break;
                 case "strike":
                     style["text-decoration"] = globalXmlParser.boolAttr(c, "val", true) ? "line-through" : "none";
                     break;
@@ -3124,6 +3136,7 @@ class DocumentParser {
                     style["font-size"] = style["min-height"] = globalXmlParser.lengthAttr(c, "val", LengthUsage.FontSize);
                     break;
                 case "szCs":
+                    break;
                 case "u":
                     this.parseUnderline(c, style);
                     break;
@@ -3134,7 +3147,9 @@ class DocumentParser {
                 case "vertAlign":
                     break;
                 case "w":
+                    break;
                 case "webHidden":
+                    break;
                 case "jc":
                     style["text-align"] = values.valueOfJc(c);
                     break;
@@ -3254,22 +3269,22 @@ class DocumentParser {
         }
     }
     parseFont(node, style) {
-        let fonts = [];
+        let fonts = new Set();
         let ascii = globalXmlParser.attr(node, "ascii");
         let ascii_theme = values.themeValue(node, "asciiTheme");
-        fonts.push(ascii, ascii_theme);
+        fonts.add(ascii).add(ascii_theme);
         let east_Asia = globalXmlParser.attr(node, "eastAsia");
         let east_Asia_theme = values.themeValue(node, "eastAsiaTheme");
-        fonts.push(east_Asia, east_Asia_theme);
+        fonts.add(east_Asia).add(east_Asia_theme);
         let complex_script = globalXmlParser.attr(node, "cs");
         let complex_script_theme = values.themeValue(node, "cstheme");
-        fonts.push(complex_script, complex_script_theme);
+        fonts.add(complex_script).add(complex_script_theme);
         let high_ansi = globalXmlParser.attr(node, "hAnsi");
         let high_ansi_theme = values.themeValue(node, "hAnsiTheme");
-        fonts.push(high_ansi, high_ansi_theme);
-        let fonts_value = [...new Set(fonts)].filter(x => x).join(', ');
-        if (fonts.length > 0) {
-            style["font-family"] = fonts_value;
+        fonts.add(high_ansi).add(high_ansi_theme);
+        let unique_fonts = [...fonts].filter(x => x);
+        if (unique_fonts.length > 0) {
+            style["font-family"] = unique_fonts.join(', ');
         }
         style["_hint"] = globalXmlParser.attr(node, "hint");
     }
@@ -4883,7 +4898,6 @@ class HtmlRendererSync {
         return className ? `${this.className}_${escapeClassName(className)}` : this.className;
     }
     processStyles(styles) {
-        styles.filter(x => x.id != null);
         let stylesMap = _.keyBy(styles, 'id');
         for (const childStyle of styles) {
             childStyle.cssName = this.processStyleName(childStyle.id);
@@ -4917,7 +4931,6 @@ class HtmlRendererSync {
     renderStyles(styles) {
         var _a;
         let styleText = "";
-        this.styleMap;
         for (const style of styles) {
             for (const ruleset of style.rulesets) {
                 let selector = `${(_a = style.label) !== null && _a !== void 0 ? _a : ''}.${style.cssName}`;

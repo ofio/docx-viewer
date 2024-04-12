@@ -982,9 +982,7 @@ export class DocumentParser {
 					break;
 
 				default:
-					if (this.options.debug) {
-						console.warn(`DOCX:%c Unknown Run Property：${c.localName}`, 'color:grey');
-					}
+					// pass other properties to parseDefaultProperties function
 					return false;
 			}
 
@@ -1963,8 +1961,16 @@ export class DocumentParser {
 		style = style || {};
 
 		xmlUtil.foreach(elem, c => {
-			if (handler?.(c))
+			/**
+			 * 根据提供的handler处理函数和条件执行逻辑。
+			 * 如果handler处理函数存在并且调用处理函数返回真值，则终止当前逻辑。
+			 *
+			 * @param handler 可选的处理函数，接受一个参数 c，并返回一个布尔值。
+			 * @param c 传递给处理函数的参数。
+			 */
+			if (handler?.(c)) {
 				return;
+			}
 
 			switch (c.localName) {
 				// Bold
@@ -1974,6 +1980,7 @@ export class DocumentParser {
 
 				// Complex Script Bold
 				case "bCs":
+					break;
 
 				// Text Border
 				case "bdr":
@@ -1992,24 +1999,31 @@ export class DocumentParser {
 
 				// Use Complex Script Formatting on Run
 				case "cs":
+					break;
 
 				// Double Strikethrough
 				case "dstrike":
+					break;
 
 				// East Asian Typography Settings
 				case "eastAsianLayout":
+					break;
 
 				// Animated Text Effect
 				case "effect":
+					break;
 
 				// Emphasis Mark
 				case "em":
+					break;
 
 				// Embossing
 				case "emboss":
+					break;
 
 				// Manual Run Width
 				case "fitText":
+					break;
 
 				// Text Highlighting
 				case "highlight":
@@ -2023,9 +2037,11 @@ export class DocumentParser {
 
 				// Complex Script Italics
 				case "iCs":
+					break;
 
 				// Imprinting
 				case "imprint":
+					break;
 
 				// TODO Font Kerning
 				case "kern":
@@ -2039,9 +2055,11 @@ export class DocumentParser {
 
 				// TODO Do Not Check Spelling or Grammar
 				case "noProof":
+					break;
 
 				// TODO Display Character Outline
 				case "outline":
+					break;
 
 				// Vertically Raised or Lowered Text
 				case "position":
@@ -2052,15 +2070,18 @@ export class DocumentParser {
 				case "rFonts":
 					this.parseFont(c, style);
 					break;
-				// TODO Revision Information for Run Properties
 
+				// TODO Revision Information for Run Properties
 				case "rPrChange":
+					break;
 
 				//TODO Right To Left Text
 				case "rtl":
+					break;
 
 				//TODO Shadow
 				case "shadow":
+					break;
 
 				// Run Shading
 				case "shd":
@@ -2074,6 +2095,7 @@ export class DocumentParser {
 
 				// Use Document Grid Settings For Inter-Character Spacing
 				case "snapToGrid":
+					break;
 
 				// Character Spacing Adjustment
 				case "spacing":
@@ -2089,6 +2111,7 @@ export class DocumentParser {
 
 				// Paragraph Mark Is Always Hidden
 				case "specVanish":
+					break;
 
 				// Single Strikethrough
 				case "strike":
@@ -2103,6 +2126,7 @@ export class DocumentParser {
 
 				// Complex Script Font Size
 				case "szCs":
+					break;
 
 				// Underline
 				case "u":
@@ -2122,9 +2146,11 @@ export class DocumentParser {
 
 				// Expanded/Compressed Text
 				case "w":
+					break;
 
 				// TODO Web Hidden Text
 				case "webHidden":
+					break;
 
 				case "jc":
 					style["text-align"] = values.valueOfJc(c);
@@ -2282,29 +2308,28 @@ export class DocumentParser {
 	// 转换Run字体，包含四种，ascii，eastAsia，ComplexScript，高 ANSI Font
 	parseFont(node: Element, style: Record<string, string>) {
 		// 字体
-		let fonts = [];
+		let fonts = new Set();
 		// ascii字体
 		let ascii = xml.attr(node, "ascii");
 		let ascii_theme = values.themeValue(node, "asciiTheme");
-		fonts.push(ascii, ascii_theme);
+		fonts.add(ascii).add(ascii_theme);
 		// eastAsia
 		let east_Asia = xml.attr(node, "eastAsia");
 		let east_Asia_theme = values.themeValue(node, "eastAsiaTheme");
-		fonts.push(east_Asia, east_Asia_theme);
+		fonts.add(east_Asia).add(east_Asia_theme);
 		// ComplexScript
 		let complex_script = xml.attr(node, "cs");
 		let complex_script_theme = values.themeValue(node, "cstheme");
-		fonts.push(complex_script, complex_script_theme);
+		fonts.add(complex_script).add(complex_script_theme);
 		// 高 ANSI Font
 		let high_ansi = xml.attr(node, "hAnsi");
 		let high_ansi_theme = values.themeValue(node, "hAnsiTheme");
-		fonts.push(high_ansi, high_ansi_theme);
-
-		// 去除重复字体，合并成一个字体配置
-		let fonts_value = [...new Set(fonts)].filter(x => x).join(', ');
-
-		if (fonts.length > 0) {
-			style["font-family"] = fonts_value;
+		fonts.add(high_ansi).add(high_ansi_theme);
+		// 去除重复字体，去除null
+		let unique_fonts = [...fonts].filter(x => x);
+		if (unique_fonts.length > 0) {
+			// 合并成一个字体配置
+			style["font-family"] = unique_fonts.join(', ');
 		}
 
 		// 字体提示：hint，拥有三种值：ComplexScript（cs）、Default（default）、EastAsia（eastAsia）
