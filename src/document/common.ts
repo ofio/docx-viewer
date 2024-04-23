@@ -17,8 +17,8 @@ export interface Font {
 }
 
 export interface CommonProperties {
-	fontSize: Length;
-	color: string;
+	fontSize?: Length;
+	color?: string;
 }
 
 export type LengthUsageType = { mul: number, unit: LengthType };
@@ -28,7 +28,7 @@ export const LengthUsage: Record<string, LengthUsageType> = {
 	// Windows系统默认是96dpi，Apple系统默认是72dpi。pt = 1/72(英寸), px = 1/dpi(英寸)
 	// 目前只考虑Windows系统，px = pt * 96 / 72 ;
 	Px: { mul: 1 / 9525, unit: "px" },
-	Dxa: { mul: 0.05, unit: "pt" }, // 单位：twips，twentieth = 1/20
+	Dxa: { mul: 1 / 20, unit: "pt" }, // 单位：twips，twentieth = 1/20
 	Emu: { mul: 1 / 12700, unit: "pt" },
 	FontSize: { mul: 0.5, unit: "pt" },
 	Border: { mul: 0.125, unit: "pt" },

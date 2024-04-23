@@ -11,6 +11,7 @@ import { convertLength, LengthUsage, LengthUsageType } from './document/common';
 import { parseVmlElement } from './vml/vml';
 import { uuid } from "./utils";
 import { WmlComment, WmlCommentRangeEnd, WmlCommentRangeStart, WmlCommentReference } from './comments/elements';
+import { parseLineSpacing } from "./document/spacing-between-lines";
 
 export var autos = {
 	shd: "inherit",
@@ -219,11 +220,16 @@ export class DocumentParser {
 				case "pPrDefault":
 					let pPr = xml.element(c, "pPr");
 
-					if (pPr)
-						result.rulesets.push({
+					if (pPr) {
+						let paragraphProperties = parseParagraphProperties(pPr, xml);
+						let ruleset = {
 							target: "p",
 							declarations: this.parseDefaultProperties(pPr, {})
-						});
+						}
+						// line spacing
+						Object.assign(ruleset.declarations, parseLineSpacing(paragraphProperties));
+						result.rulesets.push(ruleset);
+					}
 					break;
 				default:
 					if (this.options.debug) {
@@ -347,11 +353,14 @@ export class DocumentParser {
 
 				// Style Paragraph Properties
 				case "pPr":
-					result.rulesets.push({
+					result.paragraphProps = parseParagraphProperties(n, xml);
+					let ruleset = {
 						target: "p",
 						declarations: this.parseDefaultProperties(n, {})
-					});
-					result.paragraphProps = parseParagraphProperties(n, xml);
+					}
+					// line spacing
+					Object.assign(ruleset.declarations, parseLineSpacing(result.paragraphProps));
+					result.rulesets.push(ruleset);
 					break;
 
 				// Specifies Primary Style
@@ -433,45 +442,45 @@ export class DocumentParser {
 		return result;
 	}
 
-	// TODO 表格style样式规则未生效
+	// TODO 多层嵌套表格style样式规则未生效
 	parseTableStyle(node: Element): Ruleset[] {
-		let result = [];
+		let result: Ruleset[] = [];
 
 		let type = xml.attr(node, "type");
 		let selector = "";
-		let modificator = "";
+		let modifier = "";
 
 		switch (type) {
 			case "firstRow":
-				modificator = ".first-row";
+				modifier = ".first-row";
 				selector = "tr.first-row td";
 				break;
 			case "lastRow":
-				modificator = ".last-row";
+				modifier = ".last-row";
 				selector = "tr.last-row td";
 				break;
 			case "firstCol":
-				modificator = ".first-col";
+				modifier = ".first-col";
 				selector = "td.first-col";
 				break;
 			case "lastCol":
-				modificator = ".last-col";
+				modifier = ".last-col";
 				selector = "td.last-col";
 				break;
 			case "band1Vert":
-				modificator = ":not(.no-vband)";
+				modifier = ":not(.no-vband)";
 				selector = "td.odd-col";
 				break;
 			case "band2Vert":
-				modificator = ":not(.no-vband)";
+				modifier = ":not(.no-vband)";
 				selector = "td.even-col";
 				break;
 			case "band1Horz":
-				modificator = ":not(.no-hband)";
+				modifier = ":not(.no-hband)";
 				selector = "tr.odd-row";
 				break;
 			case "band2Horz":
-				modificator = ":not(.no-hband)";
+				modifier = ":not(.no-hband)";
 				selector = "tr.even-row";
 				break;
 			default:
@@ -481,18 +490,22 @@ export class DocumentParser {
 		xmlUtil.foreach(node, n => {
 			switch (n.localName) {
 				case "pPr":
-					result.push({
+					let paragraphProperties = parseParagraphProperties(n, xml);
+					let ruleset = {
 						target: `${selector} p`,
-						mod: modificator,
-						values: this.parseDefaultProperties(n, {})
-					});
+						modifier: modifier,
+						declarations: this.parseDefaultProperties(n, {})
+					}
+					// line spacing
+					Object.assign(ruleset.declarations, parseLineSpacing(paragraphProperties));
+					result.push(ruleset);
 					break;
 
 				case "rPr":
 					result.push({
 						target: `${selector} span`,
-						mod: modificator,
-						values: this.parseDefaultProperties(n, {})
+						modifier: modifier,
+						declarations: this.parseDefaultProperties(n, {})
 					});
 					break;
 
@@ -500,8 +513,8 @@ export class DocumentParser {
 				case "tcPr":
 					result.push({
 						target: selector, //TODO: maybe move to processor
-						mod: modificator,
-						values: this.parseDefaultProperties(n, {})
+						modifier: modifier,
+						declarations: this.parseDefaultProperties(n, {})
 					});
 					break;
 				default:
@@ -653,7 +666,12 @@ export class DocumentParser {
 	}
 
 	parseParagraph(node: Element): OpenXmlElement {
-		let wmlParagraph = <WmlParagraph>{ type: DomType.Paragraph, children: [] };
+		let wmlParagraph: WmlParagraph = {
+			type: DomType.Paragraph,
+			children: [],
+			props: {},
+			cssStyle: {},
+		};
 
 		for (let el of xml.elements(node)) {
 			switch (el.localName) {
@@ -721,25 +739,25 @@ export class DocumentParser {
 
 	parseParagraphProperties(elem: Element, paragraph: WmlParagraph) {
 		this.parseDefaultProperties(elem, paragraph.cssStyle = {}, null, c => {
-			if (parseParagraphProperty(c, paragraph, xml)) {
+			if (parseParagraphProperty(c, paragraph.props, xml)) {
 				return true;
 			}
 
 			switch (c.localName) {
-				case "pStyle":
-					paragraph.styleName = xml.attr(c, "val");
-					break;
-
+				// Paragraph Conditional Formatting
 				case "cnfStyle":
 					paragraph.className = values.classNameOfCnfStyle(c);
 					break;
 
+				// Text Frame Properties
 				case "framePr":
 					this.parseFrame(c, paragraph);
 					break;
 
-				case "rPr":
-					//TODO ignore
+				// TODO pStyle should be a property of paragraph
+				// Referenced Paragraph Style
+				case "pStyle":
+					paragraph.styleName = xml.attr(c, "val");
 					break;
 
 				default:
@@ -987,6 +1005,11 @@ export class DocumentParser {
 				// Subscript/Superscript Text
 				case "vertAlign":
 					run.verticalAlign = values.valueOfVertAlign(c, true);
+					break;
+
+				// Character Spacing Adjustment
+				case "spacing":
+					this.parseSpacing(c, run);
 					break;
 
 				default:
@@ -1959,6 +1982,7 @@ export class DocumentParser {
 		});
 	}
 
+	// 公共属性，转化为确定的style样式，无需复杂计算
 	parseDefaultProperties(elem: Element, style: Record<string, string> = null, childStyle: Record<string, string> = null, handler: (prop: Element) => boolean = null): Record<string, string> {
 		style = style || {};
 
@@ -1980,7 +2004,12 @@ export class DocumentParser {
 					style["font-weight"] = xml.boolAttr(c, "val", true) ? "bold" : "normal";
 					break;
 
-				// Complex Script Bold
+				//TODO - maybe ignore
+				case "bidi":
+
+					break;
+
+				// TODO Complex Script Bold
 				case "bCs":
 					break;
 
@@ -1999,31 +2028,31 @@ export class DocumentParser {
 					style["color"] = xmlUtil.colorAttr(c, "val", null, autos.color);
 					break;
 
-				// Use Complex Script Formatting on Run
+				// TODO Use Complex Script Formatting on Run
 				case "cs":
 					break;
 
-				// Double Strikethrough
+				// TODO Double Strikethrough
 				case "dstrike":
 					break;
 
-				// East Asian Typography Settings
+				// TODO East Asian Typography Settings
 				case "eastAsianLayout":
 					break;
 
-				// Animated Text Effect
+				// TODO Animated Text Effect
 				case "effect":
 					break;
 
-				// Emphasis Mark
+				// TODO Emphasis Mark
 				case "em":
 					break;
 
-				// Embossing
+				// TODO Embossing
 				case "emboss":
 					break;
 
-				// Manual Run Width
+				// TODO Manual Run Width
 				case "fitText":
 					break;
 
@@ -2037,17 +2066,17 @@ export class DocumentParser {
 					style["font-style"] = xml.boolAttr(c, "val", true) ? "italic" : "normal";
 					break;
 
-				// Complex Script Italics
+				// TODO Complex Script Italics
 				case "iCs":
 					break;
 
-				// Imprinting
+				// TODO Imprinting
 				case "imprint":
 					break;
 
 				// TODO Font Kerning
 				case "kern":
-					//style['letter-spacing'] = xml.lengthAttr(elem, 'val', LengthUsage.FontSize);
+					// style['letter-spacing'] = xml.lengthAttr(c, 'val');
 					break;
 
 				// Languages for Run Content,check spelling and grammar
@@ -2077,11 +2106,11 @@ export class DocumentParser {
 				case "rPrChange":
 					break;
 
-				//TODO Right To Left Text
+				// TODO Right To Left Text
 				case "rtl":
 					break;
 
-				//TODO Shadow
+				// TODO Shadow
 				case "shadow":
 					break;
 
@@ -2095,23 +2124,7 @@ export class DocumentParser {
 					style["font-variant"] = xml.boolAttr(c, "val", true) ? "small-caps" : "none";
 					break;
 
-				// Use Document Grid Settings For Inter-Character Spacing
-				case "snapToGrid":
-					break;
-
-				// Character Spacing Adjustment
-				case "spacing":
-					// Paragraph
-					if (elem.localName == "pPr") {
-						this.parseSpacingBetweenLines(c, style);
-					}
-					// Run
-					if (elem.localName == "rPr") {
-						this.parseSpacing(c, style);
-					}
-					break;
-
-				// Paragraph Mark Is Always Hidden
+				// TODO Paragraph Mark Is Always Hidden
 				case "specVanish":
 					break;
 
@@ -2149,7 +2162,7 @@ export class DocumentParser {
 					// style.verticalAlign = values.valueOfVertAlign(c);
 					break;
 
-				// Expanded/Compressed Text
+				// TODO Expanded/Compressed Text
 				case "w":
 					break;
 
@@ -2165,6 +2178,7 @@ export class DocumentParser {
 					style["vertical-align"] = values.valueOfTextAlignment(c);
 					break;
 
+				// 	TODO
 				case "tcW":
 					if (this.options.ignoreWidth) {
 					}
@@ -2200,8 +2214,8 @@ export class DocumentParser {
 					this.parseBorderProperties(c, style);
 					break;
 
+				// TODO
 				case "noWrap":
-					//TODO
 					//style["white-space"] = "nowrap";
 					break;
 
@@ -2227,7 +2241,8 @@ export class DocumentParser {
 					style["hyphens"] = xml.boolAttr(c, "val", true) ? "none" : "auto";
 					break;
 
-				case "tabs": //ignore - tabs is parsed by other parser
+				//ignore - tabs is parsed by other parser
+				case "tabs":
 				case "outlineLvl": //TODO
 				case "contextualSpacing": //TODO
 				case "tblStyleColBandSize": //TODO
@@ -2237,7 +2252,6 @@ export class DocumentParser {
 				case "keepLines": //TODO - maybe ignore
 				case "keepNext": //TODO - maybe ignore
 				case "widowControl": //TODO - maybe ignore
-				case "bidi": //TODO - maybe ignore
 
 				default:
 					if (this.options.debug) {
@@ -2358,84 +2372,12 @@ export class DocumentParser {
 	}
 
 	// the additional amount of character pitch to the contents of a run
-	parseSpacing(node: Element, style: Record<string, string>) {
+	parseSpacing(node: Element, run: WmlRun) {
 		for (const attr of xml.attrs(node)) {
 			switch (attr.localName) {
 				// Character Spacing Adjustment
 				case "val":
-					style["margin-bottom"] = xml.lengthAttr(node, "val");
-					break;
-				default:
-					if (this.options.debug) {
-						console.warn(`DOCX:%c Unknown Spacing Property：${attr.localName}`, 'color:#f75607');
-					}
-			}
-		}
-	}
-
-	// Spacing Between Lines and Above/Below Paragraph
-	parseSpacingBetweenLines(node: Element, style: Record<string, string>) {
-		// line-height
-		let line: number;
-
-		for (const attr of xml.attrs(node)) {
-			switch (attr.localName) {
-				// Spacing after the last line in each paragraph
-				case "after":
-					style["margin-bottom"] = xml.lengthAttr(node, "after");
-					break;
-
-				// Automatically Determine Spacing after the last line in each paragraph
-				case "afterAutospacing":
-					break;
-
-				// Spacing Below Paragraph in Line Units
-				case "afterLines":
-					style["margin-bottom"] = xml.lengthAttr(node, "afterLines");
-					break;
-
-				// Spacing before the first line in each paragraph
-				case "before":
-					style["margin-top"] = xml.lengthAttr(node, "before");
-					break;
-
-				// Automatically Determine Spacing before the first line in each paragraph
-				case "beforeAutospacing":
-					break;
-
-				// Spacing Above Paragraph in Line Units
-				case "beforeLines":
-					style["margin-top"] = xml.lengthAttr(node, "beforeLines");
-					break;
-
-				//  the amount of vertical spacing between lines of text within this paragraph.
-				case "line":
-					line = xml.intAttr(node, "line", null);
-					break;
-
-				// Type of Spacing Between Lines
-				case "lineRule":
-					let lineRule = xml.attr(node, "lineRule");
-					switch (lineRule) {
-						// Automatically Determined Line Height.
-						case "auto":
-							style["line-height"] = `${(line / 240).toFixed(2)}`;
-							break;
-
-						// Minimum Line Height.
-						case "atLeast":
-							style["line-height"] = `calc(100% + ${line / 20}pt)`;
-							break;
-
-						// Exact Line Height.
-						case "Exact":
-							style["line-height"] = `${line / 20}pt`;
-							break;
-
-						default:
-							style["line-height"] = style["min-height"] = `${line / 20}pt`
-							break;
-					}
+					run.cssStyle["margin-bottom"] = xml.lengthAttr(node, "val");
 					break;
 
 				default:

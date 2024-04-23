@@ -22,8 +22,5 @@ export function parseRunProperties(elem: Element, xml: XmlParser): RunProperties
 }
 
 export function parseRunProperty(elem: Element, props: RunProperties, xml: XmlParser) {
-    if (parseCommonProperty(elem, props, xml))
-        return true;
-
-    return false;
+    return parseCommonProperty(elem, props, xml);
 }

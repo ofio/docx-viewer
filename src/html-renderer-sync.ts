@@ -9,6 +9,7 @@ import { asArray, escapeClassName, uuid } from './utils';
 import { computePixelToPoint, updateTabStop } from './javascript';
 import { FontTablePart } from './font-table/font-table';
 import { FooterHeaderReference, SectionProperties, SectionType } from './document/section';
+import { parseLineSpacing } from "./document/spacing-between-lines";
 import { Page, PageProps } from './document/page';
 import { RunProperties, WmlRun } from './document/run';
 import { WmlBookmarkStart } from './document/bookmarks';
@@ -288,7 +289,7 @@ export class HtmlRendererSync {
 			// TODO 处理链接样式:linked，注意两者互相链接，互相引用
 
 			for (const ruleset of style.rulesets) {
-				//TODO temporary disable modificators until test it well
+				//TODO temporary disable modifier until test it well
 				let selector = `${style.label ?? ''}.${style.cssName}`; //${subStyle.mod ?? ''}
 				// 样式目标不匹配，追加子级元素样式目标
 				if (style.label !== ruleset.target) {
@@ -636,7 +637,7 @@ export class HtmlRendererSync {
 			if (elem.type == DomType.Paragraph) {
 				const p = elem as WmlParagraph;
 				// 节属性，代表分节符
-				const sectProps: SectionProperties = p.sectionProps;
+				const sectProps: SectionProperties = p.props.sectionProperties;
 				// 节属性生成唯一uuid，每一个节中page均是同一个uuid，代表属于同一个节
 				if (sectProps) {
 					sectProps.sectionId = uuid();
@@ -1151,11 +1152,12 @@ export class HtmlRendererSync {
 			}
 			// 复制child的元素
 			let copy: OpenXmlElement = _.cloneDeep(child);
-			// 		// 查找表格中的table header，可能有多行
+
+			// TODO 查找表格中的table header，可能有多行
 			// 		const table_headers = table.children.filter((row: WmlTableRow) => row.isHeader);
-			// 		// 删除table前面已经渲染的row，保留后续未渲染元素
+			// 删除table前面已经渲染的row，保留后续未渲染元素
 			// 		table.children.splice(0, row_index);
-			// 		// 填充table header
+			// TODO 填充table header
 			// 		table.children = [...table_headers, ...table.children];
 			// 如果当前元素是表格Row，无需拆分，复制Row至current_page
 			if (type === DomType.Row) {
@@ -1580,15 +1582,17 @@ export class HtmlRendererSync {
 		oParagraph.dataset.uuid = uuid();
 		// 渲染class
 		this.renderClass(elem, oParagraph);
+		// 结合文档网格线属性，计算行高
+		Object.assign(elem.cssStyle, parseLineSpacing(elem.props, this.currentPage.sectProps))
 		// 渲染style
 		this.renderStyleValues(elem.cssStyle, oParagraph);
 		// 渲染常规--字体、颜色
-		this.renderCommonProperties(oParagraph.style, elem);
+		this.renderCommonProperties(oParagraph.style, elem.props);
 		// 查找段落内置样式class
 		const style = this.findStyle(elem.styleName);
-		elem.tabs ??= style?.paragraphProps?.tabs; //TODO
+		elem.props.tabs ??= style?.paragraphProps?.tabs; //TODO
 		// 列表序号
-		const numbering = elem.numbering ?? style?.paragraphProps?.numbering;
+		const numbering = elem.props.numbering ?? style?.paragraphProps?.numbering;
 
 		if (numbering) {
 			oParagraph.classList.add(
@@ -1998,7 +2002,7 @@ export class HtmlRendererSync {
 
 		if (this.options.experimental) {
 			tabSpan.className = this.tabStopClass();
-			const stops = findParent<WmlParagraph>(elem, DomType.Paragraph)?.tabs;
+			const stops = findParent<WmlParagraph>(elem, DomType.Paragraph).props?.tabs;
 			this.currentTabs.push({ stops, span: tabSpan });
 		}
 

@@ -8,16 +8,16 @@ export interface Column {
 }
 
 export interface Columns {
-	space: Length;
-	count: number;
-	separator: boolean;
-	equalWidth: boolean;
 	columns: Column[];
+	count: number;
+	equalWidth: boolean;
+	separator: boolean;
+	space: Length;
 }
 
 export interface ContentSize {
-	width: Length,
 	height: Length,
+	width: Length,
 }
 
 export interface PageSize extends ContentSize {
@@ -25,22 +25,22 @@ export interface PageSize extends ContentSize {
 }
 
 export interface PageNumber {
-	start: number;
 	chapSep: "colon" | "emDash" | "endash" | "hyphen" | "period" | string;
 	chapStyle: string;
 	format: "none" | "cardinalText" | "decimal" | "decimalEnclosedCircle" | "decimalEnclosedFullstop"
 		| "decimalEnclosedParen" | "decimalZero" | "lowerLetter" | "lowerRoman"
 		| "ordinalText" | "upperLetter" | "upperRoman" | string;
+	start: number;
 }
 
 export interface PageMargins {
-	top: Length;
-	right: Length;
 	bottom: Length;
-	left: Length;
-	header: Length;
 	footer: Length;
 	gutter: Length;
+	header: Length;
+	left: Length;
+	right: Length;
+	top: Length;
 }
 
 export enum SectionType {
@@ -56,34 +56,52 @@ export interface FooterHeaderReference {
 	type: string | "first" | "even" | "default";
 }
 
+export interface DocGrid {
+	characterSpace?: number;
+	linePitch?: number;
+	type?: DocGridType;
+}
+
+export enum DocGridType {
+	// No Document Grid.Default Value
+	Default = 'default',
+	// Line Grid Only.
+	Lines = 'lines',
+	// Line and Character Grid.
+	LinesAndChars = 'linesAndChars',
+	// Character Grid Only.
+	SnapToChars = 'snapToChars',
+}
+
 export interface SectionProperties {
-	sectionId: string;
-	type: SectionType | string;
-	pageSize: PageSize,
-	pageMargins: PageMargins,
-	pageBorders: Borders;
-	pageNumber: PageNumber;
 	columns: Columns;
-	footerRefs: FooterHeaderReference[];
-	headerRefs: FooterHeaderReference[];
-	titlePage: boolean;
 	contentSize: ContentSize;
+	docGrid: DocGrid;
+	footerRefs: FooterHeaderReference[],
+	headerRefs: FooterHeaderReference[],
+	pageBorders: Borders;
+	pageMargins: PageMargins;
+	pageNumber: PageNumber;
+	pageSize: PageSize;
+	sectionId: string;
+	titlePage: boolean;
+	type: SectionType | string;
 }
 
 // 原始尺寸数据，单位：dxa
 interface OriginSize {
-	pageSize: {
-		width: number,
-		height: number,
-	},
 	pageMargins: {
-		top: number;
-		right: number;
 		bottom: number;
-		left: number;
-		header: number;
 		footer: number;
 		gutter: number;
+		header: number;
+		left: number;
+		right: number;
+		top: number;
+	},
+	pageSize: {
+		height: number,
+		width: number,
 	}
 }
 
@@ -94,23 +112,66 @@ export function parseSectionProperties(elem: Element, xml: XmlParser = globalXml
 
 	for (let e of xml.elements(elem)) {
 		switch (e.localName) {
-			case "pgSz":
-				section.pageSize = {
-					width: xml.lengthAttr(e, "w"),
-					height: xml.lengthAttr(e, "h"),
-					orientation: xml.attr(e, "orient")
-				}
-				// 记录原始尺寸
-				origin.pageSize = {
-					width: xml.intAttr(e, "w"),
-					height: xml.intAttr(e, "h"),
-				}
+			// TODO Right to Left Section Layout
+			case "bidi":
 				break;
 
-			case "type":
-				section.type = xml.attr(e, "val");
+			// Column Definitions
+			case "cols":
+				section.columns = parseColumns(e, xml);
 				break;
 
+			// Document Grid
+			case "docGrid":
+				section.docGrid = parseDocGrid(e, xml);
+				break;
+
+			// TODO Section-Wide Endnote Properties
+			case "endnotePr":
+
+				break;
+
+			// Footer Reference
+			case "footerReference":
+				(section.footerRefs ?? (section.footerRefs = [])).push(parseFooterHeaderReference(e, xml));
+				break;
+
+			// TODO Section-Wide Footnote Properties
+			case "footnotePr":
+
+				break;
+
+			// TODO Only Allow Editing of Form Fields
+			case "formProt":
+
+				break;
+
+			// Header Reference
+			case "headerReference":
+				(section.headerRefs ?? (section.headerRefs = [])).push(parseFooterHeaderReference(e, xml));
+				break;
+
+			// TODO Line Numbering Settings
+			case "lnNumType":
+
+				break;
+
+			// TODO Suppress Endnotes In Document
+			case "noEndnote":
+
+				break;
+
+			// TODO Paper Source Information
+			case "paperSrc":
+
+				break;
+
+			// Page Borders
+			case "pgBorders":
+				section.pageBorders = parseBorders(e, xml);
+				break;
+
+			// Page Margins
 			case "pgMar":
 				section.pageMargins = {
 					left: xml.lengthAttr(e, "left"),
@@ -133,41 +194,66 @@ export function parseSectionProperties(elem: Element, xml: XmlParser = globalXml
 				}
 				break;
 
-			case "cols":
-				section.columns = parseColumns(e, xml);
-				break;
-
-			case "headerReference":
-				(section.headerRefs ?? (section.headerRefs = [])).push(parseFooterHeaderReference(e, xml));
-				break;
-
-			case "footerReference":
-				(section.footerRefs ?? (section.footerRefs = [])).push(parseFooterHeaderReference(e, xml));
-				break;
-
-			case "titlePg":
-				section.titlePage = xml.boolAttr(e, "val", true);
-				break;
-
-			case "pgBorders":
-				section.pageBorders = parseBorders(e, xml);
-				break;
-
+			// Page Numbering Settings
 			case "pgNumType":
 				section.pageNumber = parsePageNumber(e, xml);
 				break;
 
-			// TODO 文档网格线
-			case "docGrid":
+			// Page Size
+			case "pgSz":
+				section.pageSize = {
+					width: xml.lengthAttr(e, "w"),
+					height: xml.lengthAttr(e, "h"),
+					orientation: xml.attr(e, "orient")
+				}
+				// 记录原始尺寸
+				origin.pageSize = {
+					width: xml.intAttr(e, "w"),
+					height: xml.intAttr(e, "h"),
+				}
+				break;
+
+			// TODO Reference to Printer Settings Data
+			case "printerSettings":
 
 				break;
+
+			// TODO Gutter on Right Side of Page
+			case "rtlGutter":
+
+				break;
+
+			// TODO Revision Information for Section Properties
+			case "sectPrChange":
+
+				break;
+
+			// TODO Text Flow Direction
+			case "textDirection":
+
+				break;
+
+			// Different First Page Headers and Footers
+			case "titlePg":
+				section.titlePage = xml.boolAttr(e, "val", true);
+				break;
+
+			// Section Type
+			case "type":
+				section.type = xml.attr(e, "val");
+				break;
+
+			// TODO Vertical Text Alignment on Page
+			case "vAlign":
+
+				break;
+
 			default:
 				if (this.options.debug) {
 					console.warn(`DOCX:%c Unknown Section Property：${elem.localName}`, 'color:#f75607');
 				}
 		}
 	}
-
 	// 根据原始尺寸，计算内容区域的宽高
 	let { width, height } = origin.pageSize;
 	let { left, right, top, bottom } = origin.pageMargins;
@@ -194,6 +280,39 @@ function parseColumns(elem: Element, xml: XmlParser): Columns {
 	};
 }
 
+function parseFooterHeaderReference(elem: Element, xml: XmlParser): FooterHeaderReference {
+	return {
+		id: xml.attr(elem, "id"),
+		type: xml.attr(elem, "type"),
+	}
+}
+
+// TODO only support linePitch property temporarily
+function parseDocGrid(elem: Element, xml: XmlParser): DocGrid {
+	let grid: DocGrid = {};
+	for (let attr of xml.attrs(elem)) {
+		switch (attr.localName) {
+			case "charSpace":
+				grid.characterSpace = xml.intAttr(elem, "charSpace");
+				break;
+
+			case "linePitch":
+				grid.linePitch = xml.intAttr(elem, "linePitch");
+				break;
+
+			case "type":
+				grid.type = xml.attr(elem, "type", DocGridType.Default) as DocGridType;
+				break;
+
+			default:
+				if (this.options.debug) {
+					console.warn(`DOCX:%c Unknown Grid Property：${elem.localName}`, 'color:#f75607');
+				}
+		}
+	}
+	return grid;
+}
+
 function parsePageNumber(elem: Element, xml: XmlParser): PageNumber {
 	return {
 		chapSep: xml.attr(elem, "chapSep"),
@@ -203,9 +322,4 @@ function parsePageNumber(elem: Element, xml: XmlParser): PageNumber {
 	};
 }
 
-function parseFooterHeaderReference(elem: Element, xml: XmlParser): FooterHeaderReference {
-	return {
-		id: xml.attr(elem, "id"),
-		type: xml.attr(elem, "type"),
-	}
-}
+

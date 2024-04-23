@@ -28,8 +28,9 @@ export function serializeXmlString(elem: Node): string {
 }
 
 export class XmlParser {
-	// 查找xml元素的多个子元素
+	// find all xml element's children
 	elements(elem: Element, localName: string = null): Element[] {
+		// TODO 替换DOM方法,优化性能
 		const result = [];
 
 		for (let i = 0, l = elem.childNodes.length; i < l; i++) {
@@ -42,7 +43,9 @@ export class XmlParser {
 		return result;
 	}
 
+	// find one xml element's child
 	element(elem: Element, localName: string): Element {
+		// TODO 替换querySeletor,优化性能
 		for (let i = 0, l = elem.childNodes.length; i < l; i++) {
 			let c = elem.childNodes.item(i);
 
@@ -57,20 +60,17 @@ export class XmlParser {
 		let el = this.element(elem, localName);
 		return el ? this.attr(el, attrLocalName) : undefined;
 	}
+
 	// xml element's attributes
 	attrs(elem: Element) {
 		return Array.from(elem.attributes);
 	}
+
+	// TODO fix namespace
 	// find xml element's attribute
-	attr(elem: Element, localName: string): string {
-		for (let i = 0, l = elem.attributes.length; i < l; i++) {
-			let a = elem.attributes.item(i);
-
-			if (a.localName == localName)
-				return a.value;
-		}
-
-		return null;
+	attr(elem: Element, localName: string, defaultValue: string = null): string {
+		let attr: Attr = this.attrs(elem).find(attr => attr.localName == localName);
+		return attr ? attr.value : defaultValue;
 	}
 
 	intAttr(node: Element, attrName: string, defaultValue: number = null): number {

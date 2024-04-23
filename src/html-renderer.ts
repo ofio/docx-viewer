@@ -631,7 +631,7 @@ export class HtmlRenderer {
 			if (elem.type == DomType.Paragraph) {
 				const p = elem as WmlParagraph;
 				// 节属性，代表分节符
-				const sectProps: SectionProperties = p.sectionProps;
+				const sectProps: SectionProperties = p.props.sectionProperties;
 				// 节属性生成唯一uuid，每一个节中page均是同一个uuid，代表属于同一个节
 				if (sectProps) {
 					sectProps.sectionId = uuid();
@@ -1158,14 +1158,14 @@ export class HtmlRenderer {
 		let result = createElement("p");
 
 		const style = this.findStyle(elem.styleName);
-		elem.tabs ??= style?.paragraphProps?.tabs;  //TODO
+		elem.props.tabs ??= style?.paragraphProps?.tabs;  //TODO
 
 		this.renderClass(elem, result);
 		this.renderChildren(elem, result);
 		this.renderStyleValues(elem.cssStyle, result);
-		this.renderCommonProperties(result.style, elem);
+		this.renderCommonProperties(result.style, elem.props);
 
-		const numbering = elem.numbering ?? style?.paragraphProps?.numbering;
+		const numbering = elem.props.numbering ?? style?.paragraphProps?.numbering;
 
 		if (numbering) {
 			result.classList.add(this.numberingClass(numbering.id, numbering.level));
@@ -1314,7 +1314,7 @@ export class HtmlRenderer {
 
 		if (this.options.experimental) {
 			tabSpan.className = this.tabStopClass();
-			let stops = findParent<WmlParagraph>(elem, DomType.Paragraph)?.tabs;
+			let stops = findParent<WmlParagraph>(elem, DomType.Paragraph).props?.tabs;
 			this.currentTabs.push({ stops, span: tabSpan });
 		}
 

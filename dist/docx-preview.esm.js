@@ -168,7 +168,7 @@ const ns$2 = {
 };
 const LengthUsage = {
     Px: { mul: 1 / 9525, unit: "px" },
-    Dxa: { mul: 0.05, unit: "pt" },
+    Dxa: { mul: 1 / 20, unit: "pt" },
     Emu: { mul: 1 / 12700, unit: "pt" },
     FontSize: { mul: 0.5, unit: "pt" },
     Border: { mul: 0.125, unit: "pt" },
@@ -273,13 +273,9 @@ class XmlParser {
     attrs(elem) {
         return Array.from(elem.attributes);
     }
-    attr(elem, localName) {
-        for (let i = 0, l = elem.attributes.length; i < l; i++) {
-            let a = elem.attributes.item(i);
-            if (a.localName == localName)
-                return a.value;
-        }
-        return null;
+    attr(elem, localName, defaultValue = null) {
+        let attr = this.attrs(elem).find(attr => attr.localName == localName);
+        return attr ? attr.value : defaultValue;
     }
     intAttr(node, attrName, defaultValue = null) {
         let val = this.attr(node, attrName);
@@ -542,25 +538,47 @@ var SectionType;
     SectionType["EvenPage"] = "evenPage";
     SectionType["OddPage"] = "oddPage";
 })(SectionType || (SectionType = {}));
+var DocGridType;
+(function (DocGridType) {
+    DocGridType["Default"] = "default";
+    DocGridType["Lines"] = "lines";
+    DocGridType["LinesAndChars"] = "linesAndChars";
+    DocGridType["SnapToChars"] = "snapToChars";
+})(DocGridType || (DocGridType = {}));
 function parseSectionProperties(elem, xml = globalXmlParser) {
     var _a, _b;
     let section = {};
     let origin = {};
     for (let e of xml.elements(elem)) {
         switch (e.localName) {
-            case "pgSz":
-                section.pageSize = {
-                    width: xml.lengthAttr(e, "w"),
-                    height: xml.lengthAttr(e, "h"),
-                    orientation: xml.attr(e, "orient")
-                };
-                origin.pageSize = {
-                    width: xml.intAttr(e, "w"),
-                    height: xml.intAttr(e, "h"),
-                };
+            case "bidi":
                 break;
-            case "type":
-                section.type = xml.attr(e, "val");
+            case "cols":
+                section.columns = parseColumns(e, xml);
+                break;
+            case "docGrid":
+                section.docGrid = parseDocGrid(e, xml);
+                break;
+            case "endnotePr":
+                break;
+            case "footerReference":
+                ((_a = section.footerRefs) !== null && _a !== void 0 ? _a : (section.footerRefs = [])).push(parseFooterHeaderReference(e, xml));
+                break;
+            case "footnotePr":
+                break;
+            case "formProt":
+                break;
+            case "headerReference":
+                ((_b = section.headerRefs) !== null && _b !== void 0 ? _b : (section.headerRefs = [])).push(parseFooterHeaderReference(e, xml));
+                break;
+            case "lnNumType":
+                break;
+            case "noEndnote":
+                break;
+            case "paperSrc":
+                break;
+            case "pgBorders":
+                section.pageBorders = parseBorders(e, xml);
                 break;
             case "pgMar":
                 section.pageMargins = {
@@ -582,25 +600,35 @@ function parseSectionProperties(elem, xml = globalXmlParser) {
                     gutter: xml.intAttr(e, "gutter"),
                 };
                 break;
-            case "cols":
-                section.columns = parseColumns(e, xml);
+            case "pgNumType":
+                section.pageNumber = parsePageNumber(e, xml);
                 break;
-            case "headerReference":
-                ((_a = section.headerRefs) !== null && _a !== void 0 ? _a : (section.headerRefs = [])).push(parseFooterHeaderReference(e, xml));
+            case "pgSz":
+                section.pageSize = {
+                    width: xml.lengthAttr(e, "w"),
+                    height: xml.lengthAttr(e, "h"),
+                    orientation: xml.attr(e, "orient")
+                };
+                origin.pageSize = {
+                    width: xml.intAttr(e, "w"),
+                    height: xml.intAttr(e, "h"),
+                };
                 break;
-            case "footerReference":
-                ((_b = section.footerRefs) !== null && _b !== void 0 ? _b : (section.footerRefs = [])).push(parseFooterHeaderReference(e, xml));
+            case "printerSettings":
+                break;
+            case "rtlGutter":
+                break;
+            case "sectPrChange":
+                break;
+            case "textDirection":
                 break;
             case "titlePg":
                 section.titlePage = xml.boolAttr(e, "val", true);
                 break;
-            case "pgBorders":
-                section.pageBorders = parseBorders(e, xml);
+            case "type":
+                section.type = xml.attr(e, "val");
                 break;
-            case "pgNumType":
-                section.pageNumber = parsePageNumber(e, xml);
-                break;
-            case "docGrid":
+            case "vAlign":
                 break;
             default:
                 if (this.options.debug) {
@@ -629,6 +657,33 @@ function parseColumns(elem, xml) {
         }))
     };
 }
+function parseFooterHeaderReference(elem, xml) {
+    return {
+        id: xml.attr(elem, "id"),
+        type: xml.attr(elem, "type"),
+    };
+}
+function parseDocGrid(elem, xml) {
+    let grid = {};
+    for (let attr of xml.attrs(elem)) {
+        switch (attr.localName) {
+            case "charSpace":
+                grid.characterSpace = xml.intAttr(elem, "charSpace");
+                break;
+            case "linePitch":
+                grid.linePitch = xml.intAttr(elem, "linePitch");
+                break;
+            case "type":
+                grid.type = xml.attr(elem, "type", DocGridType.Default);
+                break;
+            default:
+                if (this.options.debug) {
+                    console.warn(`DOCX:%c Unknown Grid Property：${elem.localName}`, 'color:#f75607');
+                }
+        }
+    }
+    return grid;
+}
 function parsePageNumber(elem, xml) {
     return {
         chapSep: xml.attr(elem, "chapSep"),
@@ -637,20 +692,100 @@ function parsePageNumber(elem, xml) {
         start: xml.intAttr(elem, "start")
     };
 }
-function parseFooterHeaderReference(elem, xml) {
-    return {
-        id: xml.attr(elem, "id"),
-        type: xml.attr(elem, "type"),
-    };
-}
 
-function parseLineSpacing(elem, xml) {
-    return {
-        before: xml.lengthAttr(elem, "before"),
-        after: xml.lengthAttr(elem, "after"),
-        line: xml.intAttr(elem, "line"),
-        lineRule: xml.attr(elem, "lineRule")
+var LineSpacingRule;
+(function (LineSpacingRule) {
+    LineSpacingRule["AtLeast"] = "atLeast";
+    LineSpacingRule["Auto"] = "auto";
+    LineSpacingRule["Exact"] = "exact";
+})(LineSpacingRule || (LineSpacingRule = {}));
+function parseSpacingBetweenLines(elem, xml) {
+    let spacing = {
+        lineRule: LineSpacingRule.Auto,
     };
+    for (const attr of xml.attrs(elem)) {
+        switch (attr.localName) {
+            case "after":
+                spacing.after = xml.lengthAttr(elem, "after", undefined, '0pt');
+                break;
+            case "afterAutospacing":
+                break;
+            case "afterLines":
+                break;
+            case "before":
+                spacing.before = xml.lengthAttr(elem, "before", undefined, '0pt');
+                break;
+            case "beforeAutospacing":
+                break;
+            case "beforeLines":
+                break;
+            case "line":
+                spacing.line = xml.intAttr(elem, "line", 0);
+                break;
+            case "lineRule":
+                spacing.lineRule = xml.attr(elem, "lineRule", LineSpacingRule.Auto);
+                break;
+            default:
+                if (this.options.debug) {
+                    console.warn(`DOCX:%c Unknown Spacing Property：${attr.localName}`, 'color:#f75607');
+                }
+        }
+    }
+    return spacing;
+}
+function parseLineSpacing(paragraphProperties, sectionProperties) {
+    let { snapToGrid, spacing } = paragraphProperties;
+    let lineSpacing = {};
+    if (spacing) {
+        let originLine;
+        for (const key in spacing) {
+            switch (key) {
+                case 'line':
+                    originLine = spacing === null || spacing === void 0 ? void 0 : spacing.line;
+                    break;
+                case 'after':
+                    lineSpacing['margin-bottom'] = spacing[key];
+                    break;
+                case 'before':
+                    lineSpacing['margin-top'] = spacing[key];
+                    break;
+            }
+        }
+        switch (spacing === null || spacing === void 0 ? void 0 : spacing.lineRule) {
+            case "auto":
+                lineSpacing['line-height'] = originLine / 240;
+                break;
+            case "atLeast":
+                lineSpacing['line-height'] = `calc(100% + ${originLine / 20}pt)`;
+                break;
+            case "exact":
+                lineSpacing['line-height'] = `${originLine / 20}pt`;
+                break;
+            default:
+                lineSpacing['line-height'] = originLine / 240;
+                break;
+        }
+    }
+    if (snapToGrid === false) {
+        return lineSpacing;
+    }
+    if (sectionProperties === null || sectionProperties === void 0 ? void 0 : sectionProperties.docGrid) {
+        let { docGrid } = sectionProperties;
+        switch (docGrid.type) {
+            case DocGridType.Lines:
+            case DocGridType.LinesAndChars:
+            case DocGridType.SnapToChars:
+                if (typeof lineSpacing['line-height'] === 'number') {
+                    lineSpacing['line-height'] = `${lineSpacing['line-height'] * docGrid.linePitch / 20}pt`;
+                }
+                break;
+            case DocGridType.Default:
+                return lineSpacing;
+            default:
+                console.warn(`DOCX:%c Unknown DocGrid Type：${docGrid.type}`, 'color:#f75607');
+        }
+    }
+    return lineSpacing;
 }
 
 function parseRunProperties(elem, xml) {
@@ -661,57 +796,66 @@ function parseRunProperties(elem, xml) {
     return result;
 }
 function parseRunProperty(elem, props, xml) {
-    if (parseCommonProperty(elem, props, xml))
-        return true;
-    return false;
+    return parseCommonProperty(elem, props, xml);
 }
 
 function parseParagraphProperties(elem, xml) {
-    let result = {};
+    let properties = {};
     for (let el of xml.elements(elem)) {
-        parseParagraphProperty(el, result, xml);
+        parseParagraphProperty(el, properties, xml);
     }
-    return result;
+    return properties;
 }
 function parseParagraphProperty(elem, props, xml) {
-    if (elem.namespaceURI != ns$2.wordml)
+    if (elem.namespaceURI != ns$2.wordml) {
         return false;
+    }
     if (parseCommonProperty(elem, props, xml))
         return true;
     switch (elem.localName) {
-        case "tabs":
-            props.tabs = parseTabs(elem, xml);
+        case "adjustRightInd":
             break;
-        case "sectPr":
-            props.sectionProps = parseSectionProperties(elem, xml);
+        case "autoSpaceDE":
             break;
-        case "numPr":
-            props.numbering = parseNumbering$1(elem, xml);
+        case "autoSpaceDN":
             break;
-        case "spacing":
-            props.lineSpacing = parseLineSpacing(elem, xml);
-            return false;
-        case "textAlignment":
-            props.textAlignment = xml.attr(elem, "val");
-            return false;
+        case "contextualSpacing":
+            break;
+        case "divId":
+            break;
         case "keepLines":
             props.keepLines = xml.boolAttr(elem, "val", true);
             break;
         case "keepNext":
             props.keepNext = xml.boolAttr(elem, "val", true);
             break;
-        case "pageBreakBefore":
-            props.pageBreakBefore = xml.boolAttr(elem, "val", true);
+        case "numPr":
+            props.numbering = parseNumbering$1(elem, xml);
             break;
         case "outlineLvl":
             props.outlineLevel = xml.intAttr(elem, "val");
             break;
-        case "pStyle":
-            props.styleName = xml.attr(elem, "val");
+        case "pageBreakBefore":
+            props.pageBreakBefore = xml.boolAttr(elem, "val", true);
             break;
         case "rPr":
-            props.runProps = parseRunProperties(elem, xml);
+            props.runProperties = parseRunProperties(elem, xml);
             break;
+        case "sectPr":
+            props.sectionProperties = parseSectionProperties(elem, xml);
+            break;
+        case "snapToGrid":
+            props.snapToGrid = xml.boolAttr(elem, "val", true);
+            break;
+        case "spacing":
+            props.spacing = parseSpacingBetweenLines(elem, xml);
+            return false;
+        case "tabs":
+            props.tabs = parseTabs(elem, xml);
+            break;
+        case "textAlignment":
+            props.textAlignment = xml.attr(elem, "val");
+            return false;
         default:
             return false;
     }
@@ -726,7 +870,7 @@ function parseTabs(elem, xml) {
     }));
 }
 function parseNumbering$1(elem, xml) {
-    var result = {};
+    let result = {};
     for (let e of xml.elements(elem)) {
         switch (e.localName) {
             case "numId":
@@ -1668,6 +1812,8 @@ class DocumentParser {
                 case "sdt":
                     children.push(...this.parseSdt(elem, (e) => this.parseBodyElements(e)));
                     break;
+                case "sectPr":
+                    break;
                 default:
                     if (this.options.debug) {
                         console.warn(`DOCX:%c Unknown Body Element：${elem.localName}`, 'color:red');
@@ -1715,11 +1861,15 @@ class DocumentParser {
                     break;
                 case "pPrDefault":
                     let pPr = globalXmlParser.element(c, "pPr");
-                    if (pPr)
-                        result.rulesets.push({
+                    if (pPr) {
+                        let paragraphProperties = parseParagraphProperties(pPr, globalXmlParser);
+                        let ruleset = {
                             target: "p",
                             declarations: this.parseDefaultProperties(pPr, {})
-                        });
+                        };
+                        Object.assign(ruleset.declarations, parseLineSpacing(paragraphProperties));
+                        result.rulesets.push(ruleset);
+                    }
                     break;
                 default:
                     if (this.options.debug) {
@@ -1807,11 +1957,13 @@ class DocumentParser {
                     result.personalReply = globalXmlParser.boolAttr(n, "val");
                     break;
                 case "pPr":
-                    result.rulesets.push({
+                    result.paragraphProps = parseParagraphProperties(n, globalXmlParser);
+                    let ruleset = {
                         target: "p",
                         declarations: this.parseDefaultProperties(n, {})
-                    });
-                    result.paragraphProps = parseParagraphProperties(n, globalXmlParser);
+                    };
+                    Object.assign(ruleset.declarations, parseLineSpacing(result.paragraphProps));
+                    result.rulesets.push(ruleset);
                     break;
                 case "qFormat":
                     result.primaryStyle = true;
@@ -1870,38 +2022,38 @@ class DocumentParser {
         let result = [];
         let type = globalXmlParser.attr(node, "type");
         let selector = "";
-        let modificator = "";
+        let modifier = "";
         switch (type) {
             case "firstRow":
-                modificator = ".first-row";
+                modifier = ".first-row";
                 selector = "tr.first-row td";
                 break;
             case "lastRow":
-                modificator = ".last-row";
+                modifier = ".last-row";
                 selector = "tr.last-row td";
                 break;
             case "firstCol":
-                modificator = ".first-col";
+                modifier = ".first-col";
                 selector = "td.first-col";
                 break;
             case "lastCol":
-                modificator = ".last-col";
+                modifier = ".last-col";
                 selector = "td.last-col";
                 break;
             case "band1Vert":
-                modificator = ":not(.no-vband)";
+                modifier = ":not(.no-vband)";
                 selector = "td.odd-col";
                 break;
             case "band2Vert":
-                modificator = ":not(.no-vband)";
+                modifier = ":not(.no-vband)";
                 selector = "td.even-col";
                 break;
             case "band1Horz":
-                modificator = ":not(.no-hband)";
+                modifier = ":not(.no-hband)";
                 selector = "tr.odd-row";
                 break;
             case "band2Horz":
-                modificator = ":not(.no-hband)";
+                modifier = ":not(.no-hband)";
                 selector = "tr.even-row";
                 break;
             default:
@@ -1910,25 +2062,28 @@ class DocumentParser {
         xmlUtil.foreach(node, n => {
             switch (n.localName) {
                 case "pPr":
-                    result.push({
+                    let paragraphProperties = parseParagraphProperties(n, globalXmlParser);
+                    let ruleset = {
                         target: `${selector} p`,
-                        mod: modificator,
-                        values: this.parseDefaultProperties(n, {})
-                    });
+                        modifier: modifier,
+                        declarations: this.parseDefaultProperties(n, {})
+                    };
+                    Object.assign(ruleset.declarations, parseLineSpacing(paragraphProperties));
+                    result.push(ruleset);
                     break;
                 case "rPr":
                     result.push({
                         target: `${selector} span`,
-                        mod: modificator,
-                        values: this.parseDefaultProperties(n, {})
+                        modifier: modifier,
+                        declarations: this.parseDefaultProperties(n, {})
                     });
                     break;
                 case "tblPr":
                 case "tcPr":
                     result.push({
                         target: selector,
-                        mod: modificator,
-                        values: this.parseDefaultProperties(n, {})
+                        modifier: modifier,
+                        declarations: this.parseDefaultProperties(n, {})
                     });
                     break;
                 default:
@@ -2056,7 +2211,12 @@ class DocumentParser {
         };
     }
     parseParagraph(node) {
-        let wmlParagraph = { type: DomType.Paragraph, children: [] };
+        let wmlParagraph = {
+            type: DomType.Paragraph,
+            children: [],
+            props: {},
+            cssStyle: {},
+        };
         for (let el of globalXmlParser.elements(node)) {
             switch (el.localName) {
                 case "pPr":
@@ -2108,20 +2268,18 @@ class DocumentParser {
     }
     parseParagraphProperties(elem, paragraph) {
         this.parseDefaultProperties(elem, paragraph.cssStyle = {}, null, c => {
-            if (parseParagraphProperty(c, paragraph, globalXmlParser)) {
+            if (parseParagraphProperty(c, paragraph.props, globalXmlParser)) {
                 return true;
             }
             switch (c.localName) {
-                case "pStyle":
-                    paragraph.styleName = globalXmlParser.attr(c, "val");
-                    break;
                 case "cnfStyle":
                     paragraph.className = values.classNameOfCnfStyle(c);
                     break;
                 case "framePr":
                     this.parseFrame(c, paragraph);
                     break;
-                case "rPr":
+                case "pStyle":
+                    paragraph.styleName = globalXmlParser.attr(c, "val");
                     break;
                 default:
                     return false;
@@ -2320,6 +2478,9 @@ class DocumentParser {
                     break;
                 case "vertAlign":
                     run.verticalAlign = values.valueOfVertAlign(c, true);
+                    break;
+                case "spacing":
+                    this.parseSpacing(c, run);
                     break;
                 default:
                     return false;
@@ -3052,6 +3213,8 @@ class DocumentParser {
                 case "b":
                     style["font-weight"] = globalXmlParser.boolAttr(c, "val", true) ? "bold" : "normal";
                     break;
+                case "bidi":
+                    break;
                 case "bCs":
                     break;
                 case "bdr":
@@ -3113,16 +3276,6 @@ class DocumentParser {
                     break;
                 case "smallCaps":
                     style["font-variant"] = globalXmlParser.boolAttr(c, "val", true) ? "small-caps" : "none";
-                    break;
-                case "snapToGrid":
-                    break;
-                case "spacing":
-                    if (elem.localName == "pPr") {
-                        this.parseSpacingBetweenLines(c, style);
-                    }
-                    if (elem.localName == "rPr") {
-                        this.parseSpacing(c, style);
-                    }
                     break;
                 case "specVanish":
                     break;
@@ -3208,7 +3361,6 @@ class DocumentParser {
                 case "keepLines":
                 case "keepNext":
                 case "widowControl":
-                case "bidi":
                 default:
                     if (this.options.debug) {
                         console.warn(`DOCX:%c Unknown Property Element：${elem.localName}.${c.localName}`, 'color:green');
@@ -3301,58 +3453,11 @@ class DocumentParser {
         if (right || end)
             style["padding-right"] = right || end;
     }
-    parseSpacing(node, style) {
+    parseSpacing(node, run) {
         for (const attr of globalXmlParser.attrs(node)) {
             switch (attr.localName) {
                 case "val":
-                    style["margin-bottom"] = globalXmlParser.lengthAttr(node, "val");
-                    break;
-                default:
-                    if (this.options.debug) {
-                        console.warn(`DOCX:%c Unknown Spacing Property：${attr.localName}`, 'color:#f75607');
-                    }
-            }
-        }
-    }
-    parseSpacingBetweenLines(node, style) {
-        let line;
-        for (const attr of globalXmlParser.attrs(node)) {
-            switch (attr.localName) {
-                case "after":
-                    style["margin-bottom"] = globalXmlParser.lengthAttr(node, "after");
-                    break;
-                case "afterAutospacing":
-                    break;
-                case "afterLines":
-                    style["margin-bottom"] = globalXmlParser.lengthAttr(node, "afterLines");
-                    break;
-                case "before":
-                    style["margin-top"] = globalXmlParser.lengthAttr(node, "before");
-                    break;
-                case "beforeAutospacing":
-                    break;
-                case "beforeLines":
-                    style["margin-top"] = globalXmlParser.lengthAttr(node, "beforeLines");
-                    break;
-                case "line":
-                    line = globalXmlParser.intAttr(node, "line", null);
-                    break;
-                case "lineRule":
-                    let lineRule = globalXmlParser.attr(node, "lineRule");
-                    switch (lineRule) {
-                        case "auto":
-                            style["line-height"] = `${(line / 240).toFixed(2)}`;
-                            break;
-                        case "atLeast":
-                            style["line-height"] = `calc(100% + ${line / 20}pt)`;
-                            break;
-                        case "Exact":
-                            style["line-height"] = `${line / 20}pt`;
-                            break;
-                        default:
-                            style["line-height"] = style["min-height"] = `${line / 20}pt`;
-                            break;
-                    }
+                    run.cssStyle["margin-bottom"] = globalXmlParser.lengthAttr(node, "val");
                     break;
                 default:
                     if (this.options.debug) {
@@ -4021,7 +4126,7 @@ class HtmlRenderer {
             current_page.children.push(elem);
             if (elem.type == DomType.Paragraph) {
                 const p = elem;
-                const sectProps = p.sectionProps;
+                const sectProps = p.props.sectionProperties;
                 if (sectProps) {
                     sectProps.sectionId = uuid();
                 }
@@ -4370,14 +4475,15 @@ class HtmlRenderer {
     }
     renderParagraph(elem) {
         var _a, _b, _c, _d;
+        var _e;
         let result = createElement$1("p");
         const style = this.findStyle(elem.styleName);
-        (_a = elem.tabs) !== null && _a !== void 0 ? _a : (elem.tabs = (_b = style === null || style === void 0 ? void 0 : style.paragraphProps) === null || _b === void 0 ? void 0 : _b.tabs);
+        (_a = (_e = elem.props).tabs) !== null && _a !== void 0 ? _a : (_e.tabs = (_b = style === null || style === void 0 ? void 0 : style.paragraphProps) === null || _b === void 0 ? void 0 : _b.tabs);
         this.renderClass(elem, result);
         this.renderChildren(elem, result);
         this.renderStyleValues(elem.cssStyle, result);
-        this.renderCommonProperties(result.style, elem);
-        const numbering = (_c = elem.numbering) !== null && _c !== void 0 ? _c : (_d = style === null || style === void 0 ? void 0 : style.paragraphProps) === null || _d === void 0 ? void 0 : _d.numbering;
+        this.renderCommonProperties(result.style, elem.props);
+        const numbering = (_c = elem.props.numbering) !== null && _c !== void 0 ? _c : (_d = style === null || style === void 0 ? void 0 : style.paragraphProps) === null || _d === void 0 ? void 0 : _d.numbering;
         if (numbering) {
             result.classList.add(this.numberingClass(numbering.id, numbering.level));
         }
@@ -4488,7 +4594,7 @@ class HtmlRenderer {
         tabSpan.innerHTML = "&emsp;";
         if (this.options.experimental) {
             tabSpan.className = this.tabStopClass();
-            let stops = (_a = findParent$1(elem, DomType.Paragraph)) === null || _a === void 0 ? void 0 : _a.tabs;
+            let stops = (_a = findParent$1(elem, DomType.Paragraph).props) === null || _a === void 0 ? void 0 : _a.tabs;
             this.currentTabs.push({ stops, span: tabSpan });
         }
         return tabSpan;
@@ -5144,7 +5250,7 @@ class HtmlRendererSync {
             current_page.children.push(elem);
             if (elem.type == DomType.Paragraph) {
                 const p = elem;
-                const sectProps = p.sectionProps;
+                const sectProps = p.props.sectionProperties;
                 if (sectProps) {
                     sectProps.sectionId = uuid();
                 }
@@ -5782,14 +5888,16 @@ class HtmlRendererSync {
     renderParagraph(elem, parent) {
         return __awaiter(this, void 0, void 0, function* () {
             var _a, _b, _c, _d;
+            var _e;
             const oParagraph = createElement('p');
             oParagraph.dataset.uuid = uuid();
             this.renderClass(elem, oParagraph);
+            Object.assign(elem.cssStyle, parseLineSpacing(elem.props, this.currentPage.sectProps));
             this.renderStyleValues(elem.cssStyle, oParagraph);
-            this.renderCommonProperties(oParagraph.style, elem);
+            this.renderCommonProperties(oParagraph.style, elem.props);
             const style = this.findStyle(elem.styleName);
-            (_a = elem.tabs) !== null && _a !== void 0 ? _a : (elem.tabs = (_b = style === null || style === void 0 ? void 0 : style.paragraphProps) === null || _b === void 0 ? void 0 : _b.tabs);
-            const numbering = (_c = elem.numbering) !== null && _c !== void 0 ? _c : (_d = style === null || style === void 0 ? void 0 : style.paragraphProps) === null || _d === void 0 ? void 0 : _d.numbering;
+            (_a = (_e = elem.props).tabs) !== null && _a !== void 0 ? _a : (_e.tabs = (_b = style === null || style === void 0 ? void 0 : style.paragraphProps) === null || _b === void 0 ? void 0 : _b.tabs);
+            const numbering = (_c = elem.props.numbering) !== null && _c !== void 0 ? _c : (_d = style === null || style === void 0 ? void 0 : style.paragraphProps) === null || _d === void 0 ? void 0 : _d.numbering;
             if (numbering) {
                 oParagraph.classList.add(this.numberingClass(numbering.id, numbering.level));
             }
@@ -6067,7 +6175,7 @@ class HtmlRendererSync {
             tabSpan.innerHTML = '&emsp;';
             if (this.options.experimental) {
                 tabSpan.className = this.tabStopClass();
-                const stops = (_a = findParent(elem, DomType.Paragraph)) === null || _a === void 0 ? void 0 : _a.tabs;
+                const stops = (_a = findParent(elem, DomType.Paragraph).props) === null || _a === void 0 ? void 0 : _a.tabs;
                 this.currentTabs.push({ stops, span: tabSpan });
             }
             if (parent) {

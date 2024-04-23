@@ -31,5 +31,6 @@ export interface IDomStyle {
 
 export interface Ruleset {
 	target: string;
+	modifier?: string;
 	declarations: Record<string, string>;
 }
