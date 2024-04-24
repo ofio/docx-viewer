@@ -803,7 +803,7 @@ export class HtmlRendererSync {
 		// 前一个节属性，判断分节符的第一个page
 		let prevProps = null;
 		// 深拷贝初步分页结果，后续拆分操作将不断扩充数组，导致下面循环异常
-		let origin_pages = [...pages];
+		let origin_pages = _.cloneDeep(pages);
 		// 遍历生成每一个page
 		for (let i = 0; i < origin_pages.length; i++) {
 			this.currentFootnoteIds = [];
@@ -1054,7 +1054,7 @@ export class HtmlRendererSync {
 				continue;
 			}
 			// 上面的元素是否溢出
-			overflow = rendered_element?.dataset?.overflow as Overflow;
+			overflow = rendered_element?.dataset?.overflow as Overflow ?? Overflow.UNKNOWN;
 			// 下一步操作，终止循环，跳过此次执行
 			let action: string;
 			/*
@@ -1143,7 +1143,7 @@ export class HtmlRendererSync {
 	// 根据breakIndex索引拆分页面
 	splitPageByBreakIndex(current: OpenXmlElement, next: OpenXmlElement) {
 		// 遍历下一个页面的元素
-		next.children.forEach((child: OpenXmlElement, i: number) => {
+		next?.children.forEach((child: OpenXmlElement, i: number) => {
 			let { type, breakIndex, children } = child;
 			// 尚未渲染，未执行溢出检测的元素，breakIndex = undefined，跳过
 			// 未溢出的元素，breakIndex = []，跳过
@@ -1152,15 +1152,9 @@ export class HtmlRendererSync {
 			}
 			// 复制child的元素
 			let copy: OpenXmlElement = _.cloneDeep(child);
-
-			// TODO 查找表格中的table header，可能有多行
-			// 		const table_headers = table.children.filter((row: WmlTableRow) => row.isHeader);
-			// 删除table前面已经渲染的row，保留后续未渲染元素
-			// 		table.children.splice(0, row_index);
-			// TODO 填充table header
-			// 		table.children = [...table_headers, ...table.children];
 			// 如果当前元素是表格Row，无需拆分，复制Row至current_page
 			if (type === DomType.Row) {
+				// 复制Row至current_page
 				current.children.push(copy);
 			} else {
 				/*
@@ -1169,21 +1163,33 @@ export class HtmlRendererSync {
 				* 未溢出的元素，放入current_page中
 				* breakIndex索引后面的元素，已经溢出，存在于next_page;
 				*/
+				let table_headers: WmlTableRow[] = [];
+				// 查找表格中的table header，可能有多行
+				if (type === DomType.Table) {
+					table_headers = children.filter((row: WmlTableRow) => row.isHeader);
+				}
 				// 切出未溢出的元素
 				const unbrokenChildren = children.splice(0, breakIndex[0]);
+				// 在next中填充table header
+				if (table_headers.length > 0) {
+					children.unshift(...table_headers);
+				}
 				// 父级元素是表格Row，拆分之后，逐个替换子元素
 				if (current.type === DomType.Row) {
 					current.children[i].children = unbrokenChildren;
 				} else {
 					// 切分子元素
 					copy.children = unbrokenChildren;
-					// current指向原来的父级，push未溢出的元素至current_page
+					// current指向原来的父级，push未溢出的元素至current
 					current.children.push(copy);
 				}
 			}
+			// 重置breakIndex
+			child.breakIndex = [];
 			// 递归调用，继续拆分
-			this.splitPageByBreakIndex(copy, child);
-
+			if (children.length > 0) {
+				this.splitPageByBreakIndex(copy, child);
+			}
 		});
 	}
 

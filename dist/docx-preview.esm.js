@@ -664,7 +664,9 @@ function parseFooterHeaderReference(elem, xml) {
     };
 }
 function parseDocGrid(elem, xml) {
-    let grid = {};
+    let grid = {
+        type: DocGridType.Default,
+    };
     for (let attr of xml.attrs(elem)) {
         switch (attr.localName) {
             case "charSpace":
@@ -5348,7 +5350,7 @@ class HtmlRendererSync {
             }
             document.pages = pages;
             let prevProps = null;
-            let origin_pages = [...pages];
+            let origin_pages = _.cloneDeep(pages);
             for (let i = 0; i < origin_pages.length; i++) {
                 this.currentFootnoteIds = [];
                 const page = origin_pages[i];
@@ -5496,7 +5498,7 @@ class HtmlRendererSync {
     }
     renderElements(children, parent) {
         return __awaiter(this, void 0, void 0, function* () {
-            var _a;
+            var _a, _b;
             let overflow = Overflow.UNKNOWN;
             let pages = this.document.documentPart.body.pages;
             let { pageId, isSplit, sectProps, children: current_page_children } = this.currentPage;
@@ -5511,7 +5513,7 @@ class HtmlRendererSync {
                 if (isSplit) {
                     continue;
                 }
-                overflow = (_a = rendered_element === null || rendered_element === void 0 ? void 0 : rendered_element.dataset) === null || _a === void 0 ? void 0 : _a.overflow;
+                overflow = (_b = (_a = rendered_element === null || rendered_element === void 0 ? void 0 : rendered_element.dataset) === null || _a === void 0 ? void 0 : _a.overflow) !== null && _b !== void 0 ? _b : Overflow.UNKNOWN;
                 let action;
                 switch (overflow) {
                     case Overflow.TRUE:
@@ -5563,7 +5565,7 @@ class HtmlRendererSync {
         });
     }
     splitPageByBreakIndex(current, next) {
-        next.children.forEach((child, i) => {
+        next === null || next === void 0 ? void 0 : next.children.forEach((child, i) => {
             let { type, breakIndex, children } = child;
             if (!breakIndex || !breakIndex.length) {
                 return;
@@ -5573,7 +5575,14 @@ class HtmlRendererSync {
                 current.children.push(copy);
             }
             else {
+                let table_headers = [];
+                if (type === DomType.Table) {
+                    table_headers = children.filter((row) => row.isHeader);
+                }
                 const unbrokenChildren = children.splice(0, breakIndex[0]);
+                if (table_headers.length > 0) {
+                    children.unshift(...table_headers);
+                }
                 if (current.type === DomType.Row) {
                     current.children[i].children = unbrokenChildren;
                 }
@@ -5582,7 +5591,10 @@ class HtmlRendererSync {
                     current.children.push(copy);
                 }
             }
-            this.splitPageByBreakIndex(copy, child);
+            child.breakIndex = [];
+            if (children.length > 0) {
+                this.splitPageByBreakIndex(copy, child);
+            }
         });
     }
     renderElement(elem, parent) {
