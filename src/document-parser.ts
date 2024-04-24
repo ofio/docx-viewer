@@ -1917,7 +1917,7 @@ export class DocumentParser {
 				case "cnfStyle":
 					row.className = values.classNameOfCnfStyle(c);
 					break;
-				// 	tblHeader attribute is boolean attribute
+				// Repeat Table Row on Every New Page,boolean attribute
 				case "tblHeader":
 					row.isHeader = xml.boolAttr(c, "val", true);
 					break;

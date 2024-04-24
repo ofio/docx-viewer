@@ -289,7 +289,9 @@ function parseFooterHeaderReference(elem: Element, xml: XmlParser): FooterHeader
 
 // TODO only support linePitch property temporarily
 function parseDocGrid(elem: Element, xml: XmlParser): DocGrid {
-	let grid: DocGrid = {};
+	let grid: DocGrid = {
+		type: DocGridType.Default,
+	};
 	for (let attr of xml.attrs(elem)) {
 		switch (attr.localName) {
 			case "charSpace":
