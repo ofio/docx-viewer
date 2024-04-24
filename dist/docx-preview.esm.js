@@ -5565,9 +5565,13 @@ class HtmlRendererSync {
         });
     }
     splitPageByBreakIndex(current, next) {
+        console.log(current, next);
         next === null || next === void 0 ? void 0 : next.children.forEach((child, i) => {
             let { type, breakIndex, children } = child;
-            if (!breakIndex || !breakIndex.length) {
+            if (!breakIndex) {
+                return;
+            }
+            if ((children === null || children === void 0 ? void 0 : children.length) === 0) {
                 return;
             }
             let copy = _.cloneDeep(child);
@@ -5579,7 +5583,8 @@ class HtmlRendererSync {
                 if (type === DomType.Table) {
                     table_headers = children.filter((row) => row.isHeader);
                 }
-                const unbrokenChildren = children.splice(0, breakIndex[0]);
+                let count = breakIndex.length > 0 ? breakIndex[0] : children.length;
+                const unbrokenChildren = children.splice(0, count);
                 if (table_headers.length > 0) {
                     children.unshift(...table_headers);
                 }
@@ -5591,7 +5596,9 @@ class HtmlRendererSync {
                     current.children.push(copy);
                 }
             }
-            child.breakIndex = [];
+            if (type !== DomType.Row && breakIndex.length > 0) {
+                child.breakIndex = undefined;
+            }
             if (children.length > 0) {
                 this.splitPageByBreakIndex(copy, child);
             }

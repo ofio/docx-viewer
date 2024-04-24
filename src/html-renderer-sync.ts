@@ -1142,16 +1142,21 @@ export class HtmlRendererSync {
 
 	// 根据breakIndex索引拆分页面
 	splitPageByBreakIndex(current: OpenXmlElement, next: OpenXmlElement) {
+		console.log(current, next);
 		// 遍历下一个页面的元素
 		next?.children.forEach((child: OpenXmlElement, i: number) => {
 			let { type, breakIndex, children } = child;
 			// 尚未渲染，未执行溢出检测的元素，breakIndex = undefined，跳过
-			// 未溢出的元素，breakIndex = []，跳过
-			if (!breakIndex || !breakIndex.length) {
+			if (!breakIndex) {
+				return;
+			}
+			// 末端元素，无需拆分，跳过
+			if (children?.length === 0) {
 				return;
 			}
 			// 复制child的元素
 			let copy: OpenXmlElement = _.cloneDeep(child);
+
 			// 如果当前元素是表格Row，无需拆分，复制Row至current_page
 			if (type === DomType.Row) {
 				// 复制Row至current_page
@@ -1168,8 +1173,13 @@ export class HtmlRendererSync {
 				if (type === DomType.Table) {
 					table_headers = children.filter((row: WmlTableRow) => row.isHeader);
 				}
-				// 切出未溢出的元素
-				const unbrokenChildren = children.splice(0, breakIndex[0]);
+				/*
+				* 未溢出的元素，全体未溢出：breakIndex = []，部分溢出：breakIndex = [1]
+				* 根据溢出索引，确定切除的元素数量
+				*/
+				let count = breakIndex.length > 0 ? breakIndex[0] : children.length;
+				// 切除未溢出的元素
+				const unbrokenChildren = children.splice(0, count);
 				// 在next中填充table header
 				if (table_headers.length > 0) {
 					children.unshift(...table_headers);
@@ -1185,7 +1195,9 @@ export class HtmlRendererSync {
 				}
 			}
 			// 重置breakIndex
-			child.breakIndex = [];
+			if (type !== DomType.Row && breakIndex.length > 0) {
+				child.breakIndex = undefined;
+			}
 			// 递归调用，继续拆分
 			if (children.length > 0) {
 				this.splitPageByBreakIndex(copy, child);
