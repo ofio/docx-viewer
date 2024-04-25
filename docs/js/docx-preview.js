@@ -6678,21 +6678,24 @@
         const ops = Object.assign(Object.assign({}, defaultOptions), userOptions);
         return WordDocument.load(data, new DocumentParser(ops), ops);
     }
-    function renderAsync(data_1, bodyContainer_1) {
-        return __awaiter(this, arguments, void 0, function* (data, bodyContainer, styleContainer = null, userOptions = null) {
+    function renderDocument(document_1, bodyContainer_1, styleContainer_1) {
+        return __awaiter(this, arguments, void 0, function* (document, bodyContainer, styleContainer, sync = true, userOptions) {
             const ops = Object.assign(Object.assign({}, defaultOptions), userOptions);
-            const renderer = new HtmlRenderer();
-            const doc = yield WordDocument.load(data, new DocumentParser(ops), ops);
-            yield renderer.render(doc, bodyContainer, styleContainer, ops);
-            return doc;
+            const renderer = sync ? new HtmlRendererSync() : new HtmlRenderer();
+            yield renderer.render(document, bodyContainer, styleContainer, ops);
         });
     }
     function renderSync(data_1, bodyContainer_1) {
         return __awaiter(this, arguments, void 0, function* (data, bodyContainer, styleContainer = null, userOptions = null) {
-            const ops = Object.assign(Object.assign({}, defaultOptions), userOptions);
-            const renderer = new HtmlRendererSync();
-            const doc = yield WordDocument.load(data, new DocumentParser(ops), ops);
-            yield renderer.render(doc, bodyContainer, styleContainer, ops);
+            const doc = yield parseAsync(data, userOptions);
+            yield renderDocument(doc, bodyContainer, styleContainer, true, userOptions);
+            return doc;
+        });
+    }
+    function renderAsync(data, bodyContainer, styleContainer, userOptions) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const doc = yield parseAsync(data, userOptions);
+            yield renderDocument(doc, bodyContainer, styleContainer, false, userOptions);
             return doc;
         });
     }
@@ -6700,6 +6703,7 @@
     exports.defaultOptions = defaultOptions;
     exports.parseAsync = parseAsync;
     exports.renderAsync = renderAsync;
+    exports.renderDocument = renderDocument;
     exports.renderSync = renderSync;
 
 }));
