@@ -13,12 +13,9 @@ Based on the synchronous rendering process, This library will cause **lower** pe
 
 **This library is still in the development stage, so it is not recommended to use it in production.**
 
-Goals
-----
-* Render/convert DOCX document into HTML document with keeping HTML semantic as much as possible.
-* Support break pages strictly
-
-That means this library is limited by HTML capabilities.If you need to render document on canvas,try the onlyOffice library.
+Online Demo
+-----
+[https://millet0328.github.io/docx-preview-sync/](https://millet0328.github.io/docx-preview-sync/)
 
 Usage
 -----
@@ -51,22 +48,23 @@ console.log("docx document object", wordDocument);
 
 <script src="./js/docx-preview.min.js"></script>
 
-<script>
-	// fectch document Blob,maybe from input width type = file
-	let docData = document.querySelector('input').files[0];
-
-	// synchronously rendering function
-	docx.renderSync(docData, document.getElementById("container"))
-            .then(wordDocument => {
-                // if you need to get the Word document object
-                console.log("docx document object", wordDocument);
-            });
-</script>
 <body>
-...
-<div id="container"></div>
-...
+    ...
+    <div id="container"></div>
+    ...
 </body>
+
+<script>
+  // fectch document Blob,maybe from input width type = file
+  let docData = document.querySelector('input').files[0];
+
+  // synchronously rendering function
+  docx.renderSync(docData, document.getElementById("container"))
+      .then(wordDocument => {
+        // if you need to get the Word document object
+        console.log("docx document object", wordDocument);
+      });
+</script>
 ```
 
 API
@@ -102,10 +100,7 @@ renderSync(
 // renderSync = praseAsync + renderDocument
 
 // parse document and return internal document object
-praseAsync(
-    document: Blob | ArrayBuffer | Uint8Array,
-    options: Options
-): Promise<WordDocument>
+praseAsync(document: Blob | ArrayBuffer | Uint8Array, options: Options): Promise<WordDocument>
 
 // render internal document object into specified container
 renderDocument(
@@ -115,6 +110,15 @@ renderDocument(
     options: Options
 ): Promise<void>
 ```
+
+Goals
+----
+* Render/convert DOCX document into HTML document with keeping HTML semantic as much as possible.
+* Support break pages strictly
+* Parse all elements from Office Open XML specification
+
+This library is limited by HTML capabilities.If you need to render document on canvas,try the onlyOffice library.
+
 Partially Supported Namespaces
 ------------------
 1. [x] DocumentFormat.OpenXml.Wordprocessing
