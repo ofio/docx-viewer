@@ -82,22 +82,24 @@ renderSync(
     bodyContainer: HTMLElement, //element to render document content,
     styleContainer: HTMLElement, //element to render document styles, numbeings, fonts. If null, bodyContainer will be used.
     options: {
-        className: string = "docx", //class name/prefix for default and document style classes
-        inWrapper: boolean = true, //enables rendering of wrapper around document content
-        ignoreWidth: boolean = false, //disables rendering width of page
-        ignoreHeight: boolean = false, //disables rendering height of page
-        ignoreFonts: boolean = false, //disables fonts rendering
         breakPages: boolean = true, //enables page breaking on page breaks
+        className: string = "docx", //class name/prefix for default and document style classes
+        ignoreFonts: boolean = false, //disables fonts rendering
+        ignoreHeight: boolean = false, //disables rendering height of page
+        ignoreImageWrap: boolean = false, //disables image text wrap setting
         ignoreLastRenderedPageBreak: boolean = true, //disables page breaking on lastRenderedPageBreak elements
-        experimental: boolean = false, //enables experimental features (tab stops calculation)
-        trimXmlDeclaration: boolean = true, //if true, xml declaration will be removed from xml documents before parsing
-        useBase64URL: boolean = false, //if true, images, fonts, etc. will be converted to base 64 URL, otherwise URL.createObjectURL is used
+        ignoreTableWrap: boolean = true, //disables table's text wrap setting
+        ignoreWidth: boolean = false, //disables rendering width of page
+        inWrapper: boolean = true, //enables rendering of wrapper around document content
         renderChanges: false, //enables experimental rendering of document changes (inserions/deletions)
-        renderHeaders: true, //enables headers rendering
+        renderEndnotes: true, //enables endnotes rendering
         renderFooters: true, //enables footers rendering
         renderFootnotes: true, //enables footnotes rendering
-        renderEndnotes: true, //enables endnotes rendering
+        renderHeaders: true, //enables headers rendering
+        trimXmlDeclaration: boolean = true, //if true, xml declaration will be removed from xml documents before parsing
+        useBase64URL: boolean = false, //if true, images, fonts, etc. will be converted to base 64 URL, otherwise URL.createObjectURL is used
         debug: boolean = false, //enables additional logging
+        experimental: boolean = false, //enables experimental features (tab stops calculation)
     }): Promise<WordDocument>
 ```
 
@@ -114,22 +116,24 @@ renderAsync(
     bodyContainer: HTMLElement, //element to render document content,
     styleContainer: HTMLElement, //element to render document styles, numbeings, fonts. If null, bodyContainer will be used.
     options: {
-        className: string = "docx", //class name/prefix for default and document style classes
-        inWrapper: boolean = true, //enables rendering of wrapper around document content
-        ignoreWidth: boolean = false, //disables rendering width of page
-        ignoreHeight: boolean = false, //disables rendering height of page
-        ignoreFonts: boolean = false, //disables fonts rendering
         breakPages: boolean = true, //enables page breaking on page breaks
+        className: string = "docx", //class name/prefix for default and document style classes
+        ignoreFonts: boolean = false, //disables fonts rendering
+        ignoreHeight: boolean = false, //disables rendering height of page
+        ignoreImageWrap: boolean = false, //disables image text wrap setting
         ignoreLastRenderedPageBreak: boolean = true, //disables page breaking on lastRenderedPageBreak elements
-        experimental: boolean = false, //enables experimental features (tab stops calculation)
-        trimXmlDeclaration: boolean = true, //if true, xml declaration will be removed from xml documents before parsing
-        useBase64URL: boolean = false, //if true, images, fonts, etc. will be converted to base 64 URL, otherwise URL.createObjectURL is used
+        ignoreTableWrap: boolean = true, //disables table's text wrap setting
+        ignoreWidth: boolean = false, //disables rendering width of page
+        inWrapper: boolean = true, //enables rendering of wrapper around document content
         renderChanges: false, //enables experimental rendering of document changes (inserions/deletions)
-        renderHeaders: true, //enables headers rendering
+        renderEndnotes: true, //enables endnotes rendering
         renderFooters: true, //enables footers rendering
         renderFootnotes: true, //enables footnotes rendering
-        renderEndnotes: true, //enables endnotes rendering
+        renderHeaders: true, //enables headers rendering
+        trimXmlDeclaration: boolean = true, //if true, xml declaration will be removed from xml documents before parsing
+        useBase64URL: boolean = false, //if true, images, fonts, etc. will be converted to base 64 URL, otherwise URL.createObjectURL is used
         debug: boolean = false, //enables additional logging
+        experimental: boolean = false, //enables experimental features (tab stops calculation)
     }): Promise<WordDocument>
 ```
 
@@ -152,7 +156,13 @@ sync is a boolean parameter which enables synchronous rendering or asynchronous.
 
 ```typescript
 // ==== experimental / internal API ====
-renderDocument(wordDocument: WordDocument, bodyContainer: HTMLElement, styleContainer: HTMLElement, sync: boolean, options: Options): Promise<void>
+renderDocument(
+  wordDocument: WordDocument, 
+  bodyContainer: HTMLElement, 
+  styleContainer: HTMLElement,
+  sync: boolean,
+  options: Options,
+): Promise<void>
 ```
 
 Goals

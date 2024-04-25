@@ -9,53 +9,55 @@ import { HtmlRenderer } from './html-renderer';
 import { HtmlRendererSync } from "./html-renderer-sync";
 
 export interface Options {
+	breakPages: boolean;                    //enables page breaking on page breaks
 	className: string;                      //class name/prefix for default and document style classes
-	inWrapper: boolean;                     //enables rendering of wrapper around document content
 
-	ignoreWidth: boolean;                   //disables rendering width of page
-	ignoreHeight: boolean;                  //disables rendering height of page
 	ignoreFonts: boolean;                   //disables fonts rendering
-	ignoreTableWrap: boolean;               //disables table's text wrap setting
+	ignoreHeight: boolean;                  //disables rendering height of page
 	ignoreImageWrap: boolean;               //disables image text wrap setting
 	ignoreLastRenderedPageBreak: boolean;   //disables page breaking on lastRenderedPageBreak elements
-	breakPages: boolean;                    //enables page breaking on page breaks
+	ignoreTableWrap: boolean;               //disables table's text wrap setting
+	ignoreWidth: boolean;                   //disables rendering width of page
+
+	inWrapper: boolean;                     //enables rendering of wrapper around document content
+
+	renderChanges: boolean;                 //enables experimental rendering of document changes (inserions/deletions)
+	renderEndnotes: boolean;                //enables endnotes rendering
+	renderFooters: boolean;                 //enables footers rendering
+	renderFootnotes: boolean;               //enables footnotes rendering
+	renderHeaders: boolean;                 //enables headers rendering
 
 	trimXmlDeclaration: boolean;            //if true, xml declaration will be removed from xml documents before parsing
 	useBase64URL: boolean;                  //if true, images, fonts, etc. will be converted to base 64 URL, otherwise URL.createObjectURL is used
 
-	renderHeaders: boolean;                 //enables headers rendering
-	renderFooters: boolean;                 //enables footers rendering
-	renderFootnotes: boolean;               //enables footnotes rendering
-	renderEndnotes: boolean;                //enables endnotes rendering
-	renderChanges: boolean;                 //enables experimental rendering of document changes (inserions/deletions)
-
-	experimental: boolean;                  //enables experimental features (tab stops calculation)
 	debug: boolean;                         //enables additional logging
+	experimental: boolean;                  //enables experimental features (tab stops calculation)
 }
 
 export const defaultOptions: Options = {
+	breakPages: true,
 	className: "docx",
-	inWrapper: true,
 
-	ignoreHeight: false,
-	ignoreWidth: false,
 	ignoreFonts: false,
-	ignoreTableWrap: true,
+	ignoreHeight: false,
 	ignoreImageWrap: false,
 	ignoreLastRenderedPageBreak: true,
-	breakPages: true,
+	ignoreTableWrap: true,
+	ignoreWidth: false,
+
+	inWrapper: true,
+
+	renderChanges: false,
+	renderEndnotes: true,
+	renderFooters: true,
+	renderFootnotes: true,
+	renderHeaders: true,
 
 	trimXmlDeclaration: true,
 	useBase64URL: false,
 
-	renderHeaders: true,
-	renderFooters: true,
-	renderFootnotes: true,
-	renderEndnotes: true,
-	renderChanges: false,
-
-	experimental: false,
 	debug: false,
+	experimental: false,
 }
 
 // Document Parser
