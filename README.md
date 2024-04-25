@@ -69,9 +69,14 @@ console.log("docx document object", wordDocument);
 
 API
 ---
+### renderSync
+
+Render HTML5 Elements Synchronously.
+
+renderSync = praseAsync + renderDocument(sync:true)
 
 ```typescript
-// renders document into specified element
+// renders document into specified element synchronously
 renderSync(
     document: Blob | ArrayBuffer | Uint8Array, // could be any type that supported by JSZip.loadAsync
     bodyContainer: HTMLElement, //element to render document content,
@@ -94,21 +99,60 @@ renderSync(
         renderEndnotes: true, //enables endnotes rendering
         debug: boolean = false, //enables additional logging
     }): Promise<WordDocument>
+```
 
-/// ==== experimental / internal API ===
-// this API could be used to modify document before rendering
-// renderSync = praseAsync + renderDocument
+### renderAsync
 
-// parse document and return internal document object
-praseAsync(document: Blob | ArrayBuffer | Uint8Array, options: Options): Promise<WordDocument>
+Render HTML5 Elements Asynchronously
 
-// render internal document object into specified container
-renderDocument(
-    wordDocument: WordDocument,
-    bodyContainer: HTMLElement,
-    styleContainer: HTMLElement,
-    options: Options
-): Promise<void>
+renderSync = praseAsync + renderDocument(sync:false)
+
+```typescript
+// renders document into specified element synchronously
+renderAsync(
+    document: Blob | ArrayBuffer | Uint8Array, // could be any type that supported by JSZip.loadAsync
+    bodyContainer: HTMLElement, //element to render document content,
+    styleContainer: HTMLElement, //element to render document styles, numbeings, fonts. If null, bodyContainer will be used.
+    options: {
+        className: string = "docx", //class name/prefix for default and document style classes
+        inWrapper: boolean = true, //enables rendering of wrapper around document content
+        ignoreWidth: boolean = false, //disables rendering width of page
+        ignoreHeight: boolean = false, //disables rendering height of page
+        ignoreFonts: boolean = false, //disables fonts rendering
+        breakPages: boolean = true, //enables page breaking on page breaks
+        ignoreLastRenderedPageBreak: boolean = true, //disables page breaking on lastRenderedPageBreak elements
+        experimental: boolean = false, //enables experimental features (tab stops calculation)
+        trimXmlDeclaration: boolean = true, //if true, xml declaration will be removed from xml documents before parsing
+        useBase64URL: boolean = false, //if true, images, fonts, etc. will be converted to base 64 URL, otherwise URL.createObjectURL is used
+        renderChanges: false, //enables experimental rendering of document changes (inserions/deletions)
+        renderHeaders: true, //enables headers rendering
+        renderFooters: true, //enables footers rendering
+        renderFootnotes: true, //enables footnotes rendering
+        renderEndnotes: true, //enables endnotes rendering
+        debug: boolean = false, //enables additional logging
+    }): Promise<WordDocument>
+```
+
+### parseAsync
+
+Document Parser Asynchronously
+
+parse document and return internal document object. this could be used to modify document object before rendering
+
+```typescript
+// ==== experimental / internal API ====
+parseAsync(document: Blob | ArrayBuffer | Uint8Array, options: Options): Promise<WordDocument>
+```
+
+### renderDocument
+
+render internal document object into specified container.
+
+sync is a boolean parameter which enables synchronous rendering or asynchronous.
+
+```typescript
+// ==== experimental / internal API ====
+renderDocument(wordDocument: WordDocument, bodyContainer: HTMLElement, styleContainer: HTMLElement, sync: boolean, options: Options): Promise<void>
 ```
 
 Goals
