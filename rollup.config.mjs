@@ -42,7 +42,12 @@ export default args => {
 				sourcemap: true,
 				format: 'es',
 				plugins: [terser()]
-			}];
+			},
+			{
+				...umdOutput,
+				file: 'docs/js/docx-preview.js',
+			},
+		];
 	}
 
 	return config
