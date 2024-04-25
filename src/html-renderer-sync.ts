@@ -1151,7 +1151,7 @@ export class HtmlRendererSync {
 				return;
 			}
 			// 末端元素，无需拆分，跳过
-			if (children?.length === 0) {
+			if (!children || children?.length === 0) {
 				return;
 			}
 			// 复制child的元素

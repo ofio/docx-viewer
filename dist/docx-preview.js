@@ -5592,7 +5592,7 @@
                 if (!breakIndex) {
                     return;
                 }
-                if ((children === null || children === void 0 ? void 0 : children.length) === 0) {
+                if (!children || (children === null || children === void 0 ? void 0 : children.length) === 0) {
                     return;
                 }
                 let copy = ___namespace.cloneDeep(child);
@@ -6655,24 +6655,24 @@
     }
 
     const defaultOptions = {
+        breakPages: true,
         className: "docx",
-        inWrapper: true,
-        ignoreHeight: false,
-        ignoreWidth: false,
         ignoreFonts: false,
-        ignoreTableWrap: true,
+        ignoreHeight: false,
         ignoreImageWrap: false,
         ignoreLastRenderedPageBreak: true,
-        breakPages: true,
-        trimXmlDeclaration: true,
-        useBase64URL: false,
-        renderHeaders: true,
+        ignoreTableWrap: true,
+        ignoreWidth: false,
+        inWrapper: true,
+        renderChanges: false,
+        renderEndnotes: true,
         renderFooters: true,
         renderFootnotes: true,
-        renderEndnotes: true,
-        renderChanges: false,
-        experimental: false,
+        renderHeaders: true,
+        trimXmlDeclaration: true,
+        useBase64URL: false,
         debug: false,
+        experimental: false,
     };
     function parseAsync(data, userOptions = null) {
         const ops = Object.assign(Object.assign({}, defaultOptions), userOptions);
