@@ -1142,7 +1142,6 @@ export class HtmlRendererSync {
 
 	// 根据breakIndex索引拆分页面
 	splitPageByBreakIndex(current: OpenXmlElement, next: OpenXmlElement) {
-		console.log(current, next);
 		// 遍历下一个页面的元素
 		next?.children.forEach((child: OpenXmlElement, i: number) => {
 			let { type, breakIndex, children } = child;
@@ -1160,6 +1159,9 @@ export class HtmlRendererSync {
 			// 如果当前元素是表格Row，无需拆分，复制Row至current_page
 			if (type === DomType.Row) {
 				// 复制Row至current_page
+				if ((child as WmlTableRow)?.isHeader) {
+					return;
+				}
 				current.children.push(copy);
 			} else {
 				/*
@@ -1180,8 +1182,11 @@ export class HtmlRendererSync {
 				let count = breakIndex.length > 0 ? breakIndex[0] : children.length;
 				// 切除未溢出的元素
 				const unbrokenChildren = children.splice(0, count);
-				// 在next中填充table header
-				if (table_headers.length > 0) {
+				/*
+				* 仅当table_headers.length在(0,children.length)范围内，在next中填充table header。
+				* 注意，用户误操作导致tr全是tableHeader，导致死循环。
+				*/
+				if (table_headers.length > 0 && table_headers.length < children.length) {
 					children.unshift(...table_headers);
 				}
 				// 父级元素是表格Row，拆分之后，逐个替换子元素

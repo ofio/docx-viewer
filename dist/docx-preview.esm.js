@@ -5565,7 +5565,6 @@ class HtmlRendererSync {
         });
     }
     splitPageByBreakIndex(current, next) {
-        console.log(current, next);
         next === null || next === void 0 ? void 0 : next.children.forEach((child, i) => {
             let { type, breakIndex, children } = child;
             if (!breakIndex) {
@@ -5576,6 +5575,9 @@ class HtmlRendererSync {
             }
             let copy = _.cloneDeep(child);
             if (type === DomType.Row) {
+                if (child === null || child === void 0 ? void 0 : child.isHeader) {
+                    return;
+                }
                 current.children.push(copy);
             }
             else {
@@ -5585,7 +5587,7 @@ class HtmlRendererSync {
                 }
                 let count = breakIndex.length > 0 ? breakIndex[0] : children.length;
                 const unbrokenChildren = children.splice(0, count);
-                if (table_headers.length > 0) {
+                if (table_headers.length > 0 && table_headers.length < children.length) {
                     children.unshift(...table_headers);
                 }
                 if (current.type === DomType.Row) {
