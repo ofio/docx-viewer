@@ -6126,7 +6126,12 @@
                 this.renderStyleValues(elem.cssStyle, oImage);
                 const source = yield this.document.loadDocumentImage(elem.src, this.currentPart);
                 if (is_clip || is_transform) {
-                    oImage.src = yield this.transformImage(elem, source);
+                    try {
+                        oImage.src = yield this.transformImage(elem, source);
+                    }
+                    catch (e) {
+                        console.error(`transform ${elem.src} image error:`, e);
+                    }
                 }
                 else {
                     oImage.src = source;

@@ -1895,14 +1895,19 @@ export class HtmlRendererSync {
 		// 渲染style样式
 		this.renderStyleValues(elem.cssStyle, oImage);
 		// TODO CMYK的图片丢失，错误转换为RGB
+		// TODO 处理emf图片格式
 		// 图片资源地址，base64/blob类型
 		const source: string = await this.document.loadDocumentImage(
 			elem.src,
 			this.currentPart
 		);
 		if (is_clip || is_transform) {
-			// canvas转换
-			oImage.src = await this.transformImage(elem, source);
+			try {
+				// canvas转换
+				oImage.src = await this.transformImage(elem, source);
+			} catch (e) {
+				console.error(`transform ${elem.src} image error:`, e);
+			}
 		} else {
 			// 直接使用原图片
 			oImage.src = source;
