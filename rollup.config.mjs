@@ -4,7 +4,7 @@ import nodeExternals from 'rollup-plugin-node-externals';
 
 const umdOutput = {
 	name: "docx",
-	file: 'dist/docx-preview.js',
+	file: 'docs/js/docx-preview.js',
 	sourcemap: true,
 	format: 'umd',
 	globals: {
@@ -29,6 +29,10 @@ export default args => {
 		config.output = [umdOutput,
 			{
 				...umdOutput,
+				file: 'dist/docx-preview.js',
+			},
+			{
+				...umdOutput,
 				file: 'dist/docx-preview.min.js',
 				plugins: [terser()]
 			},
@@ -42,10 +46,6 @@ export default args => {
 				sourcemap: true,
 				format: 'es',
 				plugins: [terser()]
-			},
-			{
-				...umdOutput,
-				file: 'docs/js/docx-preview.js',
 			},
 		];
 	}
