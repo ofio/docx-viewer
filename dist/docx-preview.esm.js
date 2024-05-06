@@ -5587,6 +5587,13 @@ class HtmlRendererSync {
                 }
                 let count = breakIndex.length > 0 ? breakIndex[0] : children.length;
                 const unbrokenChildren = children.splice(0, count);
+                if (type === DomType.Table) {
+                    children[0].children.forEach((cell) => {
+                        if (cell.verticalMerge === 'continue') {
+                            cell.verticalMerge = 'restart';
+                        }
+                    });
+                }
                 if (table_headers.length > 0 && table_headers.length < children.length) {
                     children.unshift(...table_headers);
                 }
