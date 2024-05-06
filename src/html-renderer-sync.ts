@@ -1182,6 +1182,14 @@ export class HtmlRendererSync {
 				let count = breakIndex.length > 0 ? breakIndex[0] : children.length;
 				// 切除未溢出的元素
 				const unbrokenChildren = children.splice(0, count);
+				// change verticalMerge attribute，restart merge region.
+				if (type === DomType.Table) {
+					children[0].children.forEach((cell: WmlTableCell) => {
+						if (cell.verticalMerge === 'continue') {
+							cell.verticalMerge = 'restart'
+						}
+					});
+				}
 				/*
 				* 仅当table_headers.length在(0,children.length)范围内，在next中填充table header。
 				* 注意，用户误操作导致tr全是tableHeader，导致死循环。
@@ -1189,7 +1197,7 @@ export class HtmlRendererSync {
 				if (table_headers.length > 0 && table_headers.length < children.length) {
 					children.unshift(...table_headers);
 				}
-				// 父级元素是表格Row，拆分之后，逐个替换子元素
+				// 父级元素是表格Row，拆分之后，逐个替换cell的子元素
 				if (current.type === DomType.Row) {
 					current.children[i].children = unbrokenChildren;
 				} else {
@@ -1710,10 +1718,13 @@ export class HtmlRendererSync {
 		const oTable = createElement('table');
 		// 生成表格的uuid标识，
 		oTable.dataset.uuid = uuid();
-		// 合并单元格
+		// 表格行列位置集合，用于嵌套表格
 		this.tableCellPositions.push(this.currentCellPosition);
+		// 表格垂直合并集合，用于嵌套表格
 		this.tableVerticalMerges.push(this.currentVerticalMerge);
+		// 当前Table的垂直合并
 		this.currentVerticalMerge = {};
+		// 当前Table的行列位置
 		this.currentCellPosition = { col: 0, row: 0 };
 		// 渲染class
 		this.renderClass(elem, oTable);
@@ -1735,8 +1746,9 @@ export class HtmlRendererSync {
 		// 针对后代子元素进行溢出检测
 		oTable.dataset.overflow = await this.renderChildren(elem, oTable);
 
-		// TODO 合并单元格？？？
+		// 处理完当前的表格，移除
 		this.currentVerticalMerge = this.tableVerticalMerges.pop();
+		// 处理完当前的表格，移除
 		this.currentCellPosition = this.tableCellPositions.pop();
 
 		return oTable;
@@ -1791,16 +1803,18 @@ export class HtmlRendererSync {
 
 	// 表格--单元格
 	async renderTableCell(elem: WmlTableCell, parent: HTMLElement) {
-		// 创建元素
+		// create td element which has default attribute colSpan = 1,rowSpan = 1
 		const oTableCell = createElement('td');
 		// 获取当前cell的列位置
 		const key = this.currentCellPosition.col;
 		// 当前单元格是否合并
 		if (elem.verticalMerge) {
+			// Start/Restart Merged Region.
 			if (elem.verticalMerge == 'restart') {
 				this.currentVerticalMerge[key] = oTableCell;
 				oTableCell.rowSpan = 1;
 			} else if (this.currentVerticalMerge[key]) {
+				// Continue Merged Region.
 				this.currentVerticalMerge[key].rowSpan += 1;
 				oTableCell.style.display = 'none';
 			}
