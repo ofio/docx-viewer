@@ -1030,7 +1030,8 @@ export class HtmlRendererSync {
 
 	// 根据XML对象渲染出多元素
 	async renderElements(children: OpenXmlElement[], parent: HTMLElement | MathMLElement): Promise<Overflow> {
-		let overflow: Overflow = Overflow.UNKNOWN;
+		// 子元素溢出状态的数组
+		let overflows: Overflow[] = [];
 		// 已拆分的Pages数组
 		let pages: Page[] = this.document.documentPart.body.pages;
 		// 当前Page
@@ -1053,26 +1054,33 @@ export class HtmlRendererSync {
 			if (isSplit) {
 				continue;
 			}
-			// 上面的元素是否溢出
-			overflow = rendered_element?.dataset?.overflow as Overflow ?? Overflow.UNKNOWN;
-			// 下一步操作，终止循环，跳过此次执行
+			// elem元素是否溢出
+			let overflow: Overflow = rendered_element?.dataset?.overflow as Overflow ?? Overflow.UNKNOWN;
+			// 下一步操作，终止循环/跳过此次遍历，进入下一次遍历
 			let action: string;
-			/*
-			* 检查元素自身的索引
-			* i = 0，说明第一个子元素就已经溢出，删除DOM中导致溢出的元素；
-			* i > 0，说明只是部分子元素溢出，无须删除元素
-			*/
+
 			switch (overflow) {
+				// 元素自身溢出
+				case Overflow.SELF:
+					// 缓存溢出元素的索引至自身的breakIndex.
+					elem.breakIndex.push(0);
+					// 缓存溢出元素的索引至父级的breakIndex。
+					elem.parent.breakIndex.push(i);
+					// 删除溢出元素
+					removeElements(rendered_element, parent);
+					action = 'break';
+					break;
+
 				// 叶子元素溢出
 				case Overflow.TRUE:
 				// 插入元素children之后，全部child溢出
 				case Overflow.FULL:
-				// 元素自身溢出
-				case Overflow.SELF:
 					// 缓存溢出元素的索引至父级的breakIndex。
 					elem.parent.breakIndex.push(i);
-					// 删除自身
-					removeElements(rendered_element, parent);
+					// 删除溢出元素
+					if (elem.type !== DomType.Cell) {
+						removeElements(rendered_element, parent);
+					}
 					action = 'break';
 					break;
 
@@ -1102,18 +1110,13 @@ export class HtmlRendererSync {
 			if (elem.type === DomType.Cell) {
 				action = 'continue';
 			}
-			// 跳过此次执行
+			// 将elem元素的溢出状态保存至数组
+			overflows.push(overflow);
+			// 跳过此次遍历，进入下一次遍历，后续代码不执行；
 			if (action === 'continue') {
 				continue;
 			}
-			// 处理深层次元素：溢出
-			if (elem.level > 2) {
-				// 判断当前元素溢出类型
-				overflow = i > 0 ? Overflow.PART : Overflow.FULL;
-				// 终止循环
-				break;
-			}
-			// 顶层元素：溢出
+			// 顶层元素：溢出，action === break
 			if (elem.level === 2) {
 				// 根据breakIndex索引，删除后续元素，原始数组保留前面已经渲染的元素
 				let next_page_children: OpenXmlElement[] = current_page_children.splice(i);
@@ -1132,12 +1135,44 @@ export class HtmlRendererSync {
 				this.currentPage = next_page;
 				// 重启新一个page的渲染
 				await this.renderPage();
-				// 跳出循环
-				break;
 			}
-
+			// 终止循环
+			break;
 		}
-		return overflow;
+		/*
+		* 推断elem父级元素溢出类型，overflows数组由于上述循环break的影响，后续子元素溢出状态不会存在，可能只有一个值。
+		* 推断规则如下：
+		* [Overflow.FULL,..., Overflow.TRUE,Overflow.SELF,Overflow.PART]：全部子元素溢出，推断溢出类型为Overflow.FULL;
+		* [Overflow.FALSE,..., Overflow.TRUE,Overflow.IGNORE]：部分子元素溢出，推断溢出类型为Overflow.PART;
+		* [Overflow.FALSE,Overflow.UNKNOWN,Overflow.IGNORE]：所有元素未溢出Overflow.FALSE，推断溢出类型为Overflow.FALSE;
+		* [Overflow.UNKNOWN,Overflow.UNKNOWN,Overflow.UNKNOWN]：所有元素未知Overflow.UNKNOWN，推断溢出类型为Overflow.UNKNOWN;
+		*
+		* 注意，表格中，Row元素推断溢出类型必须遍历所有子元素。
+		*/
+		// 如果没有子元素或数组为空，则返回FALSE。注意，every遍历空数组返回true。
+		if (overflows.length === 0) {
+			return Overflow.FALSE;
+		}
+		// 溢出状态集合
+		let overflowStatus: Overflow[] = [Overflow.FULL, Overflow.SELF, Overflow.TRUE, Overflow.PART];
+		//
+		let isFull: boolean = overflows.every(overflow => overflowStatus.includes(overflow));
+		if (isFull) {
+			return Overflow.FULL;
+		}
+		let isUnknown: boolean = overflows.every(overflow => overflow === Overflow.UNKNOWN);
+		if (isUnknown) {
+			return Overflow.UNKNOWN;
+		}
+		let isFalse: boolean = overflows.every(overflow => [Overflow.FALSE, Overflow.UNKNOWN, Overflow.IGNORE].includes(overflow));
+		if (isFalse) {
+			return Overflow.FALSE;
+		}
+		let isPart: boolean = overflows.some(overflow => overflowStatus.includes(overflow));
+		if (isPart) {
+			return Overflow.PART;
+		}
+		return Overflow.UNKNOWN;
 	}
 
 	// 根据breakIndex索引拆分页面

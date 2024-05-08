@@ -5520,7 +5520,7 @@
         renderElements(children, parent) {
             return __awaiter(this, void 0, void 0, function* () {
                 var _a, _b;
-                let overflow = Overflow.UNKNOWN;
+                let overflows = [];
                 let pages = this.document.documentPart.body.pages;
                 let { pageId, isSplit, sectProps, children: current_page_children } = this.currentPage;
                 let pageIndex = pages.findIndex((page) => page.pageId === pageId);
@@ -5534,14 +5534,21 @@
                     if (isSplit) {
                         continue;
                     }
-                    overflow = (_b = (_a = rendered_element === null || rendered_element === void 0 ? void 0 : rendered_element.dataset) === null || _a === void 0 ? void 0 : _a.overflow) !== null && _b !== void 0 ? _b : Overflow.UNKNOWN;
+                    let overflow = (_b = (_a = rendered_element === null || rendered_element === void 0 ? void 0 : rendered_element.dataset) === null || _a === void 0 ? void 0 : _a.overflow) !== null && _b !== void 0 ? _b : Overflow.UNKNOWN;
                     let action;
                     switch (overflow) {
-                        case Overflow.TRUE:
-                        case Overflow.FULL:
                         case Overflow.SELF:
+                            elem.breakIndex.push(0);
                             elem.parent.breakIndex.push(i);
                             removeElements(rendered_element, parent);
+                            action = 'break';
+                            break;
+                        case Overflow.TRUE:
+                        case Overflow.FULL:
+                            elem.parent.breakIndex.push(i);
+                            if (elem.type !== DomType.Cell) {
+                                removeElements(rendered_element, parent);
+                            }
                             action = 'break';
                             break;
                         case Overflow.PART:
@@ -5562,12 +5569,9 @@
                     if (elem.type === DomType.Cell) {
                         action = 'continue';
                     }
+                    overflows.push(overflow);
                     if (action === 'continue') {
                         continue;
-                    }
-                    if (elem.level > 2) {
-                        overflow = i > 0 ? Overflow.PART : Overflow.FULL;
-                        break;
                     }
                     if (elem.level === 2) {
                         let next_page_children = current_page_children.splice(i);
@@ -5579,10 +5583,30 @@
                         pages.splice(pageIndex + 1, 0, next_page);
                         this.currentPage = next_page;
                         yield this.renderPage();
-                        break;
                     }
+                    break;
                 }
-                return overflow;
+                if (overflows.length === 0) {
+                    return Overflow.FALSE;
+                }
+                let overflowStatus = [Overflow.FULL, Overflow.SELF, Overflow.TRUE, Overflow.PART];
+                let isFull = overflows.every(overflow => overflowStatus.includes(overflow));
+                if (isFull) {
+                    return Overflow.FULL;
+                }
+                let isUnknown = overflows.every(overflow => overflow === Overflow.UNKNOWN);
+                if (isUnknown) {
+                    return Overflow.UNKNOWN;
+                }
+                let isFalse = overflows.every(overflow => [Overflow.FALSE, Overflow.UNKNOWN, Overflow.IGNORE].includes(overflow));
+                if (isFalse) {
+                    return Overflow.FALSE;
+                }
+                let isPart = overflows.some(overflow => overflowStatus.includes(overflow));
+                if (isPart) {
+                    return Overflow.PART;
+                }
+                return Overflow.UNKNOWN;
             });
         }
         splitPageByBreakIndex(current, next) {
