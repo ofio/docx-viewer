@@ -5590,6 +5590,10 @@
                     return Overflow.FALSE;
                 }
                 let overflowStatus = [Overflow.FULL, Overflow.SELF, Overflow.TRUE, Overflow.PART];
+                let isAllPart = overflows.every(overflow => overflow === Overflow.PART);
+                if (isAllPart) {
+                    return Overflow.PART;
+                }
                 let isFull = overflows.every(overflow => overflowStatus.includes(overflow));
                 if (isFull) {
                     return Overflow.FULL;
