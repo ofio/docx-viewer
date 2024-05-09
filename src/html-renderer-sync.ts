@@ -1143,6 +1143,7 @@ export class HtmlRendererSync {
 		* 推断elem父级元素溢出类型，overflows数组由于上述循环break的影响，后续子元素溢出状态不会存在，可能只有一个值。
 		* 推断规则如下：
 		* [Overflow.FULL,..., Overflow.TRUE,Overflow.SELF,Overflow.PART]：全部子元素溢出，推断溢出类型为Overflow.FULL;
+		* [Overflow.PART,Overflow.PART,Overflow.PART]：所有子元素部分溢出，推断溢出类型为Overflow.PART;
 		* [Overflow.FALSE,..., Overflow.TRUE,Overflow.IGNORE]：部分子元素溢出，推断溢出类型为Overflow.PART;
 		* [Overflow.FALSE,Overflow.UNKNOWN,Overflow.IGNORE]：所有元素未溢出Overflow.FALSE，推断溢出类型为Overflow.FALSE;
 		* [Overflow.UNKNOWN,Overflow.UNKNOWN,Overflow.UNKNOWN]：所有元素未知Overflow.UNKNOWN，推断溢出类型为Overflow.UNKNOWN;
@@ -1155,19 +1156,27 @@ export class HtmlRendererSync {
 		}
 		// 溢出状态集合
 		let overflowStatus: Overflow[] = [Overflow.FULL, Overflow.SELF, Overflow.TRUE, Overflow.PART];
-		//
+		// 所有子元素部分溢出，推断溢出类型为Overflow.PART;
+		let isAllPart: boolean = overflows.every(overflow => overflow === Overflow.PART);
+		if (isAllPart) {
+			return Overflow.PART;
+		}
+		// 是否全溢出
 		let isFull: boolean = overflows.every(overflow => overflowStatus.includes(overflow));
 		if (isFull) {
 			return Overflow.FULL;
 		}
+		// 是否未执行溢出检测
 		let isUnknown: boolean = overflows.every(overflow => overflow === Overflow.UNKNOWN);
 		if (isUnknown) {
 			return Overflow.UNKNOWN;
 		}
+		// 是否未溢出
 		let isFalse: boolean = overflows.every(overflow => [Overflow.FALSE, Overflow.UNKNOWN, Overflow.IGNORE].includes(overflow));
 		if (isFalse) {
 			return Overflow.FALSE;
 		}
+		// 是否部分溢出
 		let isPart: boolean = overflows.some(overflow => overflowStatus.includes(overflow));
 		if (isPart) {
 			return Overflow.PART;
