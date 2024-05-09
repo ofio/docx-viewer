@@ -623,6 +623,8 @@ export class HtmlRendererSync {
 	 * 页面是文档实际呈现的物理单位，而章节则是逻辑上的分割点。
 	 */
 
+	// TODO 表格中也含有lastRenderedPageBreak，可以拆分表格
+	// TODO 待优化,lastRenderedPageBreak产生空run
 	// 初次拆分，根据分页符号拆分页面
 	splitPageBySymbol(elements: OpenXmlElement[]): Page[] {
 		// 当前操作page，elements数组包含子元素
@@ -1050,10 +1052,6 @@ export class HtmlRendererSync {
 			}
 			// 根据XML对象渲染单个元素
 			const rendered_element = await this.renderElement(elem, parent);
-			// 当前page已拆分，忽略溢出检测
-			if (isSplit) {
-				continue;
-			}
 			// elem元素是否溢出
 			let overflow: Overflow = rendered_element?.dataset?.overflow as Overflow ?? Overflow.UNKNOWN;
 			// 下一步操作，终止循环/跳过此次遍历，进入下一次遍历
