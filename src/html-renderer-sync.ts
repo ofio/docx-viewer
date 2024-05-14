@@ -14,7 +14,7 @@ import { Page, PageProps } from './document/page';
 import { RunProperties, WmlRun } from './document/run';
 import { WmlBookmarkStart } from './document/bookmarks';
 import { IDomStyle, Ruleset } from './document/style';
-import { WmlBaseNote, WmlFootnote } from './notes/elements';
+import { WmlBaseNote, WmlEndnote, WmlEndnotes, WmlFootnote, WmlFootnotes } from './notes/elements';
 import { ThemePart } from './theme/theme-part';
 import { BaseHeaderFooterPart } from './header-footer/parts';
 import { Part } from './common/part';
@@ -81,9 +81,10 @@ export class HtmlRendererSync {
 	currentCellPosition: CellPos = null;
 
 	footnoteMap: Record<string, WmlFootnote> = {};
-	endnoteMap: Record<string, WmlFootnote> = {};
+	endnoteMap: Record<string, WmlEndnote> = {};
 	currentFootnoteIds: string[];
 	currentEndnoteIds: string[] = [];
+	// 已使用的Heder、Footer部分的数组。
 	usedHederFooterParts: any[] = [];
 
 	defaultTabSize: string;
@@ -155,11 +156,11 @@ export class HtmlRendererSync {
 		}
 		// 生成脚注部分的Map
 		if (document.footnotesPart) {
-			this.footnoteMap = _.keyBy(document.footnotesPart.notes, 'id');
+			this.footnoteMap = _.keyBy(document.footnotesPart.rootElement.children, 'id');
 		}
 		// 生成尾注部分的Map
 		if (document.endnotesPart) {
-			this.endnoteMap = _.keyBy(document.endnotesPart.notes, 'id');
+			this.endnoteMap = _.keyBy(document.endnotesPart.rootElement.children, 'id');
 		}
 		// 文档设置
 		if (document.settingsPart) {
@@ -901,17 +902,19 @@ export class HtmlRendererSync {
 		}
 		// 标识--结束溢出计算
 		this.currentPage.checkingOverflow = false;
-		// 渲染page脚注
+		// TODO 渲染page脚注，不应该插入PageElement中
 		if (this.options.renderFootnotes) {
 			await this.renderNotes(
+				DomType.Footnotes,
 				this.currentFootnoteIds,
 				this.footnoteMap,
 				pageElement
 			);
 		}
-		// 渲染page尾注，判断最后一页
+		// TODO 渲染page尾注，判断最后一页，不应该插入PageElement中
 		if (this.options.renderEndnotes && isLastPage) {
 			await this.renderNotes(
+				DomType.Endnotes,
 				this.currentEndnoteIds,
 				this.endnoteMap,
 				pageElement
@@ -992,6 +995,7 @@ export class HtmlRendererSync {
 		if (part) {
 			this.currentPart = part;
 			if (!this.usedHederFooterParts.includes(part.path)) {
+				// 递归建立元素的parent父级关系
 				this.processElement(part.rootElement);
 				this.usedHederFooterParts.push(part.path);
 			}
@@ -1023,12 +1027,20 @@ export class HtmlRendererSync {
 
 	// TODO 字体太大，尾注位置不对
 	// 渲染脚注/尾注
-	async renderNotes(noteIds: string[], notesMap: Record<string, WmlBaseNote>, parent: HTMLElement) {
-		const notes = noteIds.map(id => notesMap[id]).filter(x => x);
+	async renderNotes(type: DomType = DomType.Footnotes, noteIds: string[], notesMap: Record<string, WmlBaseNote>, parent: HTMLElement) {
+		// 筛选出这一页的Note元素集合
+		const children: WmlBaseNote[] = noteIds.map(id => notesMap[id]).filter(x => x);
 
-		if (notes.length > 0) {
+		if (children.length > 0) {
 			const oList = createElement('ol', null);
-			await this.renderElements(notes, oList);
+			// 生成Notes父级元素
+			let notes = type === DomType.Footnotes ? new WmlFootnotes() : new WmlEndnotes();
+			// 设置children子元素
+			notes.children = children;
+			// 递归建立元素的parent父级关系
+			this.processElement(notes);
+			// 渲染元素
+			await this.renderChildren(notes, oList);
 			parent.appendChild(oList);
 		}
 	}

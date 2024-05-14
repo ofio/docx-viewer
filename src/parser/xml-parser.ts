@@ -45,7 +45,7 @@ export class XmlParser {
 
 	// find one xml element's child
 	element(elem: Element, localName: string): Element {
-		// TODO 替换querySeletor,优化性能
+		// TODO 替换方法,优化性能
 		for (let i = 0, l = elem.childNodes.length; i < l; i++) {
 			let c = elem.childNodes.item(i);
 

@@ -158,11 +158,11 @@ export class HtmlRenderer {
 		}
 		// 生成脚注部分的Map
 		if (document.footnotesPart) {
-			this.footnoteMap = _.keyBy(document.footnotesPart.notes, 'id');
+			this.footnoteMap = _.keyBy(document.footnotesPart.rootElement.children, 'id');
 		}
 		// 生成尾注部分的Map
 		if (document.endnotesPart) {
-			this.endnoteMap = _.keyBy(document.endnotesPart.notes, 'id');
+			this.endnoteMap = _.keyBy(document.endnotesPart.rootElement.children, 'id');
 		}
 		// 文档设置
 		if (document.settingsPart) {

@@ -109,25 +109,27 @@ export class DocumentParser {
 	}
 
 	parseDocumentFile(xmlDoc: Element): DocumentElement {
-		let xbody = xml.element(xmlDoc, "body");
+		// document elements
+		let documentElement: DocumentElement = {
+			pages: [],
+			props: {} as SectionProperties,
+			type: DomType.Document,
+		};
 		// 背景色
 		let background = xml.element(xmlDoc, "background");
-		let sectPr = xml.element(xbody, "sectPr");
+		documentElement.cssStyle = background ? this.parseBackground(background) : {};
+		// 处理子元素
+		let body = xml.element(xmlDoc, "body");
+		documentElement.children = this.parseBodyElements(body);
 		// 计算节属性
-		let props = {} as SectionProperties;
-		if (sectPr) {
-			props = parseSectionProperties(sectPr, xml);
+		let sectionProperties = xml.element(body, "sectPr");
+		if (sectionProperties) {
+			documentElement.props = parseSectionProperties(sectionProperties, xml);
 		}
 		// 生成唯一uuid标识
-		props.sectionId = uuid();
+		documentElement.props.sectionId = uuid();
 
-		return {
-			type: DomType.Document,
-			children: this.parseBodyElements(xbody),
-			pages: [],
-			props,
-			cssStyle: background ? this.parseBackground(background) : {},
-		};
+		return documentElement;
 	}
 
 	parseBackground(elem: Element): any {

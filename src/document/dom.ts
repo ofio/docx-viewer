@@ -20,7 +20,9 @@ export enum DomType {
 	Header = "header",
 	FootnoteReference = "footnoteReference",
 	EndnoteReference = "endnoteReference",
+	Footnotes = "footnotes",
 	Footnote = "footnote",
+	Endnotes = "endnotes",
 	Endnote = "endnote",
 	SimpleField = "simpleField",
 	ComplexField = "complexField",
@@ -63,6 +65,33 @@ export enum DomType {
 	CommentRangeEnd = "commentRangeEnd"
 }
 
+// TODO 分离Math类型
+export enum MathDomType {
+	Base = "mmlBase",
+	Bar = "mmlBar",
+	Box = "mmlBox",
+	Delimiter = "mmlDelimiter",
+	Degree = "mmlDegree",
+	Denominator = "mmlDenominator",
+	Function = "mmlFunction",
+	FunctionName = "mmlFunctionName",
+	Fraction = "mmlFraction",
+	GroupChar = "mmlGroupChar",
+	Limit = "mmlLimit",
+	LimitLower = "mmlLimitLower",
+	Matrix = "mmlMatrix",
+	MatrixRow = "mmlMatrixRow",
+	Math = "mmlMath",
+	MathParagraph = "mmlMathParagraph",
+	Nary = "mmlNary",
+	Numerator = "mmlNumerator",
+	PreSubSuper = "mmlPreSubSuper",
+	Radical = "mmlRadical",
+	SubArgument = "mmlSubArgument",
+	Subscript = "mmlSubscript",
+	Superscript = "mmlSuperscript",
+}
+
 export interface OpenXmlElement {
 	type: DomType;
 	children?: OpenXmlElement[];
@@ -87,12 +116,16 @@ export abstract class OpenXmlElementBase implements OpenXmlElement {
 	children?: OpenXmlElement[] = [];
 	cssStyle?: Record<string, any> = {};
 	props?: Record<string, any>;
-
+	// 元素层级
+	level?: number;
+	// 元素数组索引
 	index?: number;
+	// 溢出索引，数组，有多个元素溢出
 	breakIndex?: number[];
-
-	className?: string;
+	//style name
 	styleName?: string;
+	//class mods
+	className?: string;
 
 	parent?: OpenXmlElement;
 }
