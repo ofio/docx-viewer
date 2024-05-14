@@ -789,6 +789,11 @@ export class HtmlRendererSync {
 		return pages;
 	}
 
+	// TODO 根据分页符号拆分段落
+	splitElementsBySymbol(current: OpenXmlElement, next: OpenXmlElement) {
+
+	}
+
 	// 生成所有的页面Page
 	async renderPages(document: DocumentElement) {
 		// 根据options.breakPages，选择是否分页
@@ -811,8 +816,6 @@ export class HtmlRendererSync {
 			this.currentFootnoteIds = [];
 			const page: Page = origin_pages[i];
 			const { sectProps } = page;
-			// 递归建立元素的parent父级关系
-			this.processElement(page);
 			// sectionProps属性不存在，则使用文档级别props;
 			page.sectProps = sectProps ?? document.props;
 			// 是否本小节的第一个page
@@ -1121,7 +1124,7 @@ export class HtmlRendererSync {
 				// 生成新的page，新Page的sectionProps沿用前一页的sectionProps
 				const next_page: Page = new Page({ sectProps, children: next_page_children } as PageProps);
 				// 根据breakIndex索引拆分页面
-				this.splitPageByBreakIndex(this.currentPage, next_page);
+				this.splitElementsByBreakIndex(this.currentPage, next_page);
 				// 修改当前Page的状态
 				this.currentPage.isSplit = true;
 				this.currentPage.checkingOverflow = false;
@@ -1183,7 +1186,7 @@ export class HtmlRendererSync {
 	}
 
 	// 根据breakIndex索引拆分页面
-	splitPageByBreakIndex(current: OpenXmlElement, next: OpenXmlElement) {
+	splitElementsByBreakIndex(current: OpenXmlElement, next: OpenXmlElement) {
 		// 遍历下一个页面的元素
 		next?.children.forEach((child: OpenXmlElement, i: number) => {
 			let { type, breakIndex, children } = child;
@@ -1255,7 +1258,7 @@ export class HtmlRendererSync {
 			}
 			// 递归调用，继续拆分
 			if (children.length > 0) {
-				this.splitPageByBreakIndex(copy, child);
+				this.splitElementsByBreakIndex(copy, child);
 			}
 		});
 	}
