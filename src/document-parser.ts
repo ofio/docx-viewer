@@ -78,36 +78,6 @@ export class DocumentParser {
 		};
 	}
 
-	parseNotes(xmlDoc: Element, elemName: string, elemClass: any): any[] {
-		let result = [];
-
-		for (let el of xml.elements(xmlDoc, elemName)) {
-			const node = new elemClass();
-			node.id = xml.attr(el, "id");
-			node.noteType = xml.attr(el, "type");
-			node.children = this.parseBodyElements(el);
-			result.push(node);
-		}
-
-		return result;
-	}
-
-	parseComments(xmlDoc: Element): any[] {
-		let result = [];
-
-		for (let el of xml.elements(xmlDoc, "comment")) {
-			const item = new WmlComment();
-			item.id = xml.attr(el, "id");
-			item.author = xml.attr(el, "author");
-			item.initials = xml.attr(el, "initials");
-			item.date = xml.attr(el, "date");
-			item.children = this.parseBodyElements(el);
-			result.push(item);
-		}
-
-		return result;
-	}
-
 	parseDocumentFile(xmlDoc: Element): DocumentElement {
 		// document elements
 		let documentElement: DocumentElement = {
@@ -146,18 +116,18 @@ export class DocumentParser {
 	parseBodyElements(element: Element): OpenXmlElement[] {
 		let children = [];
 
-		for (let elem of xml.elements(element)) {
-			switch (elem.localName) {
+		xmlUtil.foreach(element, (child, i) => {
+			switch (child.localName) {
 				case "p":
-					children.push(this.parseParagraph(elem));
+					children.push(this.parseParagraph(child));
 					break;
 
 				case "tbl":
-					children.push(this.parseTable(elem));
+					children.push(this.parseTable(child));
 					break;
-
+				// TODO Structured Document
 				case "sdt":
-					children.push(...this.parseSdt(elem, (e: Element) => this.parseBodyElements(e)));
+					children.push(...this.parseSdt(child));
 					break;
 
 				case "sectPr":
@@ -166,11 +136,10 @@ export class DocumentParser {
 
 				default:
 					if (this.options.debug) {
-						console.warn(`DOCX:%c Unknown Body Element：${elem.localName}`, 'color:red');
+						console.warn(`DOCX:%c Unknown Body Element：${child.localName}`, 'color:red');
 					}
-
 			}
-		}
+		});
 
 		return children;
 	}
@@ -648,26 +617,91 @@ export class DocumentParser {
 		return result;
 	}
 
-	parseSdt(node: Element, parser: Function): OpenXmlElement[] {
+	parseSdt(node: Element): OpenXmlElement[] {
+		let result: OpenXmlElement[] = [];
 		const sdtContent = xml.element(node, "sdtContent");
-		return sdtContent ? parser(sdtContent) : [];
+		if (sdtContent) {
+			result = this.parseBodyElements(sdtContent);
+		}
+		return result;
 	}
 
-	parseInserted(node: Element, parentParser: Function): OpenXmlElement {
-		return <OpenXmlElement>{
+	parseNotes(xmlDoc: Element, elemName: string, elemClass: any): any[] {
+		let result = [];
+
+		for (let el of xml.elements(xmlDoc, elemName)) {
+			const node = new elemClass();
+			node.id = xml.attr(el, "id");
+			node.noteType = xml.attr(el, "type");
+			node.children = this.parseBodyElements(el);
+			result.push(node);
+		}
+
+		return result;
+	}
+
+	parseComments(xmlDoc: Element): any[] {
+		let result = [];
+
+		for (let el of xml.elements(xmlDoc, "comment")) {
+			const item = new WmlComment();
+			item.id = xml.attr(el, "id");
+			item.author = xml.attr(el, "author");
+			item.initials = xml.attr(el, "initials");
+			item.date = xml.attr(el, "date");
+			item.children = this.parseBodyElements(el);
+			result.push(item);
+		}
+
+		return result;
+	}
+
+	// TODO Inserted Math Control Character、Inserted Table Row、Inserted Numbering Properties
+	parseInserted(node: Element): OpenXmlElement {
+		let wmlInserted: OpenXmlElement = {
 			type: DomType.Inserted,
-			children: parentParser(node)?.children ?? []
+			children: [],
 		};
+		xmlUtil.foreach(node, (child, i) => {
+			switch (child.localName) {
+				case "r":
+					wmlInserted.children.push(this.parseRun(child));
+					break;
+
+				default:
+					if (this.options.debug) {
+						console.warn(`DOCX:%c Unknown Inserted：${child.localName}`, 'color:#f75607');
+					}
+			}
+		});
+
+		return wmlInserted;
 	}
 
-	parseDeleted(node: Element, parentParser: Function): OpenXmlElement {
-		return <OpenXmlElement>{
+	// TODO
+	parseDeleted(node: Element): OpenXmlElement {
+		let wmlDeleted: OpenXmlElement = {
 			type: DomType.Deleted,
-			children: parentParser(node)?.children ?? []
+			children: [],
 		};
+		xmlUtil.foreach(node, (child, i) => {
+			switch (child.localName) {
+				case "r":
+					wmlDeleted.children.push(this.parseRun(child));
+					break;
+
+				default:
+					if (this.options.debug) {
+						console.warn(`DOCX:%c Unknown Inserted：${child.localName}`, 'color:#f75607');
+					}
+			}
+		});
+
+		return wmlDeleted;
+
 	}
 
-	parseParagraph(node: Element): OpenXmlElement {
+	parseParagraph(node: Element): WmlParagraph {
 		let wmlParagraph: WmlParagraph = {
 			type: DomType.Paragraph,
 			children: [],
@@ -675,58 +709,62 @@ export class DocumentParser {
 			cssStyle: {},
 		};
 
-		for (let el of xml.elements(node)) {
-			switch (el.localName) {
+		xmlUtil.foreach(node, (child, i) => {
+			switch (child.localName) {
 				case "pPr":
-					this.parseParagraphProperties(el, wmlParagraph);
+					this.parseParagraphProperties(child, wmlParagraph);
 					break;
 
 				case "r":
-					wmlParagraph.children.push(this.parseRun(el, wmlParagraph));
+					wmlParagraph.children.push(this.parseRun(child));
 					break;
 
 				case "hyperlink":
-					wmlParagraph.children.push(this.parseHyperlink(el, wmlParagraph));
+					wmlParagraph.children.push(this.parseHyperlink(child));
 					break;
 
 				case "bookmarkStart":
-					wmlParagraph.children.push(parseBookmarkStart(el, xml));
+					wmlParagraph.children.push(parseBookmarkStart(child, xml));
 					break;
 
 				case "bookmarkEnd":
-					wmlParagraph.children.push(parseBookmarkEnd(el, xml));
+					wmlParagraph.children.push(parseBookmarkEnd(child, xml));
 					break;
 
 				case "commentRangeStart":
-					wmlParagraph.children.push(new WmlCommentRangeStart(xml.attr(el, "id")));
+					wmlParagraph.children.push(new WmlCommentRangeStart(xml.attr(child, "id")));
 					break;
 
 				case "commentRangeEnd":
-					wmlParagraph.children.push(new WmlCommentRangeEnd(xml.attr(el, "id")));
+					wmlParagraph.children.push(new WmlCommentRangeEnd(xml.attr(child, "id")));
 					break;
 
 				case "oMath":
 				case "oMathPara":
-					wmlParagraph.children.push(this.parseMathElement(el));
+					wmlParagraph.children.push(this.parseMathElement(child));
 					break;
 
+				// 	TODO Structured Document Tag
 				case "sdt":
-					wmlParagraph.children.push(...this.parseSdt(el, (e: Element) => this.parseParagraph(e).children));
+					wmlParagraph.children.push(...this.parseSdt(child));
 					break;
 
+				// TODO Inserted Math Control Character、Inserted Table Row、Inserted Numbering Properties
 				case "ins":
-					wmlParagraph.children.push(this.parseInserted(el, (e: Element) => this.parseParagraph(e)));
+					wmlParagraph.children.push(this.parseInserted(child));
 					break;
 
 				case "del":
-					wmlParagraph.children.push(this.parseDeleted(el, (e: Element) => this.parseParagraph(e)));
+					wmlParagraph.children.push(this.parseDeleted(child));
 					break;
+
 				default:
 					if (this.options.debug) {
-						console.warn(`DOCX:%c Unknown Paragraph Element：${el.localName}`, 'color:#f75607');
+						console.warn(`DOCX:%c Unknown Paragraph Element：${child.localName}`, 'color:#f75607');
 					}
 			}
-		}
+		})
+
 		// when paragraph is empty, a br tag needs to be added to work with the rich text editor and generate line height
 		// 当段落children为空，需要添加一个br标签，配合富文本编辑器，同时产生行高
 		// TODO 实体符号来替换空行
@@ -778,183 +816,218 @@ export class DocumentParser {
 			paragraph.cssStyle["float"] = "left";
 	}
 
-	parseHyperlink(node: Element, parent?: OpenXmlElement): WmlHyperlink {
-		let result: WmlHyperlink = <WmlHyperlink>{ type: DomType.Hyperlink, parent: parent, children: [] };
+	parseHyperlink(node: Element): WmlHyperlink {
+		let wmlHyperlink: WmlHyperlink = <WmlHyperlink>{
+			type: DomType.Hyperlink,
+			children: [],
+		};
 		let anchor = xml.attr(node, "anchor");
 		let relId = xml.attr(node, "id");
 
-		if (anchor)
-			result.href = "#" + anchor;
+		if (anchor) {
+			wmlHyperlink.href = "#" + anchor;
+		}
 
-		if (relId)
-			result.id = relId;
+		if (relId) {
+			wmlHyperlink.id = relId;
+		}
 
-		xmlUtil.foreach(node, c => {
-			switch (c.localName) {
+		xmlUtil.foreach(node, (child, i) => {
+			switch (child.localName) {
 				case "r":
-					result.children.push(this.parseRun(c, result));
+					wmlHyperlink.children.push(this.parseRun(child));
 					break;
 
 				default:
 					if (this.options.debug) {
-						console.warn(`DOCX:%c Unknown Hyperlink Element：${c.localName}`, 'color:#f75607');
+						console.warn(`DOCX:%c Unknown Hyperlink Element：${child.localName}`, 'color:#f75607');
 					}
 			}
 		});
 
-		return result;
+		return wmlHyperlink;
 	}
 
-	parseRun(node: Element, parent?: OpenXmlElement): WmlRun {
-		let result: WmlRun = <WmlRun>{ type: DomType.Run, parent: parent, children: [] };
+	parseRun(node: Element): WmlRun {
+		let wmlRun: WmlRun = {
+			type: DomType.Run,
+			children: [],
+		};
 
-		xmlUtil.foreach(node, c => {
-			c = this.checkAlternateContent(c);
+		xmlUtil.foreach(node, (child, i) => {
+			child = this.checkAlternateContent(child);
 
-			switch (c.localName) {
+			switch (child.localName) {
 				case "t":
-					let textContent = c.textContent;
+					let textContent = child.textContent;
 					// 是否保留空格
-					let is_preserve_space = xml.attr(c, "xml:space") === "preserve";
+					let is_preserve_space = xml.attr(child, "xml:space") === "preserve";
 					if (is_preserve_space) {
 						// \u00A0 = 不间断空格，英文应该一个空格，中文两个空格。受到font-family影响。
 						textContent = textContent.split(/\s/).join("\u00A0");
 					}
-					result.children.push(<WmlText>{
+					wmlRun.children.push(<WmlText>{
 						type: DomType.Text,
 						text: textContent
 					});
 					break;
 
 				case "delText":
-					result.children.push(<WmlText>{
+					wmlRun.children.push(<WmlText>{
 						type: DomType.DeletedText,
-						text: c.textContent
+						text: child.textContent
 					});
 					break;
 
 				case "commentReference":
-					result.children.push(new WmlCommentReference(xml.attr(c, "id")));
+					wmlRun.children.push(new WmlCommentReference(xml.attr(child, "id")));
 					break;
 
 				case "fldSimple":
-					result.children.push(<WmlFieldSimple>{
+					wmlRun.children.push(<WmlFieldSimple>{
 						type: DomType.SimpleField,
-						instruction: xml.attr(c, "instr"),
-						lock: xml.boolAttr(c, "lock", false),
-						dirty: xml.boolAttr(c, "dirty", false)
+						instruction: xml.attr(child, "instr"),
+						lock: xml.boolAttr(child, "lock", false),
+						dirty: xml.boolAttr(child, "dirty", false)
 					});
 					break;
 
 				case "instrText":
-					result.fieldRun = true;
-					result.children.push(<WmlInstructionText>{
+					wmlRun.fieldRun = true;
+					wmlRun.children.push(<WmlInstructionText>{
 						type: DomType.Instruction,
-						text: c.textContent
+						text: child.textContent
 					});
 					break;
 
 				case "fldChar":
-					result.fieldRun = true;
-					result.children.push(<WmlFieldChar>{
+					wmlRun.fieldRun = true;
+					wmlRun.children.push(<WmlFieldChar>{
 						type: DomType.ComplexField,
-						charType: xml.attr(c, "fldCharType"),
-						lock: xml.boolAttr(c, "lock", false),
-						dirty: xml.boolAttr(c, "dirty", false)
+						charType: xml.attr(child, "fldCharType"),
+						lock: xml.boolAttr(child, "lock", false),
+						dirty: xml.boolAttr(child, "dirty", false)
 					});
 					break;
 
 				case "noBreakHyphen":
-					result.children.push({ type: DomType.NoBreakHyphen });
+					wmlRun.children.push({ type: DomType.NoBreakHyphen });
 					break;
 
 				case "br":
-					result.children.push(<WmlBreak>{
+					wmlRun.children.push(<WmlBreak>{
 						type: DomType.Break,
-						break: xml.attr(c, "type") || "textWrapping",
+						break: xml.attr(child, "type") || "textWrapping",
 						props: {
-							clear: xml.attr(c, "clear")
+							clear: xml.attr(child, "clear")
 						}
 					});
 					break;
 
 				case "lastRenderedPageBreak":
-					result.children.push(<WmlBreak>{
+					wmlRun.children.push(<WmlBreak>{
 						type: DomType.Break,
 						break: "lastRenderedPageBreak"
 					});
 					break;
 				// SymbolChar：符号字符
 				case "sym":
-					result.children.push(<WmlSymbol>{
+					wmlRun.children.push(<WmlSymbol>{
 						type: DomType.Symbol,
-						font: xml.attr(c, "font"),
-						char: xml.attr(c, "char")
+						font: xml.attr(child, "font"),
+						char: xml.attr(child, "char")
 					});
 					break;
 
 				case "tab":
-					result.children.push({ type: DomType.Tab });
+					wmlRun.children.push({ type: DomType.Tab });
 					break;
 
 				case "footnoteReference":
-					result.children.push(<WmlNoteReference>{
+					wmlRun.children.push(<WmlNoteReference>{
 						type: DomType.FootnoteReference,
-						id: xml.attr(c, "id")
+						id: xml.attr(child, "id")
 					});
 					break;
 
 				case "endnoteReference":
-					result.children.push(<WmlNoteReference>{
+					wmlRun.children.push(<WmlNoteReference>{
 						type: DomType.EndnoteReference,
-						id: xml.attr(c, "id")
+						id: xml.attr(child, "id")
 					});
 					break;
 
 				case "drawing":
-					let d = this.parseDrawing(c);
-
-					if (d)
-						result.children = [d];
+					wmlRun.children.push(this.parseDrawing(child));
 					break;
 
 				case "pict":
-					result.children.push(this.parseVmlPicture(c));
+					wmlRun.children.push(this.parseVmlPicture(child));
 					break;
 
 				case "rPr":
-					this.parseRunProperties(c, result);
+					this.parseRunProperties(child, wmlRun);
 					break;
 
 				default:
 					if (this.options.debug) {
-						console.warn(`DOCX:%c Unknown Run Element：${c.localName}`, 'color:#f75607');
+						console.warn(`DOCX:%c Unknown Run Element：${child.localName}`, 'color:#f75607');
 					}
 			}
 		});
 
-		return result;
+		return wmlRun;
+	}
+
+	parseRunProperties(elem: Element, run: WmlRun) {
+		this.parseDefaultProperties(elem, run.cssStyle = {}, null, c => {
+			switch (c.localName) {
+				// Referenced Character Style
+				case "rStyle":
+					run.styleName = xml.attr(c, "val");
+					break;
+
+				// Subscript/Superscript Text
+				case "vertAlign":
+					run.verticalAlign = values.valueOfVertAlign(c, true);
+					break;
+
+				// Character Spacing Adjustment
+				case "spacing":
+					this.parseSpacing(c, run);
+					break;
+
+				default:
+					// pass other properties to parseDefaultProperties function
+					return false;
+			}
+
+			return true;
+		});
 	}
 
 	parseMathElement(elem: Element): OpenXmlElement {
 		const propsTag = `${elem.localName}Pr`;
-		const result = { type: mmlTagMap[elem.localName], children: [] } as OpenXmlElement;
+		const mathElement: OpenXmlElement = {
+			type: mmlTagMap[elem.localName],
+			children: [],
+		};
 
-		for (const el of xml.elements(elem)) {
-			const childType = mmlTagMap[el.localName];
+		xmlUtil.foreach(elem, (child, i) => {
+			const childType = mmlTagMap[child.localName];
 
 			if (childType) {
-				result.children.push(this.parseMathElement(el));
-			} else if (el.localName == "r") {
-				let run = this.parseRun(el);
-				run.type = DomType.MmlRun;
-				result.children.push(run);
-			} else if (el.localName == propsTag) {
-				result.props = this.parseMathProperties(el);
+				mathElement.children.push(this.parseMathElement(child));
+			} else if (child.localName == "r") {
+				let wmlRun: WmlRun = this.parseRun(child);
+				wmlRun.type = DomType.MmlRun;
+				mathElement.children.push(wmlRun);
+			} else if (child.localName == propsTag) {
+				mathElement.props = this.parseMathProperties(child);
 			}
-		}
+		});
 
-		return result;
+		return mathElement;
 	}
 
 	parseMathProperties(elem: Element): Record<string, any> {
@@ -994,33 +1067,6 @@ export class DocumentParser {
 		}
 
 		return result;
-	}
-
-	parseRunProperties(elem: Element, run: WmlRun) {
-		this.parseDefaultProperties(elem, run.cssStyle = {}, null, c => {
-			switch (c.localName) {
-				// Referenced Character Style
-				case "rStyle":
-					run.styleName = xml.attr(c, "val");
-					break;
-
-				// Subscript/Superscript Text
-				case "vertAlign":
-					run.verticalAlign = values.valueOfVertAlign(c, true);
-					break;
-
-				// Character Spacing Adjustment
-				case "spacing":
-					this.parseSpacing(c, run);
-					break;
-
-				default:
-					// pass other properties to parseDefaultProperties function
-					return false;
-			}
-
-			return true;
-		});
 	}
 
 	parseVmlPicture(elem: Element): OpenXmlElement {
@@ -2465,12 +2511,12 @@ export class DocumentParser {
 const knownColors = ['black', 'blue', 'cyan', 'darkBlue', 'darkCyan', 'darkGray', 'darkGreen', 'darkMagenta', 'darkRed', 'darkYellow', 'green', 'lightGray', 'magenta', 'none', 'red', 'white', 'yellow'];
 
 class xmlUtil {
-	static foreach(node: Element, cb: (n: Element) => void) {
-		for (let i = 0; i < node.childNodes.length; i++) {
-			let n = node.childNodes[i];
+	static foreach(node: Element, callback: (n: Element, i: number) => void) {
+		for (let i = 0; i < node.children.length; i++) {
+			let n = node.children[i];
 
 			if (n.nodeType == Node.ELEMENT_NODE) {
-				cb(<Element>n);
+				callback(n, i);
 			}
 		}
 	}

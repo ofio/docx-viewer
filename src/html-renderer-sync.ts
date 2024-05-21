@@ -790,11 +790,6 @@ export class HtmlRendererSync {
 		return pages;
 	}
 
-	// TODO 根据分页符号拆分段落
-	splitElementsBySymbol(current: OpenXmlElement, next: OpenXmlElement) {
-
-	}
-
 	// 生成所有的页面Page
 	async renderPages(document: DocumentElement) {
 		// 根据options.breakPages，选择是否分页
@@ -952,7 +947,7 @@ export class HtmlRendererSync {
 		return oPage;
 	}
 
-	// TODO 一个页面可能存在多个章节section，每个section拥有不同的分栏
+	// TODO 分栏：一个页面可能存在多个章节section，每个section拥有不同的分栏
 	// 多列分栏布局
 	createPageContent(props: SectionProperties): HTMLElement {
 		// 指代页面page，HTML5缺少page，以article代替
