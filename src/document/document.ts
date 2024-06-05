@@ -4,5 +4,5 @@ import { Page } from "./page";
 
 export interface DocumentElement extends OpenXmlElement {
 	pages: Page[];
-    props: SectionProperties;
+    sectProps: SectionProperties;
 }

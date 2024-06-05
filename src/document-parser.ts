@@ -81,8 +81,9 @@ export class DocumentParser {
 	parseDocumentFile(xmlDoc: Element): DocumentElement {
 		// document elements
 		let documentElement: DocumentElement = {
+			id: 'root',
 			pages: [],
-			props: {} as SectionProperties,
+			sectProps: {} as SectionProperties,
 			type: DomType.Document,
 		};
 		// 背景色
@@ -94,10 +95,10 @@ export class DocumentParser {
 		// 计算节属性
 		let sectionProperties = xml.element(body, "sectPr");
 		if (sectionProperties) {
-			documentElement.props = parseSectionProperties(sectionProperties, xml);
+			documentElement.sectProps = parseSectionProperties(sectionProperties, xml);
 		}
 		// 生成唯一uuid标识
-		documentElement.props.sectionId = uuid();
+		documentElement.sectProps.sectionId = uuid();
 
 		return documentElement;
 	}
@@ -116,7 +117,7 @@ export class DocumentParser {
 	parseBodyElements(element: Element): OpenXmlElement[] {
 		let children = [];
 
-		xmlUtil.foreach(element, (child, i) => {
+		xmlUtil.foreach(element, (child) => {
 			switch (child.localName) {
 				case "p":
 					children.push(this.parseParagraph(child));
@@ -662,7 +663,7 @@ export class DocumentParser {
 			type: DomType.Inserted,
 			children: [],
 		};
-		xmlUtil.foreach(node, (child, i) => {
+		xmlUtil.foreach(node, (child) => {
 			switch (child.localName) {
 				case "r":
 					wmlInserted.children.push(this.parseRun(child));
@@ -684,7 +685,7 @@ export class DocumentParser {
 			type: DomType.Deleted,
 			children: [],
 		};
-		xmlUtil.foreach(node, (child, i) => {
+		xmlUtil.foreach(node, (child) => {
 			switch (child.localName) {
 				case "r":
 					wmlDeleted.children.push(this.parseRun(child));
@@ -709,8 +710,9 @@ export class DocumentParser {
 			cssStyle: {},
 		};
 
-		xmlUtil.foreach(node, (child, i) => {
+		xmlUtil.foreach(node, (child) => {
 			switch (child.localName) {
+				// property
 				case "pPr":
 					this.parseParagraphProperties(child, wmlParagraph);
 					break;
@@ -832,7 +834,7 @@ export class DocumentParser {
 			wmlHyperlink.id = relId;
 		}
 
-		xmlUtil.foreach(node, (child, i) => {
+		xmlUtil.foreach(node, (child) => {
 			switch (child.localName) {
 				case "r":
 					wmlHyperlink.children.push(this.parseRun(child));
@@ -854,10 +856,16 @@ export class DocumentParser {
 			children: [],
 		};
 
-		xmlUtil.foreach(node, (child, i) => {
+		xmlUtil.foreach(node, (child) => {
+			// 检测备选内容
 			child = this.checkAlternateContent(child);
 
 			switch (child.localName) {
+				// property
+				case "rPr":
+					this.parseRunProperties(child, wmlRun);
+					break;
+
 				case "t":
 					let textContent = child.textContent;
 					// 是否保留空格
@@ -965,10 +973,6 @@ export class DocumentParser {
 					wmlRun.children.push(this.parseVmlPicture(child));
 					break;
 
-				case "rPr":
-					this.parseRunProperties(child, wmlRun);
-					break;
-
 				default:
 					if (this.options.debug) {
 						console.warn(`DOCX:%c Unknown Run Element：${child.localName}`, 'color:#f75607');
@@ -1013,7 +1017,7 @@ export class DocumentParser {
 			children: [],
 		};
 
-		xmlUtil.foreach(elem, (child, i) => {
+		xmlUtil.foreach(elem, (child) => {
 			const childType = mmlTagMap[child.localName];
 
 			if (childType) {

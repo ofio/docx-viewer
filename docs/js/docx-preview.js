@@ -1079,7 +1079,9 @@
         DomType["Header"] = "header";
         DomType["FootnoteReference"] = "footnoteReference";
         DomType["EndnoteReference"] = "endnoteReference";
+        DomType["Footnotes"] = "footnotes";
         DomType["Footnote"] = "footnote";
+        DomType["Endnotes"] = "endnotes";
         DomType["Endnote"] = "endnote";
         DomType["SimpleField"] = "simpleField";
         DomType["ComplexField"] = "complexField";
@@ -1121,6 +1123,32 @@
         DomType["CommentRangeStart"] = "commentRangeStart";
         DomType["CommentRangeEnd"] = "commentRangeEnd";
     })(DomType || (DomType = {}));
+    var MathDomType;
+    (function (MathDomType) {
+        MathDomType["Base"] = "mmlBase";
+        MathDomType["Bar"] = "mmlBar";
+        MathDomType["Box"] = "mmlBox";
+        MathDomType["Delimiter"] = "mmlDelimiter";
+        MathDomType["Degree"] = "mmlDegree";
+        MathDomType["Denominator"] = "mmlDenominator";
+        MathDomType["Function"] = "mmlFunction";
+        MathDomType["FunctionName"] = "mmlFunctionName";
+        MathDomType["Fraction"] = "mmlFraction";
+        MathDomType["GroupChar"] = "mmlGroupChar";
+        MathDomType["Limit"] = "mmlLimit";
+        MathDomType["LimitLower"] = "mmlLimitLower";
+        MathDomType["Matrix"] = "mmlMatrix";
+        MathDomType["MatrixRow"] = "mmlMatrixRow";
+        MathDomType["Math"] = "mmlMath";
+        MathDomType["MathParagraph"] = "mmlMathParagraph";
+        MathDomType["Nary"] = "mmlNary";
+        MathDomType["Numerator"] = "mmlNumerator";
+        MathDomType["PreSubSuper"] = "mmlPreSubSuper";
+        MathDomType["Radical"] = "mmlRadical";
+        MathDomType["SubArgument"] = "mmlSubArgument";
+        MathDomType["Subscript"] = "mmlSubscript";
+        MathDomType["Superscript"] = "mmlSuperscript";
+    })(MathDomType || (MathDomType = {}));
     class OpenXmlElementBase {
         constructor() {
             this.children = [];
@@ -1326,12 +1354,30 @@
         }
     }
 
+    class WmlNotes extends OpenXmlElementBase {
+        constructor() {
+            super(...arguments);
+            this.children = [];
+        }
+    }
     class WmlBaseNote {
+    }
+    class WmlFootnotes extends WmlNotes {
+        constructor() {
+            super(...arguments);
+            this.type = DomType.Footnotes;
+        }
     }
     class WmlFootnote extends WmlBaseNote {
         constructor() {
             super(...arguments);
             this.type = DomType.Footnote;
+        }
+    }
+    class WmlEndnotes extends WmlNotes {
+        constructor() {
+            super(...arguments);
+            this.type = DomType.Endnotes;
         }
     }
     class WmlEndnote extends WmlBaseNote {
@@ -1352,7 +1398,9 @@
             super(pkg, path, parser);
         }
         parseXml(root) {
-            this.notes = this._documentParser.parseNotes(root, "footnote", WmlFootnote);
+            this.rootElement = new WmlFootnotes();
+            this.rootElement.level = 1;
+            this.rootElement.children = this._documentParser.parseNotes(root, "footnote", WmlFootnote);
         }
     }
     class EndnotesPart extends BaseNotePart {
@@ -1360,7 +1408,9 @@
             super(pkg, path, parser);
         }
         parseXml(root) {
-            this.notes = this._documentParser.parseNotes(root, "endnote", WmlEndnote);
+            this.rootElement = new WmlEndnotes();
+            this.rootElement.level = 1;
+            this.rootElement.children = this._documentParser.parseNotes(root, "endnote", WmlEndnote);
         }
     }
 
@@ -1773,46 +1823,23 @@
         constructor(options) {
             this.options = Object.assign(Object.assign({}, defaultDocumentParserOptions), options);
         }
-        parseNotes(xmlDoc, elemName, elemClass) {
-            let result = [];
-            for (let el of globalXmlParser.elements(xmlDoc, elemName)) {
-                const node = new elemClass();
-                node.id = globalXmlParser.attr(el, "id");
-                node.noteType = globalXmlParser.attr(el, "type");
-                node.children = this.parseBodyElements(el);
-                result.push(node);
-            }
-            return result;
-        }
-        parseComments(xmlDoc) {
-            let result = [];
-            for (let el of globalXmlParser.elements(xmlDoc, "comment")) {
-                const item = new WmlComment();
-                item.id = globalXmlParser.attr(el, "id");
-                item.author = globalXmlParser.attr(el, "author");
-                item.initials = globalXmlParser.attr(el, "initials");
-                item.date = globalXmlParser.attr(el, "date");
-                item.children = this.parseBodyElements(el);
-                result.push(item);
-            }
-            return result;
-        }
         parseDocumentFile(xmlDoc) {
-            let xbody = globalXmlParser.element(xmlDoc, "body");
-            let background = globalXmlParser.element(xmlDoc, "background");
-            let sectPr = globalXmlParser.element(xbody, "sectPr");
-            let props = {};
-            if (sectPr) {
-                props = parseSectionProperties(sectPr, globalXmlParser);
-            }
-            props.sectionId = uuid();
-            return {
-                type: DomType.Document,
-                children: this.parseBodyElements(xbody),
+            let documentElement = {
+                id: 'root',
                 pages: [],
-                props,
-                cssStyle: background ? this.parseBackground(background) : {},
+                sectProps: {},
+                type: DomType.Document,
             };
+            let background = globalXmlParser.element(xmlDoc, "background");
+            documentElement.cssStyle = background ? this.parseBackground(background) : {};
+            let body = globalXmlParser.element(xmlDoc, "body");
+            documentElement.children = this.parseBodyElements(body);
+            let sectionProperties = globalXmlParser.element(body, "sectPr");
+            if (sectionProperties) {
+                documentElement.sectProps = parseSectionProperties(sectionProperties, globalXmlParser);
+            }
+            documentElement.sectProps.sectionId = uuid();
+            return documentElement;
         }
         parseBackground(elem) {
             let result = {};
@@ -1824,25 +1851,25 @@
         }
         parseBodyElements(element) {
             let children = [];
-            for (let elem of globalXmlParser.elements(element)) {
-                switch (elem.localName) {
+            xmlUtil.foreach(element, (child) => {
+                switch (child.localName) {
                     case "p":
-                        children.push(this.parseParagraph(elem));
+                        children.push(this.parseParagraph(child));
                         break;
                     case "tbl":
-                        children.push(this.parseTable(elem));
+                        children.push(this.parseTable(child));
                         break;
                     case "sdt":
-                        children.push(...this.parseSdt(elem, (e) => this.parseBodyElements(e)));
+                        children.push(...this.parseSdt(child));
                         break;
                     case "sectPr":
                         break;
                     default:
                         if (this.options.debug) {
-                            console.warn(`DOCX:%c Unknown Body Element：${elem.localName}`, 'color:red');
+                            console.warn(`DOCX:%c Unknown Body Element：${child.localName}`, 'color:red');
                         }
                 }
-            }
+            });
             return children;
         }
         parseStylesFile(xstyles) {
@@ -2215,23 +2242,73 @@
             });
             return result;
         }
-        parseSdt(node, parser) {
+        parseSdt(node) {
+            let result = [];
             const sdtContent = globalXmlParser.element(node, "sdtContent");
-            return sdtContent ? parser(sdtContent) : [];
+            if (sdtContent) {
+                result = this.parseBodyElements(sdtContent);
+            }
+            return result;
         }
-        parseInserted(node, parentParser) {
-            var _a, _b;
-            return {
+        parseNotes(xmlDoc, elemName, elemClass) {
+            let result = [];
+            for (let el of globalXmlParser.elements(xmlDoc, elemName)) {
+                const node = new elemClass();
+                node.id = globalXmlParser.attr(el, "id");
+                node.noteType = globalXmlParser.attr(el, "type");
+                node.children = this.parseBodyElements(el);
+                result.push(node);
+            }
+            return result;
+        }
+        parseComments(xmlDoc) {
+            let result = [];
+            for (let el of globalXmlParser.elements(xmlDoc, "comment")) {
+                const item = new WmlComment();
+                item.id = globalXmlParser.attr(el, "id");
+                item.author = globalXmlParser.attr(el, "author");
+                item.initials = globalXmlParser.attr(el, "initials");
+                item.date = globalXmlParser.attr(el, "date");
+                item.children = this.parseBodyElements(el);
+                result.push(item);
+            }
+            return result;
+        }
+        parseInserted(node) {
+            let wmlInserted = {
                 type: DomType.Inserted,
-                children: (_b = (_a = parentParser(node)) === null || _a === void 0 ? void 0 : _a.children) !== null && _b !== void 0 ? _b : []
+                children: [],
             };
+            xmlUtil.foreach(node, (child) => {
+                switch (child.localName) {
+                    case "r":
+                        wmlInserted.children.push(this.parseRun(child));
+                        break;
+                    default:
+                        if (this.options.debug) {
+                            console.warn(`DOCX:%c Unknown Inserted：${child.localName}`, 'color:#f75607');
+                        }
+                }
+            });
+            return wmlInserted;
         }
-        parseDeleted(node, parentParser) {
-            var _a, _b;
-            return {
+        parseDeleted(node) {
+            let wmlDeleted = {
                 type: DomType.Deleted,
-                children: (_b = (_a = parentParser(node)) === null || _a === void 0 ? void 0 : _a.children) !== null && _b !== void 0 ? _b : []
+                children: [],
             };
+            xmlUtil.foreach(node, (child) => {
+                switch (child.localName) {
+                    case "r":
+                        wmlDeleted.children.push(this.parseRun(child));
+                        break;
+                    default:
+                        if (this.options.debug) {
+                            console.warn(`DOCX:%c Unknown Inserted：${child.localName}`, 'color:#f75607');
+                        }
+                }
+            });
+            return wmlDeleted;
         }
         parseParagraph(node) {
             let wmlParagraph = {
@@ -2240,48 +2317,48 @@
                 props: {},
                 cssStyle: {},
             };
-            for (let el of globalXmlParser.elements(node)) {
-                switch (el.localName) {
+            xmlUtil.foreach(node, (child) => {
+                switch (child.localName) {
                     case "pPr":
-                        this.parseParagraphProperties(el, wmlParagraph);
+                        this.parseParagraphProperties(child, wmlParagraph);
                         break;
                     case "r":
-                        wmlParagraph.children.push(this.parseRun(el, wmlParagraph));
+                        wmlParagraph.children.push(this.parseRun(child));
                         break;
                     case "hyperlink":
-                        wmlParagraph.children.push(this.parseHyperlink(el, wmlParagraph));
+                        wmlParagraph.children.push(this.parseHyperlink(child));
                         break;
                     case "bookmarkStart":
-                        wmlParagraph.children.push(parseBookmarkStart(el, globalXmlParser));
+                        wmlParagraph.children.push(parseBookmarkStart(child, globalXmlParser));
                         break;
                     case "bookmarkEnd":
-                        wmlParagraph.children.push(parseBookmarkEnd(el, globalXmlParser));
+                        wmlParagraph.children.push(parseBookmarkEnd(child, globalXmlParser));
                         break;
                     case "commentRangeStart":
-                        wmlParagraph.children.push(new WmlCommentRangeStart(globalXmlParser.attr(el, "id")));
+                        wmlParagraph.children.push(new WmlCommentRangeStart(globalXmlParser.attr(child, "id")));
                         break;
                     case "commentRangeEnd":
-                        wmlParagraph.children.push(new WmlCommentRangeEnd(globalXmlParser.attr(el, "id")));
+                        wmlParagraph.children.push(new WmlCommentRangeEnd(globalXmlParser.attr(child, "id")));
                         break;
                     case "oMath":
                     case "oMathPara":
-                        wmlParagraph.children.push(this.parseMathElement(el));
+                        wmlParagraph.children.push(this.parseMathElement(child));
                         break;
                     case "sdt":
-                        wmlParagraph.children.push(...this.parseSdt(el, (e) => this.parseParagraph(e).children));
+                        wmlParagraph.children.push(...this.parseSdt(child));
                         break;
                     case "ins":
-                        wmlParagraph.children.push(this.parseInserted(el, (e) => this.parseParagraph(e)));
+                        wmlParagraph.children.push(this.parseInserted(child));
                         break;
                     case "del":
-                        wmlParagraph.children.push(this.parseDeleted(el, (e) => this.parseParagraph(e)));
+                        wmlParagraph.children.push(this.parseDeleted(child));
                         break;
                     default:
                         if (this.options.debug) {
-                            console.warn(`DOCX:%c Unknown Paragraph Element：${el.localName}`, 'color:#f75607');
+                            console.warn(`DOCX:%c Unknown Paragraph Element：${child.localName}`, 'color:#f75607');
                         }
                 }
-            }
+            });
             if (wmlParagraph.children.length === 0) {
                 let wmlBreak = { type: DomType.Break, "break": "textWrapping" };
                 let wmlRun = { type: DomType.Run, children: [wmlBreak] };
@@ -2315,153 +2392,180 @@
             if (dropCap == "drop")
                 paragraph.cssStyle["float"] = "left";
         }
-        parseHyperlink(node, parent) {
-            let result = { type: DomType.Hyperlink, parent: parent, children: [] };
+        parseHyperlink(node) {
+            let wmlHyperlink = {
+                type: DomType.Hyperlink,
+                children: [],
+            };
             let anchor = globalXmlParser.attr(node, "anchor");
             let relId = globalXmlParser.attr(node, "id");
-            if (anchor)
-                result.href = "#" + anchor;
-            if (relId)
-                result.id = relId;
-            xmlUtil.foreach(node, c => {
-                switch (c.localName) {
+            if (anchor) {
+                wmlHyperlink.href = "#" + anchor;
+            }
+            if (relId) {
+                wmlHyperlink.id = relId;
+            }
+            xmlUtil.foreach(node, (child) => {
+                switch (child.localName) {
                     case "r":
-                        result.children.push(this.parseRun(c, result));
+                        wmlHyperlink.children.push(this.parseRun(child));
                         break;
                     default:
                         if (this.options.debug) {
-                            console.warn(`DOCX:%c Unknown Hyperlink Element：${c.localName}`, 'color:#f75607');
+                            console.warn(`DOCX:%c Unknown Hyperlink Element：${child.localName}`, 'color:#f75607');
                         }
                 }
             });
-            return result;
+            return wmlHyperlink;
         }
-        parseRun(node, parent) {
-            let result = { type: DomType.Run, parent: parent, children: [] };
-            xmlUtil.foreach(node, c => {
-                c = this.checkAlternateContent(c);
-                switch (c.localName) {
+        parseRun(node) {
+            let wmlRun = {
+                type: DomType.Run,
+                children: [],
+            };
+            xmlUtil.foreach(node, (child) => {
+                child = this.checkAlternateContent(child);
+                switch (child.localName) {
+                    case "rPr":
+                        this.parseRunProperties(child, wmlRun);
+                        break;
                     case "t":
-                        let textContent = c.textContent;
-                        let is_preserve_space = globalXmlParser.attr(c, "xml:space") === "preserve";
+                        let textContent = child.textContent;
+                        let is_preserve_space = globalXmlParser.attr(child, "xml:space") === "preserve";
                         if (is_preserve_space) {
                             textContent = textContent.split(/\s/).join("\u00A0");
                         }
-                        result.children.push({
+                        wmlRun.children.push({
                             type: DomType.Text,
                             text: textContent
                         });
                         break;
                     case "delText":
-                        result.children.push({
+                        wmlRun.children.push({
                             type: DomType.DeletedText,
-                            text: c.textContent
+                            text: child.textContent
                         });
                         break;
                     case "commentReference":
-                        result.children.push(new WmlCommentReference(globalXmlParser.attr(c, "id")));
+                        wmlRun.children.push(new WmlCommentReference(globalXmlParser.attr(child, "id")));
                         break;
                     case "fldSimple":
-                        result.children.push({
+                        wmlRun.children.push({
                             type: DomType.SimpleField,
-                            instruction: globalXmlParser.attr(c, "instr"),
-                            lock: globalXmlParser.boolAttr(c, "lock", false),
-                            dirty: globalXmlParser.boolAttr(c, "dirty", false)
+                            instruction: globalXmlParser.attr(child, "instr"),
+                            lock: globalXmlParser.boolAttr(child, "lock", false),
+                            dirty: globalXmlParser.boolAttr(child, "dirty", false)
                         });
                         break;
                     case "instrText":
-                        result.fieldRun = true;
-                        result.children.push({
+                        wmlRun.fieldRun = true;
+                        wmlRun.children.push({
                             type: DomType.Instruction,
-                            text: c.textContent
+                            text: child.textContent
                         });
                         break;
                     case "fldChar":
-                        result.fieldRun = true;
-                        result.children.push({
+                        wmlRun.fieldRun = true;
+                        wmlRun.children.push({
                             type: DomType.ComplexField,
-                            charType: globalXmlParser.attr(c, "fldCharType"),
-                            lock: globalXmlParser.boolAttr(c, "lock", false),
-                            dirty: globalXmlParser.boolAttr(c, "dirty", false)
+                            charType: globalXmlParser.attr(child, "fldCharType"),
+                            lock: globalXmlParser.boolAttr(child, "lock", false),
+                            dirty: globalXmlParser.boolAttr(child, "dirty", false)
                         });
                         break;
                     case "noBreakHyphen":
-                        result.children.push({ type: DomType.NoBreakHyphen });
+                        wmlRun.children.push({ type: DomType.NoBreakHyphen });
                         break;
                     case "br":
-                        result.children.push({
+                        wmlRun.children.push({
                             type: DomType.Break,
-                            break: globalXmlParser.attr(c, "type") || "textWrapping",
+                            break: globalXmlParser.attr(child, "type") || "textWrapping",
                             props: {
-                                clear: globalXmlParser.attr(c, "clear")
+                                clear: globalXmlParser.attr(child, "clear")
                             }
                         });
                         break;
                     case "lastRenderedPageBreak":
-                        result.children.push({
+                        wmlRun.children.push({
                             type: DomType.Break,
                             break: "lastRenderedPageBreak"
                         });
                         break;
                     case "sym":
-                        result.children.push({
+                        wmlRun.children.push({
                             type: DomType.Symbol,
-                            font: globalXmlParser.attr(c, "font"),
-                            char: globalXmlParser.attr(c, "char")
+                            font: globalXmlParser.attr(child, "font"),
+                            char: globalXmlParser.attr(child, "char")
                         });
                         break;
                     case "tab":
-                        result.children.push({ type: DomType.Tab });
+                        wmlRun.children.push({ type: DomType.Tab });
                         break;
                     case "footnoteReference":
-                        result.children.push({
+                        wmlRun.children.push({
                             type: DomType.FootnoteReference,
-                            id: globalXmlParser.attr(c, "id")
+                            id: globalXmlParser.attr(child, "id")
                         });
                         break;
                     case "endnoteReference":
-                        result.children.push({
+                        wmlRun.children.push({
                             type: DomType.EndnoteReference,
-                            id: globalXmlParser.attr(c, "id")
+                            id: globalXmlParser.attr(child, "id")
                         });
                         break;
                     case "drawing":
-                        let d = this.parseDrawing(c);
-                        if (d)
-                            result.children = [d];
+                        wmlRun.children.push(this.parseDrawing(child));
                         break;
                     case "pict":
-                        result.children.push(this.parseVmlPicture(c));
-                        break;
-                    case "rPr":
-                        this.parseRunProperties(c, result);
+                        wmlRun.children.push(this.parseVmlPicture(child));
                         break;
                     default:
                         if (this.options.debug) {
-                            console.warn(`DOCX:%c Unknown Run Element：${c.localName}`, 'color:#f75607');
+                            console.warn(`DOCX:%c Unknown Run Element：${child.localName}`, 'color:#f75607');
                         }
                 }
             });
-            return result;
+            return wmlRun;
+        }
+        parseRunProperties(elem, run) {
+            this.parseDefaultProperties(elem, run.cssStyle = {}, null, c => {
+                switch (c.localName) {
+                    case "rStyle":
+                        run.styleName = globalXmlParser.attr(c, "val");
+                        break;
+                    case "vertAlign":
+                        run.verticalAlign = values.valueOfVertAlign(c, true);
+                        break;
+                    case "spacing":
+                        this.parseSpacing(c, run);
+                        break;
+                    default:
+                        return false;
+                }
+                return true;
+            });
         }
         parseMathElement(elem) {
             const propsTag = `${elem.localName}Pr`;
-            const result = { type: mmlTagMap[elem.localName], children: [] };
-            for (const el of globalXmlParser.elements(elem)) {
-                const childType = mmlTagMap[el.localName];
+            const mathElement = {
+                type: mmlTagMap[elem.localName],
+                children: [],
+            };
+            xmlUtil.foreach(elem, (child) => {
+                const childType = mmlTagMap[child.localName];
                 if (childType) {
-                    result.children.push(this.parseMathElement(el));
+                    mathElement.children.push(this.parseMathElement(child));
                 }
-                else if (el.localName == "r") {
-                    let run = this.parseRun(el);
-                    run.type = DomType.MmlRun;
-                    result.children.push(run);
+                else if (child.localName == "r") {
+                    let wmlRun = this.parseRun(child);
+                    wmlRun.type = DomType.MmlRun;
+                    mathElement.children.push(wmlRun);
                 }
-                else if (el.localName == propsTag) {
-                    result.props = this.parseMathProperties(el);
+                else if (child.localName == propsTag) {
+                    mathElement.props = this.parseMathProperties(child);
                 }
-            }
-            return result;
+            });
+            return mathElement;
         }
         parseMathProperties(elem) {
             const result = {};
@@ -2492,24 +2596,6 @@
                 }
             }
             return result;
-        }
-        parseRunProperties(elem, run) {
-            this.parseDefaultProperties(elem, run.cssStyle = {}, null, c => {
-                switch (c.localName) {
-                    case "rStyle":
-                        run.styleName = globalXmlParser.attr(c, "val");
-                        break;
-                    case "vertAlign":
-                        run.verticalAlign = values.valueOfVertAlign(c, true);
-                        break;
-                    case "spacing":
-                        this.parseSpacing(c, run);
-                        break;
-                    default:
-                        return false;
-                }
-                return true;
-            });
         }
         parseVmlPicture(elem) {
             const result = { type: DomType.VmlPicture, children: [] };
@@ -3549,11 +3635,11 @@
     }
     const knownColors = ['black', 'blue', 'cyan', 'darkBlue', 'darkCyan', 'darkGray', 'darkGreen', 'darkMagenta', 'darkRed', 'darkYellow', 'green', 'lightGray', 'magenta', 'none', 'red', 'white', 'yellow'];
     class xmlUtil {
-        static foreach(node, cb) {
-            for (let i = 0; i < node.childNodes.length; i++) {
-                let n = node.childNodes[i];
+        static foreach(node, callback) {
+            for (let i = 0; i < node.children.length; i++) {
+                let n = node.children[i];
                 if (n.nodeType == Node.ELEMENT_NODE) {
-                    cb(n);
+                    callback(n, i);
                 }
             }
         }
@@ -3838,10 +3924,10 @@
                 this.renderFontTable(document.fontTablePart, styleContainer);
             }
             if (document.footnotesPart) {
-                this.footnoteMap = ___namespace.keyBy(document.footnotesPart.notes, 'id');
+                this.footnoteMap = ___namespace.keyBy(document.footnotesPart.rootElement.children, 'id');
             }
             if (document.endnotesPart) {
-                this.endnoteMap = ___namespace.keyBy(document.endnotesPart.notes, 'id');
+                this.endnoteMap = ___namespace.keyBy(document.endnotesPart.rootElement.children, 'id');
             }
             if (document.settingsPart) {
                 this.defaultTabSize = (_a = document.settingsPart.settings) === null || _a === void 0 ? void 0 : _a.defaultTabStop;
@@ -4244,7 +4330,7 @@
                 pages = this.splitPage(document.children);
             }
             else {
-                pages = [new Page({ sectProps: document.props, children: document.children, })];
+                pages = [new Page({ sectProps: document.sectProps, children: document.children, })];
             }
             document.pages = pages;
             let prevProps = null;
@@ -4252,7 +4338,7 @@
                 this.currentFootnoteIds = [];
                 const page = pages[i];
                 const { sectProps } = page;
-                let sectionProps = sectProps !== null && sectProps !== void 0 ? sectProps : document.props;
+                let sectionProps = sectProps !== null && sectProps !== void 0 ? sectProps : document.sectProps;
                 let pageIndex = result.length;
                 let isFirstPage = prevProps != sectionProps;
                 let isLastPage = i === l - 1;
@@ -4959,10 +5045,10 @@
                     this.renderFontTable(document.fontTablePart, styleContainer);
                 }
                 if (document.footnotesPart) {
-                    this.footnoteMap = ___namespace.keyBy(document.footnotesPart.notes, 'id');
+                    this.footnoteMap = ___namespace.keyBy(document.footnotesPart.rootElement.children, 'id');
                 }
                 if (document.endnotesPart) {
-                    this.endnoteMap = ___namespace.keyBy(document.endnotesPart.notes, 'id');
+                    this.endnoteMap = ___namespace.keyBy(document.endnotesPart.rootElement.children, 'id');
                 }
                 if (document.settingsPart) {
                     this.defaultTabSize = (_a = document.settingsPart.settings) === null || _a === void 0 ? void 0 : _a.defaultTabStop;
@@ -5265,91 +5351,172 @@
                 }
             }
         }
-        splitPageBySymbol(elements) {
-            var _a;
-            let current_page = new Page({});
-            const pages = [current_page];
-            for (const elem of elements) {
-                current_page.children.push(elem);
-                if (elem.type == DomType.Paragraph) {
-                    const p = elem;
-                    const sectProps = p.props.sectionProperties;
+        splitPageBySymbol(documentElement) {
+            let root = ___namespace.cloneDeep(documentElement);
+            let current_page = new Page({ isSplit: true });
+            let pages = [];
+            function startNewPage() {
+                if (current_page.children.length > 0) {
+                    pages.push(current_page);
+                    current_page = new Page({ isSplit: true });
+                }
+            }
+            const splitElementsBySymbol = ([el, ancestors]) => {
+                var _a, _b;
+                if (el.type !== DomType.Break) ;
+                if (el.type === DomType.Paragraph) {
+                    const sectProps = el.props.sectionProperties;
+                    if (current_page.isSplit === false && sectProps === undefined) {
+                        return;
+                    }
+                    current_page.sectProps = sectProps;
                     if (sectProps) {
                         sectProps.sectionId = uuid();
                     }
-                    const default_paragraph_style = this.findStyle(p.styleName);
+                    const default_paragraph_style = this.findStyle(el.styleName);
                     if ((_a = default_paragraph_style === null || default_paragraph_style === void 0 ? void 0 : default_paragraph_style.paragraphProps) === null || _a === void 0 ? void 0 : _a.pageBreakBefore) {
-                        current_page.isSplit = true;
-                        current_page.sectProps = sectProps;
-                        current_page = new Page({});
-                        pages.push(current_page);
+                        let paragraph = path.pop();
+                        current_page.children = parseToTree(path);
+                        path = [paragraph];
+                        startNewPage();
+                        return;
                     }
-                    let pBreakIndex = -1;
-                    let rBreakIndex = -1;
-                    if (p.children) {
-                        pBreakIndex = p.children.findIndex(r => {
-                            var _a;
-                            rBreakIndex = (_a = r.children) === null || _a === void 0 ? void 0 : _a.findIndex((t) => {
-                                if (t.type != DomType.Break) {
-                                    return false;
-                                }
-                                if (t.break == 'lastRenderedPageBreak') {
-                                    return (current_page.children.length > 2 || !this.options.ignoreLastRenderedPageBreak);
-                                }
-                                if (t.break === 'page') {
-                                    return true;
-                                }
-                            });
-                            rBreakIndex = rBreakIndex !== null && rBreakIndex !== void 0 ? rBreakIndex : -1;
-                            return rBreakIndex != -1;
-                        });
+                    if (sectProps && el.children.length > 1) {
+                        return;
                     }
-                    if (pBreakIndex != -1) {
-                        current_page.isSplit = true;
-                        const exist_table = current_page.children.some(elem => elem.type === DomType.Table);
-                        if (exist_table) {
-                            current_page.isSplit = false;
+                    let ignoreSectionTypes = new Set([SectionType.Continuous, SectionType.NextColumn]);
+                    if (sectProps && ignoreSectionTypes.has(sectProps.type) === false) {
+                        current_page.children = parseToTree(path);
+                        path = [];
+                        startNewPage();
+                    }
+                }
+                if (el.type === DomType.Table) {
+                    if (current_page.isSplit) {
+                        current_page.isSplit = false;
+                    }
+                }
+                if (el.type === DomType.Hyperlink) {
+                    const exist_TOC = (_b = el === null || el === void 0 ? void 0 : el.href) === null || _b === void 0 ? void 0 : _b.includes('Toc');
+                    if (current_page.isSplit && exist_TOC) {
+                        current_page.isSplit = false;
+                    }
+                }
+                if (el.break == 'lastRenderedPageBreak') {
+                    if (current_page.isSplit === false) {
+                        return;
+                    }
+                    let { left, removeElementIds, ignoredElements } = checkAncestors(el);
+                    let paragraph = ancestors.find(node => node.type === DomType.Paragraph);
+                    let isSplitParagraph = path.some(node => {
+                        if (node.parent.id === (paragraph === null || paragraph === void 0 ? void 0 : paragraph.id)) {
+                            return !!node.prev;
                         }
-                        let exist_TOC = current_page.children.some((paragraph) => {
-                            return paragraph.children.some((elem) => {
-                                var _a;
-                                if (elem.type === DomType.Hyperlink) {
-                                    return (_a = elem === null || elem === void 0 ? void 0 : elem.href) === null || _a === void 0 ? void 0 : _a.includes('Toc');
-                                }
-                                return false;
-                            });
+                        return false;
+                    });
+                    if (left > 0) {
+                        removeElementIds.push(el.id);
+                        path = path.filter(node => !removeElementIds.includes(node.id));
+                        current_page.children = parseToTree(path);
+                        path = [...ignoredElements];
+                        let extraAncestors = ancestors.map((node) => {
+                            let copy = ___namespace.cloneDeep(node);
+                            copy.prev = null;
+                            if (copy.type === DomType.Paragraph && isSplitParagraph) {
+                                copy.cssStyle['text-indent'] = '0';
+                            }
+                            return copy;
                         });
-                        if (exist_TOC) {
-                            current_page.isSplit = false;
-                        }
+                        path.push(...extraAncestors);
+                        path.push(el);
+                        startNewPage();
                     }
-                    if (pBreakIndex != -1 || (sectProps && sectProps.type != SectionType.Continuous && sectProps.type != SectionType.NextColumn)) {
-                        current_page.sectProps = sectProps;
-                        current_page = new Page({});
-                        pages.push(current_page);
-                    }
-                    if (pBreakIndex != -1) {
-                        const breakRun = p.children[pBreakIndex];
-                        const is_split = rBreakIndex < breakRun.children.length - 1;
-                        if (pBreakIndex < p.children.length - 1 || is_split) {
-                            const origin_runs = p.children;
-                            const new_paragraph = Object.assign(Object.assign({}, p), { children: origin_runs.slice(pBreakIndex) });
-                            p.children = origin_runs.slice(0, pBreakIndex);
-                            current_page.children.push(new_paragraph);
-                            if (is_split) {
-                                const origin_elements = breakRun.children;
-                                const newRun = Object.assign(Object.assign({}, breakRun), { children: origin_elements.slice(0, rBreakIndex) });
-                                p.children.push(newRun);
-                                breakRun.children = origin_elements.slice(rBreakIndex);
+                    function checkAncestors(el) {
+                        let ignoredElementTypes = new Set([DomType.BookmarkStart]);
+                        let ignoredElements = [];
+                        let removeElementIds = [];
+                        let isExistSibling = false;
+                        if (el.prev) {
+                            let isIgnore = ignoredElementTypes.has(el.prev.type);
+                            if (isIgnore) {
+                                ignoredElements.push(el.prev);
+                                removeElementIds.push(el.prev.id);
+                            }
+                            else {
+                                isExistSibling = true;
                             }
                         }
+                        let left = isExistSibling ? 1 : 0;
+                        if (isExistSibling === false) {
+                            removeElementIds.push(el.parent.id);
+                            let result = checkAncestors(el.parent);
+                            left += result.left;
+                            removeElementIds.push(...result.removeElementIds);
+                            ignoredElements.push(...result.ignoredElements);
+                        }
+                        return { left, removeElementIds, ignoredElements };
                     }
                 }
-                if (elem.type === DomType.Table) {
-                    current_page.isSplit = false;
+                if (el.break == 'page') {
+                    console.log(el, ancestors);
+                    current_page.children = parseToTree(path);
+                    path = [];
+                    startNewPage();
+                }
+            };
+            let stack = [];
+            pushStack(root, []);
+            let path = [];
+            while (stack.length > 0) {
+                let [elem, ancestors] = stack.pop();
+                elem.id = uuid();
+                path.push(elem);
+                splitElementsBySymbol([elem, ancestors]);
+                pushStack(elem, ancestors);
+            }
+            if (path.length > 0) {
+                current_page.isSplit = false;
+                current_page.children = parseToTree([...path]);
+                pages.push(current_page);
+            }
+            function pushStack(elem, ancestors) {
+                var _a, _b;
+                const len = (_b = (_a = elem === null || elem === void 0 ? void 0 : elem.children) === null || _a === void 0 ? void 0 : _a.length) !== null && _b !== void 0 ? _b : 0;
+                if (len === 0) {
+                    return;
+                }
+                let nextChild = null;
+                for (let i = len - 1; i >= 0; i--) {
+                    const child = elem.children[i];
+                    child.parent = elem;
+                    child.next = nextChild;
+                    if (nextChild) {
+                        nextChild.prev = child;
+                    }
+                    if (i === 0) {
+                        child.prev = null;
+                    }
+                    nextChild = child;
+                    let childAncestors = elem.type === DomType.Document ? [] : [...ancestors, elem];
+                    stack.push([child, childAncestors]);
                 }
             }
-            let currentSectProps = null;
+            function parseToTree(nodes) {
+                let root = nodes.filter((node) => node.parent.id === 'root');
+                const parser = function (origin, root) {
+                    return root.map((parent) => {
+                        let children = origin.filter((child) => child.parent.id === parent.id);
+                        if (children.length) {
+                            return Object.assign(Object.assign({}, parent), { children: parser(origin, children) });
+                        }
+                        else {
+                            return Object.assign({}, parent);
+                        }
+                    });
+                };
+                return parser(nodes, root);
+            }
+            let currentSectProps = root.sectProps;
             for (let i = pages.length - 1; i >= 0; i--) {
                 if (pages[i].sectProps == null) {
                     pages[i].sectProps = currentSectProps;
@@ -5364,10 +5531,10 @@
             return __awaiter(this, void 0, void 0, function* () {
                 let pages;
                 if (this.options.breakPages) {
-                    pages = this.splitPageBySymbol(document.children);
+                    pages = this.splitPageBySymbol(document);
                 }
                 else {
-                    pages = [new Page({ sectProps: document.props, children: document.children, })];
+                    pages = [new Page({ sectProps: document.sectProps, children: document.children, })];
                 }
                 document.pages = pages;
                 let prevProps = null;
@@ -5376,8 +5543,7 @@
                     this.currentFootnoteIds = [];
                     const page = origin_pages[i];
                     const { sectProps } = page;
-                    this.processElement(page);
-                    page.sectProps = sectProps !== null && sectProps !== void 0 ? sectProps : document.props;
+                    page.sectProps = sectProps !== null && sectProps !== void 0 ? sectProps : document.sectProps;
                     page.isFirstPage = prevProps != page.sectProps;
                     page.isLastPage = i === origin_pages.length - 1;
                     page.checkingOverflow = false;
@@ -5418,10 +5584,10 @@
                 }
                 this.currentPage.checkingOverflow = false;
                 if (this.options.renderFootnotes) {
-                    yield this.renderNotes(this.currentFootnoteIds, this.footnoteMap, pageElement);
+                    yield this.renderNotes(DomType.Footnotes, this.currentFootnoteIds, this.footnoteMap, pageElement);
                 }
                 if (this.options.renderEndnotes && isLastPage) {
-                    yield this.renderNotes(this.currentEndnoteIds, this.endnoteMap, pageElement);
+                    yield this.renderNotes(DomType.Endnotes, this.currentEndnoteIds, this.endnoteMap, pageElement);
                 }
             });
         }
@@ -5507,12 +5673,15 @@
                 }
             });
         }
-        renderNotes(noteIds, notesMap, parent) {
-            return __awaiter(this, void 0, void 0, function* () {
-                const notes = noteIds.map(id => notesMap[id]).filter(x => x);
-                if (notes.length > 0) {
+        renderNotes() {
+            return __awaiter(this, arguments, void 0, function* (type = DomType.Footnotes, noteIds, notesMap, parent) {
+                const children = noteIds.map(id => notesMap[id]).filter(x => x);
+                if (children.length > 0) {
                     const oList = createElement('ol', null);
-                    yield this.renderElements(notes, oList);
+                    let notes = type === DomType.Footnotes ? new WmlFootnotes() : new WmlEndnotes();
+                    notes.children = children;
+                    this.processElement(notes);
+                    yield this.renderChildren(notes, oList);
                     parent.appendChild(oList);
                 }
             });
@@ -5522,7 +5691,7 @@
                 var _a, _b;
                 let overflows = [];
                 let pages = this.document.documentPart.body.pages;
-                let { pageId, isSplit, sectProps, children: current_page_children } = this.currentPage;
+                let { pageId, sectProps, children: current_page_children } = this.currentPage;
                 let pageIndex = pages.findIndex((page) => page.pageId === pageId);
                 for (let i = 0; i < children.length; i++) {
                     const elem = children[i];
@@ -5531,9 +5700,6 @@
                         elem.breakIndex = [];
                     }
                     const rendered_element = yield this.renderElement(elem, parent);
-                    if (isSplit) {
-                        continue;
-                    }
                     let overflow = (_b = (_a = rendered_element === null || rendered_element === void 0 ? void 0 : rendered_element.dataset) === null || _a === void 0 ? void 0 : _a.overflow) !== null && _b !== void 0 ? _b : Overflow.UNKNOWN;
                     let action;
                     switch (overflow) {
@@ -5576,7 +5742,7 @@
                     if (elem.level === 2) {
                         let next_page_children = current_page_children.splice(i);
                         const next_page = new Page({ sectProps, children: next_page_children });
-                        this.splitPageByBreakIndex(this.currentPage, next_page);
+                        this.splitElementsByBreakIndex(this.currentPage, next_page);
                         this.currentPage.isSplit = true;
                         this.currentPage.checkingOverflow = false;
                         pages[pageIndex] = this.currentPage;
@@ -5613,7 +5779,7 @@
                 return Overflow.UNKNOWN;
             });
         }
-        splitPageByBreakIndex(current, next) {
+        splitElementsByBreakIndex(current, next) {
             next === null || next === void 0 ? void 0 : next.children.forEach((child, i) => {
                 let { type, breakIndex, children } = child;
                 if (!breakIndex) {
@@ -5658,7 +5824,7 @@
                     child.breakIndex = undefined;
                 }
                 if (children.length > 0) {
-                    this.splitPageByBreakIndex(copy, child);
+                    this.splitElementsByBreakIndex(copy, child);
                 }
             });
         }
@@ -5915,17 +6081,6 @@
                 }
                 return oNode;
             });
-        }
-        isPageBreakElement(elem) {
-            if (elem.type != DomType.Break) {
-                return false;
-            }
-            if (elem.break == 'lastRenderedPageBreak') {
-                return !this.options.ignoreLastRenderedPageBreak;
-            }
-            if (elem.break === 'page') {
-                return true;
-            }
         }
         renderChildren(elem, parent) {
             return __awaiter(this, void 0, void 0, function* () {

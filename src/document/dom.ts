@@ -93,6 +93,7 @@ export enum MathDomType {
 }
 
 export interface OpenXmlElement {
+	id?: string,
 	type: DomType;
 	children?: OpenXmlElement[];
 	cssStyle?: Record<string, any>;
@@ -107,7 +108,7 @@ export interface OpenXmlElement {
 	styleName?: string;
 	//class mods
 	className?: string;
-
+	// 父级元素
 	parent?: OpenXmlElement;
 }
 

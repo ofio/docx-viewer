@@ -627,158 +627,272 @@ export class HtmlRendererSync {
 	// TODO 表格中也含有lastRenderedPageBreak，可以拆分表格
 	// TODO 待优化,lastRenderedPageBreak产生空run
 	// 初次拆分，根据分页符号拆分页面
-	splitPageBySymbol(elements: OpenXmlElement[]): Page[] {
-		// 当前操作page，elements数组包含子元素
-		let current_page: Page = new Page({} as PageProps);
-		// 切分出的所有pages
-		const pages: Page[] = [current_page];
+	splitPageBySymbol(documentElement: DocumentElement): Page[] {
+		// 深拷贝原始数据
+		let root: DocumentElement = _.cloneDeep(documentElement);
+		// 当前操作page，children数组包含子元素
+		let current_page: Page = new Page({ isSplit: true } as PageProps);
+		// 拆分页面的结果集合
+		let pages: Page[] = [];
 
-		for (const elem of elements) {
-			// 添加elem进入当前操作page
-			current_page.children.push(elem);
-			/* 段落基本结构：paragraph => run => text... */
-			if (elem.type == DomType.Paragraph) {
-				const p = elem as WmlParagraph;
-				// 节属性，代表分节符
-				const sectProps: SectionProperties = p.props.sectionProperties;
+		// 创建新的页面
+		function startNewPage() {
+			if (current_page.children.length > 0) {
+				pages.push(current_page);
+				current_page = new Page({ isSplit: true } as PageProps);
+			}
+		}
+
+		// 根据分页符号拆分段落
+		const splitElementsBySymbol = ([el, ancestors]: TreeTuple) => {
+			// 如果不是分页符、换行符、分栏符
+			if (el.type !== DomType.Break) {
+
+			}
+			// 节属性
+			if (el.type === DomType.Paragraph) {
+				// 节属性，代表分节符，包含页眉、页脚、页码、页边距等属性
+				const sectProps: SectionProperties = el.props.sectionProperties;
+
+				if (current_page.isSplit === false && sectProps === undefined) {
+					return;
+				}
+				// 无论节属性是否存在，都需要添加到当前page中，后续将会从尾至头依次赋值节属性
+				current_page.sectProps = sectProps;
 				// 节属性生成唯一uuid，每一个节中page均是同一个uuid，代表属于同一个节
 				if (sectProps) {
 					sectProps.sectionId = uuid();
 				}
 				// 查找内置默认段落样式
-				const default_paragraph_style = this.findStyle(p.styleName);
-
-				// 检测段落内置样式是否存在段前分页符
+				const default_paragraph_style = this.findStyle(el.styleName);
+				// 检测段落内置样式是否存在段前分页
 				if (default_paragraph_style?.paragraphProps?.pageBreakBefore) {
-					// 标记当前page已拆分
-					current_page.isSplit = true;
-					// 保存当前page的sectionProps
-					current_page.sectProps = sectProps;
-					// 重置新的page
-					current_page = new Page({} as PageProps);
-					// 添加新page
-					pages.push(current_page);
+					// 去除当前段落
+					let paragraph = path.pop();
+					// 将当前break元素左侧所有元素作为page的子元素
+					current_page.children = parseToTree(path);
+					// 将当前段落添加到下一页page中
+					path = [paragraph];
+					// 开始新的Page
+					startNewPage();
+					return;
 				}
-
-				// 段落部分Break索引
-				let pBreakIndex = -1;
-				// Run部分Break索引
-				let rBreakIndex = -1;
-
-				// 查询段落中Break索引
-				if (p.children) {
-					// 计算段落Break索引
-					pBreakIndex = p.children.findIndex(r => {
-						// 计算Run Break索引
-						rBreakIndex = r.children?.findIndex((t: OpenXmlElement) => {
-							// 如果不是分页符、换行符、分栏符
-							if (t.type != DomType.Break) {
-								return false;
-							}
-							// 默认忽略lastRenderedPageBreak，
-							if ((t as WmlBreak).break == 'lastRenderedPageBreak') {
-								// 判断前一个p段落，
-								// 如果含有分页符、分节符，那它们一定位于上一个page，数组为空；
-								// 如果前一个段落是普通段落，数组长度大于0，则代表文字过多超过一页，需要自动分页
-								return (current_page.children.length > 2 || !this.options.ignoreLastRenderedPageBreak);
-							}
-							// 分页符
-							if ((t as WmlBreak).break === 'page') {
-								return true;
-							}
-						});
-						rBreakIndex = rBreakIndex ?? -1;
-						return rBreakIndex != -1;
-					});
+				// 节属性存在，段落中包含子元素时，不再依据分节符拆分，以子元素作为拆分依据
+				if (sectProps && el.children.length > 1) {
+					return;
 				}
-				// 段落Break索引
-				if (pBreakIndex != -1) {
-					// 一般情况下，标记当前page：已拆分
-					current_page.isSplit = true;
-					// 检测分页符之前的所有元素是否存在表格
-					const exist_table: boolean = current_page.children.some(
-						elem => elem.type === DomType.Table
-					);
-					// 存在表格
-					if (exist_table) {
-						// 表格可能需要计算之后拆分，标记当前page：未拆分
-						current_page.isSplit = false;
+				// TODO 节属性sectProps暂时不支持continuous/nextColumn
+				let ignoreSectionTypes: Set<SectionType> = new Set([SectionType.Continuous, SectionType.NextColumn]);
+				// 段落中存在节属性sectProps，且类型不是continuous/nextColumn
+				if (sectProps && ignoreSectionTypes.has(sectProps.type as SectionType) === false) {
+					// 将当前break元素左侧所有元素作为page的子元素
+					current_page.children = parseToTree(path);
+					// 清空path
+					path = [];
+					// 开始新的Page
+					startNewPage();
+				}
+			}
+			// 表格
+			if (el.type === DomType.Table) {
+				// 仅当isSplit === true，则标记当前page：未拆分，需要渲染期进行拆分
+				if (current_page.isSplit) {
+					current_page.isSplit = false;
+				}
+			}
+			// 链接
+			if (el.type === DomType.Hyperlink) {
+				// 检测链接是否存在目录
+				const exist_TOC: boolean = (el as WmlHyperlink)?.href?.includes('Toc');
+				// 仅当isSplit === true，则标记当前page：未拆分，需要渲染期进行拆分
+				if (current_page.isSplit && exist_TOC) {
+					current_page.isSplit = false;
+				}
+			}
+			// lastRenderedPageBreak
+			if ((el as WmlBreak).break == 'lastRenderedPageBreak') {
+				if (current_page.isSplit === false) {
+					return;
+				}
+				// 追溯其父级以及祖先元素，一直追溯至根节点；left：统计左侧相邻兄弟元素数量，remove：即将移除元素id的集合
+				let { left, removeElementIds, ignoredElements } = checkAncestors(el);
+				// 查找其祖先元素中的paragraph元素
+				let paragraph = ancestors.find(node => node.type === DomType.Paragraph);
+				// 判断是否拆分段落
+				let isSplitParagraph = path.some(node => {
+					if (node.parent.id === paragraph?.id) {
+						// 检查node.prev是否存在
+						return !!node.prev;
 					}
-					// 检测分页符之前的所有元素是否存在目录
-					let exist_TOC: boolean = current_page.children.some((paragraph) => {
-						return paragraph.children.some((elem) => {
-							if (elem.type === DomType.Hyperlink) {
-								return (elem as WmlHyperlink)?.href?.includes('Toc')
-							}
-							return false;
-						});
+					return false;
+				});
+				// left数量 > 0，说明左侧存在元素，则生成新的page
+				if (left > 0) {
+					// 添加当前break元素id至移除集合
+					removeElementIds.push(el.id);
+					// 根据移除集合，删除元素
+					path = path.filter(node => !removeElementIds.includes(node.id));
+					// 将当前break元素左侧所有元素作为page的子元素
+					current_page.children = parseToTree(path);
+					// 忽略元素要重新在下一页生成，否则会丢失
+					path = [...ignoredElements];
+					// 将祖先元素添加入path集合
+					let extraAncestors = ancestors.map((node: TreeNode) => {
+						let copy = _.cloneDeep(node);
+						// 修改lastRenderedPageBreak的祖先元素prev指针为null
+						copy.prev = null;
+						// 段落拆分之后，下一页段落，重设缩进为0
+						if (copy.type === DomType.Paragraph && isSplitParagraph) {
+							copy.cssStyle['text-indent'] = '0'
+						}
+						return copy;
 					});
-					// 	存在目录
-					if (exist_TOC) {
-						// 目录可能需要计算之后拆分，标记当前page：未拆分
-						current_page.isSplit = false;
-					}
+					path.push(...extraAncestors)
+					// 在下一页中生成lastRenderedPageBreak相关的元素
+					path.push(el);
+					// 拆分元素
+					startNewPage();
 				}
-				/*
-				 *
-				 * 分页有两种情况：
-				 * 1、段落中存在节属性sectProps，且类型不是continuous/nextColumn
-				 * 2、段落存在Break索引
-				 *
-				 */
-				if (pBreakIndex != -1 || (sectProps && sectProps.type != SectionType.Continuous && sectProps.type != SectionType.NextColumn)) {
-					// 保存当前page的pageProps
-					current_page.sectProps = sectProps;
-					// 重置新的page
-					current_page = new Page({} as PageProps);
-					// 添加新page
-					pages.push(current_page);
-				}
-				// 根据段落Break索引，拆分Run部分
-				if (pBreakIndex != -1) {
-					// 即将拆分的Run部分
-					const breakRun = p.children[pBreakIndex];
-					// 是否需要拆分Run
-					const is_split = rBreakIndex < breakRun.children.length - 1;
 
-					if (pBreakIndex < p.children.length - 1 || is_split) {
-						// 原始的Run数组
-						const origin_runs = p.children;
-						// 切出Break索引后面的Run，创建新段落
-						const new_paragraph: WmlParagraph = {
-							...p,
-							children: origin_runs.slice(pBreakIndex),
-						};
-						// 保存Break索引前面的Run
-						p.children = origin_runs.slice(0, pBreakIndex);
-						// 添加新段落
-						current_page.children.push(new_paragraph);
-
-						if (is_split) {
-							// Run下面原始的元素
-							const origin_elements = breakRun.children;
-							// 切出Run Break索引前面的元素，创建新Run
-							const newRun = {
-								...breakRun,
-								children: origin_elements.slice(0, rBreakIndex),
-							};
-							// 将新Run放入上一个page的段落
-							p.children.push(newRun);
-							// 切出Run Break索引后面的元素
-							breakRun.children = origin_elements.slice(rBreakIndex);
+				// 校验lastRenderedPageBreak所有祖先元素，返回值：{left:统计左侧相邻兄弟元素数量,remove:即将移除元素id的集合}
+				function checkAncestors(el: TreeNode) {
+					// 忽略元素类型集合
+					let ignoredElementTypes = new Set([DomType.BookmarkStart]);
+					// 忽略元素集合
+					let ignoredElements: TreeNode[] = [];
+					// 即将移除元素的集合
+					let removeElementIds: string[] = [];
+					// 查找el左侧是否存在兄弟元素
+					let isExistSibling = false;
+					if (el.prev) {
+						let isIgnore = ignoredElementTypes.has(el.prev.type);
+						if (isIgnore) {
+							// 添加忽略元素
+							ignoredElements.push(el.prev);
+							// 忽略元素添加入移除集合
+							removeElementIds.push(el.prev.id);
+						} else {
+							isExistSibling = true;
 						}
 					}
+					// 存在兄弟元素，则计数+1，终止递归
+					let left: number = isExistSibling ? 1 : 0;
+					// 左侧不存在兄弟元素，则递归查找父级元素
+					if (isExistSibling === false) {
+						// 将父级元素的id添加入移除集合
+						removeElementIds.push(el.parent.id);
+						// 继续清理父级级
+						let result = checkAncestors(el.parent);
+						// 累加统计数量
+						left += result.left;
+						// 合并移除集合
+						removeElementIds.push(...result.removeElementIds);
+						// 合并忽略元素集合
+						ignoredElements.push(...result.ignoredElements);
+					}
+					return { left, removeElementIds, ignoredElements };
 				}
 			}
+			// 分页符
+			if ((el as WmlBreak).break == 'page') {
+				console.log(el, ancestors);
+				// 将当前break元素左侧所有元素作为page的子元素
+				current_page.children = parseToTree(path);
+				// 清空path
+				path = [];
+				// 开始新的Page
+				startNewPage();
+			}
+		};
 
-			// elem元素是表格，需要渲染过程中拆分page
-			if (elem.type === DomType.Table) {
-				// 标记当前page：未拆分
-				current_page.isSplit = false;
+		// Tree节点
+		interface TreeNode extends OpenXmlElement {
+			// 前一个兄弟指针
+			prev?: TreeNode | null;
+			// 下一个兄弟指针
+			next?: TreeNode | null;
+		}
+
+		// 元组Tuple类型
+		type TreeTuple = [TreeNode, TreeNode[]];
+		// Stack：栈
+		let stack: TreeTuple[] = [];
+		// 将子元素压入栈
+		pushStack(root, []);
+		// 遍历路径
+		let path: TreeNode[] = [];
+		// 循环条件，栈不为空
+		while (stack.length > 0) {
+			// 弹出栈顶元素
+			let [elem, ancestors] = stack.pop();
+			// 处理当前元素，生成父子元素ID
+			elem.id = uuid();
+			// 记录遍历路径
+			path.push(elem);
+			// 根据分页符号、分节符拆分段落
+			splitElementsBySymbol([elem, ancestors]);
+			// 如果该节点有子节点，将当前节点的子节点逆序压入栈，这样可以保证先遍历左子树，继续下一次循环
+			pushStack(elem, ancestors);
+		}
+		// 剩余的元素作为最后一个page的子元素
+		if (path.length > 0) {
+			current_page.isSplit = false;
+			current_page.children = parseToTree([...path]);
+			pages.push(current_page);
+		}
+
+		// 倒序压入栈
+		function pushStack(elem: TreeNode, ancestors: TreeNode[]) {
+			const len = elem?.children?.length ?? 0;
+			// 如果没有子节点，则直接返回
+			if (len === 0) {
+				return;
+			}
+			// 用于跟踪前一个兄弟节点,初始化前一个子元素为null
+			let nextChild: TreeNode | null = null;
+			// 遍历子节点（倒序），设置prev和next指针
+			for (let i = len - 1; i >= 0; i--) {
+				const child = elem.children[i] as TreeNode;
+				// 标识当前元素的父级ID
+				child.parent = elem;
+				// 设置当前节点的next指针
+				child.next = nextChild;
+				// 如果不是最后一个节点，则设置下一个节点的prev指针
+				if (nextChild) {
+					nextChild.prev = child;
+				}
+				// 如果是第一个节点，则设置当前节点的prev指针为null
+				if (i === 0) {
+					child.prev = null;
+				}
+				// 更新prevChild为当前节点，以便下一次迭代使用
+				nextChild = child;
+				// root根节点不能作为祖先节点
+				let childAncestors = elem.type === DomType.Document ? [] : [...ancestors, elem];
+				// 压入栈
+				stack.push([child, childAncestors]);
 			}
 		}
+
+		// 将元素转换为树形结构，方便后续操作
+		function parseToTree(nodes: TreeNode[]) {
+			let root = nodes.filter((node: TreeNode) => node.parent.id === 'root');
+			// 转换函数
+			const parser = function (origin: TreeNode[], root: TreeNode[]) {
+				return root.map((parent: TreeNode) => {
+					let children: TreeNode[] = origin.filter((child: TreeNode) => child.parent.id === parent.id);
+					if (children.length) {
+						return { ...parent, children: parser(origin, children) }
+					} else {
+						return { ...parent }
+					}
+				});
+			}
+			return parser(nodes, root);
+		}
+
 		// 一个节可能分好几个页，但是节属性sectionProps存在当前节中最后一段对应的 paragraph 元素的子元素。即：[null,null,null,setPr];
-		let currentSectProps = null;
+		let currentSectProps = root.sectProps;
 		// 倒序给每一页填充sectionProps，方便后期页面渲染
 		for (let i = pages.length - 1; i >= 0; i--) {
 			if (pages[i].sectProps == null) {
@@ -796,10 +910,10 @@ export class HtmlRendererSync {
 		let pages: Page[];
 		if (this.options.breakPages) {
 			// 根据分页符，初步拆分页面
-			pages = this.splitPageBySymbol(document.children);
+			pages = this.splitPageBySymbol(document);
 		} else {
 			// 不分页则，只有一个page
-			pages = [new Page({ sectProps: document.props, children: document.children, } as PageProps)];
+			pages = [new Page({ sectProps: document.sectProps, children: document.children, } as PageProps)];
 		}
 		// 初步分页结果,缓存至body中
 		document.pages = pages;
@@ -813,7 +927,7 @@ export class HtmlRendererSync {
 			const page: Page = origin_pages[i];
 			const { sectProps } = page;
 			// sectionProps属性不存在，则使用文档级别props;
-			page.sectProps = sectProps ?? document.props;
+			page.sectProps = sectProps ?? document.sectProps;
 			// 是否本小节的第一个page
 			page.isFirstPage = prevProps != page.sectProps;
 			// TODO 是否最后一个page,此时分页未完成，计算并不准确，影响到尾注的渲染
@@ -1047,7 +1161,7 @@ export class HtmlRendererSync {
 		// 已拆分的Pages数组
 		let pages: Page[] = this.document.documentPart.body.pages;
 		// 当前Page
-		let { pageId, isSplit, sectProps, children: current_page_children } = this.currentPage;
+		let { pageId, sectProps, children: current_page_children } = this.currentPage;
 
 		// 计算当前Page的索引
 		let pageIndex: number = pages.findIndex((page) => page.pageId === pageId);
@@ -1602,22 +1716,6 @@ export class HtmlRendererSync {
 		}
 
 		return oNode;
-	}
-
-	// 判断是否存在分页元素
-	isPageBreakElement(elem: OpenXmlElement): boolean {
-		// 分页符、换行符、分栏符
-		if (elem.type != DomType.Break) {
-			return false;
-		}
-		// 默认以lastRenderedPageBreak作为分页依据
-		if ((elem as WmlBreak).break == 'lastRenderedPageBreak') {
-			return !this.options.ignoreLastRenderedPageBreak;
-		}
-		// 分页符
-		if ((elem as WmlBreak).break === 'page') {
-			return true;
-		}
 	}
 
 	// 根据XML对象渲染子元素，并插入父级元素

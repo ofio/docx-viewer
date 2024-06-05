@@ -794,7 +794,7 @@ export class HtmlRenderer {
 			pages = this.splitPage(document.children);
 		} else {
 			// 不分页则，只有一个page
-			pages = [new Page({ sectProps: document.props, children: document.children, } as PageProps)];
+			pages = [new Page({ sectProps: document.sectProps, children: document.children, } as PageProps)];
 		}
 		// 缓存分页的结果
 		document.pages = pages;
@@ -806,7 +806,7 @@ export class HtmlRenderer {
 			const page: Page = pages[i];
 			const { sectProps } = page;
 			// sectionProps属性不存在，则使用文档级别props;
-			let sectionProps = sectProps ?? document.props;
+			let sectionProps = sectProps ?? document.sectProps;
 			// 页码
 			let pageIndex = result.length;
 			// 是否本小节的第一个page
