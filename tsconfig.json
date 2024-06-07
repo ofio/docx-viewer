@@ -3,7 +3,7 @@
     "module": "ES2022",
     "declaration": false,
     "noImplicitAny": false,
-    "noEmitOnError": false,
+    "noEmitOnError": true,
     "pretty": true,
     "removeComments": true,
     "preserveConstEnums": true,
@@ -11,9 +11,9 @@
     "noEmitHelpers": false,
     "importHelpers": false,
     "esModuleInterop": true,
-    "moduleResolution": "node",
+    "moduleResolution": "bundler",
     "target": "es6",
-    "outDir": "dist",
+    "noEmit": true,
     "lib": [
       "ESNext",
       "DOM"
