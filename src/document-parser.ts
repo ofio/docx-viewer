@@ -590,7 +590,7 @@ export class DocumentParser {
 
 				case "lvlPicBulletId":
 					let id = xml.intAttr(n, "val");
-					result.bullet = bullets.find(x => x.id == id);
+					result.bullet = bullets.find(x => x?.id == id);
 					break;
 
 				case "lvlText":
