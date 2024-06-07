@@ -795,7 +795,6 @@ export class HtmlRendererSync {
 			}
 			// 分页符
 			if ((el as WmlBreak).break == 'page') {
-				console.log(el, ancestors);
 				// 将当前break元素左侧所有元素作为page的子元素
 				current_page.children = parseToTree(path);
 				// 清空path
@@ -913,7 +912,7 @@ export class HtmlRendererSync {
 			pages = this.splitPageBySymbol(document);
 		} else {
 			// 不分页则，只有一个page
-			pages = [new Page({ sectProps: document.sectProps, children: document.children, } as PageProps)];
+			pages = [new Page({ isSplit: true, sectProps: document.sectProps, children: document.children, } as PageProps)];
 		}
 		// 初步分页结果,缓存至body中
 		document.pages = pages;
