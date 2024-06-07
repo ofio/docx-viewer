@@ -2409,18 +2409,70 @@ export class DocumentParser {
 	}
 
 	parseIndentation(node: Element, style: Record<string, string>) {
-		let firstLine = xml.lengthAttr(node, "firstLine");
-		let hanging = xml.lengthAttr(node, "hanging");
-		let left = xml.lengthAttr(node, "left");
-		let start = xml.lengthAttr(node, "start");
-		let right = xml.lengthAttr(node, "right");
-		let end = xml.lengthAttr(node, "end");
+		let indentation: Record<string, any> = {};
+		// 不同的单位将会产生不同的属性
+		for (const attr of xml.attrs(node)) {
+			switch (attr.localName) {
+				case "end":
+					indentation.end = xml.lengthAttr(node, "end");
+					break;
 
-		if (firstLine) style["text-indent"] = firstLine;
-		if (hanging) style["text-indent"] = `-${hanging}`;
+				case "endChars":
+					indentation.endCharacters = xml.lengthAttr(node, "endChars");
+					break;
+
+				case "firstLine":
+					indentation.firstLine = xml.lengthAttr(node, "firstLine");
+					break;
+
+				case "firstLineChars":
+					indentation.firstLineChars = xml.lengthAttr(node, "firstLineChars");
+					break;
+
+				case "hanging":
+					indentation.hanging = xml.lengthAttr(node, "hanging");
+					break;
+
+				case "hangingChars":
+					indentation.hangingChars = xml.lengthAttr(node, "hangingChars");
+					break;
+
+				case "left":
+					indentation.left = xml.lengthAttr(node, "left");
+					break;
+
+				case "leftChars":
+					indentation.leftChars = xml.lengthAttr(node, "leftChars");
+					break;
+
+				case "right":
+					indentation.right = xml.lengthAttr(node, "right");
+					break;
+
+				case "rightChars":
+					indentation.rightChars = xml.lengthAttr(node, "rightChars");
+					break;
+
+				case "start":
+					indentation.start = xml.lengthAttr(node, "start");
+					break;
+
+				case "startChars":
+					indentation.startChars = xml.lengthAttr(node, "startChars");
+					break;
+
+				default:
+					if (this.options.debug) {
+						console.warn(`DOCX:%c Unknown Indentation Property：${attr.localName}`, 'color:#f75607');
+					}
+			}
+		}
+		// TODO 处理文本缩进
+		if (indentation.firstLine) style["text-indent"] = indentation.firstLine;
+		if (indentation.hanging) style["text-indent"] = `-${indentation.hanging}`;
 		// 段落缩进，通过padding实现
-		if (left || start) style["padding-left"] = left || start;
-		if (right || end) style["padding-right"] = right || end;
+		if (indentation.left || indentation.start) style["padding-left"] = indentation.left || indentation.start;
+		if (indentation.right || indentation.end) style["padding-right"] = indentation.right || indentation.end;
 	}
 
 	// the additional amount of character pitch to the contents of a run
