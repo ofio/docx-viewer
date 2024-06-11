@@ -200,6 +200,7 @@ export class HtmlRendererSync {
 			.${c} span { white-space: pre-wrap; overflow-wrap: break-word; }
 			.${c} a { color: inherit; text-decoration: inherit; }
 			.${c} img, ${c} svg { vertical-align: baseline; }
+			.${c} svg { fill: transparent; }
 			.${c} .clearfix::after { content: ""; display: block; line-height: 0; clear: both; }
 		`;
 
