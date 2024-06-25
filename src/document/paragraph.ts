@@ -22,15 +22,15 @@ export interface ParagraphProperties extends CommonProperties {
 	sectionProperties?: SectionProperties;
 	snapToGrid?: boolean;
 	spacing?: SpacingBetweenLines;
-	tabs?: ParagraphTab[];
+	tabs?: TabStop[];
 
 	textAlignment?: "auto" | "baseline" | "bottom" | "center" | "top" | string;
 }
 
-export interface ParagraphTab {
+export interface TabStop {
 	style: "bar" | "center" | "clear" | "decimal" | "end" | "num" | "start" | "left" | "right";
 	leader: "none" | "dot" | "heavy" | "hyphen" | "middleDot" | "underscore";
-	position: Length;
+	position: number;
 }
 
 export interface ParagraphNumbering {
@@ -147,10 +147,10 @@ export function parseParagraphProperty(elem: Element, props: ParagraphProperties
 	return true;
 }
 
-export function parseTabs(elem: Element, xml: XmlParser): ParagraphTab[] {
+export function parseTabs(elem: Element, xml: XmlParser): TabStop[] {
 	return xml.elements(elem, "tab")
-		.map(e => <ParagraphTab>{
-			position: xml.lengthAttr(e, "pos"),
+		.map(e => <TabStop>{
+			position: xml.numberAttr(e, "pos"),
 			leader: xml.attr(e, "leader"),
 			style: xml.attr(e, "val")
 		});

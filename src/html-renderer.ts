@@ -22,7 +22,7 @@ import { DocumentElement } from './document/document';
 import { WmlParagraph } from './document/paragraph';
 import * as _ from 'lodash-es';
 import { asArray, escapeClassName, uuid } from './utils';
-import { computePixelToPoint, updateTabStop } from './javascript';
+import { computePointToPixelRatio, updateTabStop } from './javascript';
 import { FontTablePart } from './font-table/font-table';
 import { FooterHeaderReference, SectionProperties, SectionType } from './document/section';
 import { Page, PageProps } from './document/page';
@@ -1626,7 +1626,7 @@ export class HtmlRenderer {
 		clearTimeout(this.tabsTimeout);
 
 		this.tabsTimeout = setTimeout(() => {
-			const pixelToPoint = computePixelToPoint();
+			const pixelToPoint = computePointToPixelRatio();
 
 			for (let tab of this.currentTabs) {
 				updateTabStop(tab.span, tab.stops, this.defaultTabSize, pixelToPoint);

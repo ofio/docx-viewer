@@ -1,100 +1,120 @@
 import { Length } from "./document/common";
-import { ParagraphTab } from "./document/paragraph";
+import { TabStop } from "./document/paragraph";
 
-interface TabStop {
-	pos: number;
-	leader: string;
-	style: string;
-}
-
-const defaultTab: TabStop = { pos: 0, leader: "none", style: "left" };
+const defaultTab: TabStop = { position: 0, leader: "none", style: "left" };
 const maxTabs = 50;
 
-export function computePixelToPoint(container: HTMLElement = document.body) {
+// calculate pixel to point ratio.
+// ratio = point / pixel;
+export function computePointToPixelRatio(container: HTMLElement = document.body) {
+	// temp element
 	const temp = document.createElement("div");
+	// set width 100pt
 	temp.style.width = '100pt';
-	
+	// append to body
 	container.appendChild(temp);
-	const result = 100 / temp.offsetWidth;
+	//
+	const ratio = 100 / temp.offsetWidth;
 	container.removeChild(temp);
 
-	return result
+	return ratio
 }
 
-export function updateTabStop(elem: HTMLElement, tabs: ParagraphTab[], defaultTabSize: Length, pixelToPoint: number = 72 / 96) {
-    const p = elem.closest("p");
-
-    const ebb = elem.getBoundingClientRect();
-    const pbb = p.getBoundingClientRect();
-    const pcs = getComputedStyle(p);
-
-	const tabStops = tabs?.length > 0 ? tabs.map(t => ({
-		pos: lengthToPoint(t.position),
-		leader: t.leader,
-		style: t.style
-	})).sort((a, b) => a.pos - b.pos) : [defaultTab];
-
+export function updateTabStop(element: HTMLElement, tabs: TabStop[], defaultTabSize: Length, pixelToPoint: number = 72 / 96) {
+	// element's parent paragraph
+	const oParagraph: HTMLParagraphElement = element.closest("p");
+	// element rect
+	const elementRect: DOMRect = element.getBoundingClientRect();
+	// paragraph rect
+	const paragraphRect: DOMRect = oParagraph.getBoundingClientRect();
+	// paragraph style
+	const paragraphStyle: CSSStyleDeclaration = getComputedStyle(oParagraph);
+	// tabStops with order from small to large
+	const tabStops: TabStop[] = tabs?.length > 0 ? tabs.sort((a, b) => a.position - b.position) : [defaultTab];
+	// last tab
 	const lastTab = tabStops[tabStops.length - 1];
-	const pWidthPt = pbb.width * pixelToPoint;
-	const size = lengthToPoint(defaultTabSize);
-    let pos = lastTab.pos + size;
+	// paragraph width in point
+	const paragraphWidth = paragraphRect.width * pixelToPoint;
+	// default tab stop size in point
+	const size = parseFloat(defaultTabSize);
+	// last tab stop position
+	let position = lastTab.position + size;
+	// TODO
+	if (position < paragraphWidth) {
+		for (; position < paragraphWidth && tabStops.length < maxTabs; position += size) {
+			tabStops.push({ ...defaultTab, position: position });
+		}
+	}
+	// paragraph left offset in point
+	const marginLeft = parseFloat(paragraphStyle.marginLeft);
+	const paragraphOffset = paragraphRect.left + marginLeft;
+	// element actual left offset in point
+	const left = (elementRect.left - paragraphOffset) * pixelToPoint;
+	// find first tab stop
+	const tab = tabStops.find(tab => tab.style != "clear" && tab.position > left);
+	// no tab stop
+	if (tab == null) {
+		return;
+	}
 
-    if (pos < pWidthPt) {
-        for (; pos < pWidthPt && tabStops.length < maxTabs; pos += size) {
-            tabStops.push({ ...defaultTab, pos: pos });
-        }
-    }
+	let width: number = 1;
 
-    const marginLeft = parseFloat(pcs.marginLeft);
-    const pOffset = pbb.left + marginLeft;
-    const left = (ebb.left - pOffset) * pixelToPoint;
-    const tab = tabStops.find(t => t.style != "clear" && t.pos > left);
+	if (tab.style == "right" || tab.style == "center") {
+		// tab stop elements
+		const tabStopElements = Array.from(oParagraph.querySelectorAll(`.${element.className}`));
+		// next tab stop index
+		const nextIndex = tabStopElements.indexOf(element) + 1;
+		// create range
+		const range = document.createRange();
+		// set the start position of the Range
+		range.setStartBefore(element);
 
-    if(tab == null)
-        return;
-
-    let width: number = 1;
-
-    if (tab.style == "right" || tab.style == "center") {
-		const tabStops = Array.from(p.querySelectorAll(`.${elem.className}`));
-		const nextIdx = tabStops.indexOf(elem) + 1;
-        const range = document.createRange();
-        range.setStart(elem, 1);
-
-		if (nextIdx < tabStops.length) {
-			range.setEndBefore(tabStops[nextIdx]);
+		if (nextIndex < tabStopElements.length) {
+			// set the end position of the Range，before the next tab stop element
+			// 在next tabStop元素之前,设置 Range 的终点位置
+			range.setEndBefore(tabStopElements[nextIndex]);
 		} else {
-			range.setEndAfter(p);
+			// set the end position of the Range，after the paragraph.
+			// 在段落元素之后,设置 Range 的终点位置
+			range.setEndAfter(oParagraph);
 		}
 
-		const mul = tab.style == "center" ? 0.5 : 1;
-        const nextBB = range.getBoundingClientRect();
-		const offset = nextBB.left + mul * nextBB.width - (pbb.left - marginLeft);
+		const mul = tab.style === "center" ? 0.5 : 1;
+		// range rect
+		const rangeRect = range.getBoundingClientRect();
+		// offset
+		const offset = rangeRect.left + mul * rangeRect.width - (paragraphRect.left - marginLeft);
 
-		width = tab.pos - offset * pixelToPoint;
-    } else {
-        width = tab.pos - left;
-    }
+		width = tab.position - offset * pixelToPoint;
+	} else {
+		width = tab.position - left;
+	}
 
-    elem.innerHTML = "&nbsp;";
-    elem.style.textDecoration = "inherit";
-    elem.style.wordSpacing = `${width.toFixed(0)}pt`;
+	element.innerHTML = "&nbsp;";
+	element.style.textDecoration = "inherit";
+	element.style.wordSpacing = `${width.toFixed(0)}pt`;
 
-    switch (tab.leader) {
-        case "dot":
-        case "middleDot":
-            elem.style.textDecoration = "underline";
-            elem.style.textDecorationStyle = "dotted";
-            break;
+	switch (tab.leader) {
+		case "dot":
+		case "middleDot":
+			element.style.textDecorationLine = "underline";
+			element.style.textDecorationStyle = "dotted";
+			break;
 
-        case "hyphen":
-        case "heavy":
-        case "underscore":
-            elem.style.textDecoration = "underline";
-            break;
-    }
-}
+		case "hyphen":
+			element.style.textDecorationLine = "underline";
+			element.style.textDecorationStyle = "dashed";
+			break;
 
-function lengthToPoint(length: Length): number {
-	return parseFloat(length);
+		case "heavy":
+		case "underscore":
+			element.style.textDecorationLine = "underline";
+			element.style.textDecorationStyle = "solid";
+			break;
+
+		case "none":
+		default:
+			element.style.textDecorationLine = "none";
+			break;
+	}
 }

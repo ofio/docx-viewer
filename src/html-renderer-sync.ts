@@ -6,7 +6,7 @@ import { DocumentElement } from './document/document';
 import { WmlParagraph } from './document/paragraph';
 import * as _ from 'lodash-es';
 import { asArray, escapeClassName, uuid } from './utils';
-import { computePixelToPoint, updateTabStop } from './javascript';
+import { computePointToPixelRatio, updateTabStop } from './javascript';
 import { FontTablePart } from './font-table/font-table';
 import { FooterHeaderReference, SectionProperties, SectionType } from './document/section';
 import { parseLineSpacing } from "./document/spacing-between-lines";
@@ -66,8 +66,11 @@ export class HtmlRendererSync {
 	document: WordDocument;
 	options: Options;
 	styleMap: Record<string, IDomStyle> = {};
-	currentPart: Part = null;
 	wrapper: HTMLElement;
+	// 当前操作的Part
+	currentPart: Part = null;
+	// 系统的PPI
+	pointToPixelRatio: number;
 
 	// 当前操作的Page
 	currentPage: Page;
@@ -90,7 +93,6 @@ export class HtmlRendererSync {
 	defaultTabSize: string;
 	// 当前制表位
 	currentTabs: any[] = [];
-	tabsTimeout: any = 0;
 
 	// Konva框架--stage元素
 	konva_stage: Stage;
@@ -107,7 +109,9 @@ export class HtmlRendererSync {
 	 */
 
 	async render(document: WordDocument, bodyContainer: HTMLElement, styleContainer: HTMLElement = null, options: Options) {
+		// word文档对象
 		this.document = document;
+		// 渲染选项
 		this.options = options;
 		// class类前缀
 		this.className = options.className;
@@ -117,9 +121,10 @@ export class HtmlRendererSync {
 		this.styleMap = null;
 		// 主体容器
 		this.wrapper = bodyContainer;
-		// styleContainer== null，styleContainer = bodyContainer
+		// 样式容器，可传参指定，默认为主体容器
 		styleContainer = styleContainer || bodyContainer;
-
+		// 计算Point/Pixel换算比例
+		this.pointToPixelRatio = computePointToPixelRatio();
 		// CSS样式生成容器，清空所有CSS样式
 		removeAllElements(styleContainer);
 		// HTML生成容器，清空所有HTML元素
@@ -191,7 +196,7 @@ export class HtmlRendererSync {
 			.${c}-wrapper>section.${c} { background: white; box-shadow: 0 0 10px rgba(0, 0, 0, 0.5); margin-bottom: 30px; }
 			.${c} { color: black; hyphens: auto; text-underline-position: from-font; }
 			section.${c} { box-sizing: border-box; display: flex; flex-flow: column nowrap; position: relative; overflow: hidden; }
-            section.${c}>header { position: absolute; top: 0; z-index: 1; display: flex; align-items: flex-end; }
+            section.${c}>header { position: absolute; top: 0; z-index: 1; display: flex; flex-direction: column; justify-content: flex-end; }
 			section.${c}>article { z-index: 1; }
 			section.${c}>footer { position: absolute; bottom: 0; z-index: 1; }
 			.${c} table { border-collapse: collapse; }
@@ -941,7 +946,6 @@ export class HtmlRendererSync {
 			// 渲染单个page
 			await this.renderPage();
 		}
-
 	}
 
 	// 生成单个page，如果发现超出一页，递归拆分出下一个page
@@ -1113,15 +1117,15 @@ export class HtmlRendererSync {
 				case DomType.Header:
 					part.rootElement.cssStyle = {
 						left: props.pageMargins?.left,
+						top: props.pageMargins.header,
 						width: props.contentSize?.width,
-						height: props.pageMargins?.top,
 					};
 					break;
 				case DomType.Footer:
 					part.rootElement.cssStyle = {
 						left: props.pageMargins?.left,
+						bottom: props.pageMargins.footer,
 						width: props.contentSize?.width,
-						height: props.pageMargins?.bottom,
 					};
 					break;
 				default:
@@ -1765,13 +1769,14 @@ export class HtmlRendererSync {
 		this.renderClass(elem, oParagraph);
 		// 结合文档网格线属性，计算行高
 		Object.assign(elem.cssStyle, parseLineSpacing(elem.props, this.currentPage.sectProps))
-		// 渲染style
+		// 渲染CSS内联style样式
 		this.renderStyleValues(elem.cssStyle, oParagraph);
 		// 渲染常规--字体、颜色
 		this.renderCommonProperties(oParagraph.style, elem.props);
-		// 查找段落内置样式class
+		// 查找内置style样式
 		const style = this.findStyle(elem.styleName);
-		elem.props.tabs ??= style?.paragraphProps?.tabs; //TODO
+		// 合并制表位规则
+		elem.props.tabs = _.unionBy(elem.props.tabs, style?.paragraphProps?.tabs, 'position');
 		// 列表序号
 		const numbering = elem.props.numbering ?? style?.paragraphProps?.numbering;
 
@@ -2190,7 +2195,7 @@ export class HtmlRendererSync {
 	async renderTab(elem: OpenXmlElement, parent: HTMLElement) {
 		const tabSpan = createElement('span');
 
-		tabSpan.innerHTML = '&emsp;'; //"&nbsp;";
+		tabSpan.innerHTML = '&nbsp;';
 
 		if (this.options.experimental) {
 			tabSpan.className = this.tabStopClass();
@@ -2626,16 +2631,9 @@ export class HtmlRendererSync {
 		if (!this.options.experimental) {
 			return;
 		}
-
-		clearTimeout(this.tabsTimeout);
-
-		this.tabsTimeout = setTimeout(() => {
-			const pixelToPoint = computePixelToPoint();
-
-			for (const tab of this.currentTabs) {
-				updateTabStop(tab.span, tab.stops, this.defaultTabSize, pixelToPoint);
-			}
-		}, 500);
+		for (const tab of this.currentTabs) {
+			updateTabStop(tab.span, tab.stops, this.defaultTabSize, this.pointToPixelRatio);
+		}
 	}
 }
 
