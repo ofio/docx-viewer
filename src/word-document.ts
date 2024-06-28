@@ -178,9 +178,9 @@ export class WordDocument {
 		return URL.createObjectURL(blob);
 	}
 
-	findPartByRelId(id: string, basePart: Part = null) {
-		var rel = (basePart.rels ?? this.rels).find(r => r.id == id);
-		const folder = basePart ? splitPath(basePart.path)[0] : '';
+	findPartByRelId(id: string, documentPart: Part = null) {
+		var rel = (documentPart.rels ?? this.rels).find(r => r.id == id);
+		const folder = documentPart ? splitPath(documentPart.path)[0] : '';
 		return rel ? this.partsMap[resolvePath(rel.target, folder)] : null;
 	}
 

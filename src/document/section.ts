@@ -106,7 +106,9 @@ interface OriginSize {
 }
 
 export function parseSectionProperties(elem: Element, xml: XmlParser = globalXmlParser): SectionProperties {
-	let section = <SectionProperties>{};
+	let section = <SectionProperties>{
+		contentSize: {},
+	};
 	// 原始尺寸，单位：dxa
 	let origin = <OriginSize>{};
 
@@ -257,11 +259,9 @@ export function parseSectionProperties(elem: Element, xml: XmlParser = globalXml
 	// 根据原始尺寸，计算内容区域的宽高
 	let { width, height } = origin.pageSize;
 	let { left, right, top, bottom } = origin.pageMargins;
-	// TODO header/footer
-	section.contentSize = {
-		width: convertLength(width - left - right) as string,
-		height: convertLength(height - top - bottom) as string,
-	}
+	// contentSize = pageSize - pageMargins,but it's also affected by header/footer.
+	// finally,the actual contentSize should be calculated again when the header/footer DOM is rendered.
+	section.contentSize.width = convertLength(width - left - right) as string;
 
 	return section;
 }

@@ -947,6 +947,11 @@ export class DocumentParser {
 					});
 					break;
 
+				// TODO PositionalTab
+				case "ptab":
+
+					break;
+
 				case "tab":
 					wmlRun.children.push({ type: DomType.Tab });
 					break;

@@ -966,9 +966,12 @@ export class HtmlRendererSync {
 		let pages = this.document.documentPart.body.pages;
 		// 计算当前Page的索引
 		let pageIndex = pages.findIndex((page) => page.pageId === pageId);
+		// 页眉、页脚DOM
+		let oHeader: HTMLElement = null;
+		let oFooter: HTMLElement = null;
 		// 渲染page页眉
 		if (this.options.renderHeaders) {
-			await this.renderHeaderFooterRef(
+			oHeader = await this.renderHeaderFooterRef(
 				sectProps.headerRefs,
 				sectProps,
 				pageIndex,
@@ -978,7 +981,7 @@ export class HtmlRendererSync {
 		}
 		// 渲染page页脚
 		if (this.options.renderFooters) {
-			await this.renderHeaderFooterRef(
+			oFooter = await this.renderHeaderFooterRef(
 				sectProps.footerRefs,
 				sectProps,
 				pageIndex,
@@ -990,13 +993,32 @@ export class HtmlRendererSync {
 
 		// page内容区---Article元素
 		const contentElement = this.createPageContent(sectProps);
-		// 根据options.breakPages，设置article的高度
+		// get element's offsetHeight, convert to point unit
+		let getOffsetHeight = (element: HTMLElement) => {
+			let height = element?.offsetHeight ?? 0;
+			// convert to point unit
+			return height * this.pointToPixelRatio;
+		}
+		// Header、Footer can affect the page height，it's need to be calculated
+		let { pageSize, pageMargins } = sectProps;
+		// header height
+		let headerHeight = getOffsetHeight(oHeader);
+		// footer height
+		let footerHeight = getOffsetHeight(oFooter);
+		// actual top must be maximum of pageMargins.top and headerHeight
+		let actualTop = _.max([parseFloat(pageMargins.top), headerHeight]);
+		// actual bottom must be maximum of pageMargins.bottom and footerHeight
+		let actualBottom = _.max([parseFloat(pageMargins.bottom), footerHeight]);
+		// change pageElement's top and bottom
+		pageElement.style.paddingTop = `${actualTop}pt`;
+		pageElement.style.paddingBottom = `${actualBottom}pt`;
+		// set the contentElement's height based on options.breakPages.
 		if (this.options.breakPages) {
-			// 切分页面，高度固定
-			contentElement.style.height = sectProps.contentSize.height;
+			// break pages,set fixed height
+			contentElement.style.height = `${parseFloat(pageSize.height) - actualTop - actualBottom}pt`;
 		} else {
-			// 不分页则，拥有最小高度
-			contentElement.style.minHeight = sectProps.contentSize.height;
+			// not break pages,set min height
+			contentElement.style.minHeight = `${parseFloat(pageSize.height) - actualTop - actualBottom}pt`;
 		}
 		// 缓存当前操作的Article元素
 		this.currentPage.contentElement = contentElement;
@@ -1089,7 +1111,10 @@ export class HtmlRendererSync {
 	// TODO 分页不准确，页脚页码混乱
 	// 渲染页眉/页脚的Ref
 	async renderHeaderFooterRef(refs: FooterHeaderReference[], props: SectionProperties, pageIndex: number, isFirstPage: boolean, parent: HTMLElement) {
-		if (!refs) return;
+		// 处理空值
+		if (!refs) {
+			return null;
+		}
 		// 根据首页、奇数、偶数类型，查找ref指向
 		let ref: FooterHeaderReference;
 		if (props.titlePage && isFirstPage) {
@@ -1104,6 +1129,8 @@ export class HtmlRendererSync {
 		}
 		// 查找ref对应的part部分
 		let part = this.document.findPartByRelId(ref?.id, this.document.documentPart) as BaseHeaderFooterPart;
+		// Header or Footer Element
+		let oElement: HTMLElement = null;
 
 		if (part) {
 			this.currentPart = part;
@@ -1117,25 +1144,30 @@ export class HtmlRendererSync {
 				case DomType.Header:
 					part.rootElement.cssStyle = {
 						left: props.pageMargins?.left,
-						top: props.pageMargins.header,
+						'padding-top': props.pageMargins.header,
 						width: props.contentSize?.width,
 					};
+					// 渲染header元素
+					oElement = await this.renderHeaderFooter(part.rootElement, 'header', parent);
 					break;
 				case DomType.Footer:
 					part.rootElement.cssStyle = {
 						left: props.pageMargins?.left,
-						bottom: props.pageMargins.footer,
+						'padding-bottom': props.pageMargins.footer,
 						width: props.contentSize?.width,
 					};
+					// 渲染footer元素
+					oElement = await this.renderHeaderFooter(part.rootElement, 'footer', parent);
 					break;
 				default:
 					console.warn('set header/footer style error', part.rootElement.type);
 					break;
 			}
-
-			await this.renderElements([part.rootElement], parent);
+			// 清空当前Part
 			this.currentPart = null;
 		}
+
+		return oElement;
 	}
 
 	// TODO 字体太大，尾注位置不对
@@ -1494,19 +1526,11 @@ export class HtmlRendererSync {
 				break;
 
 			case DomType.Footer:
-				oNode = await this.renderHeaderFooter(elem, 'footer');
-				// 作为子元素插入,忽略溢出检测
-				if (parent) {
-					appendChildren(parent, oNode);
-				}
+				oNode = await this.renderHeaderFooter(elem, 'footer', parent as HTMLElement);
 				break;
 
 			case DomType.Header:
-				oNode = await this.renderHeaderFooter(elem, 'header');
-				// 作为子元素插入,忽略溢出检测
-				if (parent) {
-					appendChildren(parent, oNode);
-				}
+				oNode = await this.renderHeaderFooter(elem, 'header', parent as HTMLElement);
 				break;
 
 			case DomType.Footnote:
@@ -2363,12 +2387,14 @@ export class HtmlRendererSync {
 	}
 
 	// 渲染页眉页脚
-	async renderHeaderFooter(elem: OpenXmlElement, tagName: keyof HTMLElementTagNameMap) {
+	async renderHeaderFooter(elem: OpenXmlElement, tagName: keyof HTMLElementTagNameMap, parent: HTMLElement) {
 		const oElement: HTMLElement = createElement(tagName);
-		// 渲染子元素
-		await this.renderChildren(elem, oElement);
+		// 插入元素，忽略溢出监测
+		appendChildren(parent, oElement);
 		// 渲染style样式
 		this.renderStyleValues(elem.cssStyle, oElement);
+		// 渲染子元素
+		await this.renderChildren(elem, oElement);
 
 		return oElement;
 	}
