@@ -87,8 +87,8 @@ export class HtmlRendererSync {
 	endnoteMap: Record<string, WmlEndnote> = {};
 	currentFootnoteIds: string[];
 	currentEndnoteIds: string[] = [];
-	// 已使用的Heder、Footer部分的数组。
-	usedHederFooterParts: any[] = [];
+	// 已使用的Header、Footer部分的数组。
+	usedHeaderFooterParts: any[] = [];
 
 	defaultTabSize: string;
 	// 当前制表位
@@ -843,6 +843,8 @@ export class HtmlRendererSync {
 		if (path.length > 0) {
 			current_page.isSplit = false;
 			current_page.children = parseToTree([...path]);
+			// 最后一页的sectionProperties,来自root
+			current_page.sectProps = root.sectProps;
 			pages.push(current_page);
 		}
 
@@ -896,16 +898,32 @@ export class HtmlRendererSync {
 			return parser(nodes, root);
 		}
 
+		// 根据继承规则合并sectionProperties中的页眉页脚属性
+		let prevSectionProperties: SectionProperties = null;
+
+		for (let page of pages) {
+			if (page.sectProps) {
+				if (prevSectionProperties?.headerRefs) {
+					page.sectProps.headerRefs = _.unionBy(page.sectProps.headerRefs, prevSectionProperties.headerRefs, 'type');
+				}
+				if (prevSectionProperties?.footerRefs) {
+					page.sectProps.footerRefs = _.unionBy(page.sectProps.footerRefs, prevSectionProperties.footerRefs, 'type');
+				}
+				// cache current sectionProperties as prevSectionProps
+				prevSectionProperties = page.sectProps;
+			}
+		}
 		// 一个节可能分好几个页，但是节属性sectionProps存在当前节中最后一段对应的 paragraph 元素的子元素。即：[null,null,null,setPr];
-		let currentSectProps = root.sectProps;
+		let currentSectionProperties: SectionProperties = null;
 		// 倒序给每一页填充sectionProps，方便后期页面渲染
 		for (let i = pages.length - 1; i >= 0; i--) {
 			if (pages[i].sectProps == null) {
-				pages[i].sectProps = currentSectProps;
+				pages[i].sectProps = currentSectionProperties;
 			} else {
-				currentSectProps = pages[i].sectProps;
+				currentSectionProperties = pages[i].sectProps;
 			}
 		}
+
 		return pages;
 	}
 
@@ -1108,64 +1126,87 @@ export class HtmlRendererSync {
 		return oArticle;
 	}
 
-	// TODO 分页不准确，页脚页码混乱
+	// TODO 分页不准确，页脚页码混乱，
+	// TODO 支持奇数页偶数页不同页眉页脚
 	// 渲染页眉/页脚的Ref
 	async renderHeaderFooterRef(refs: FooterHeaderReference[], props: SectionProperties, pageIndex: number, isFirstPage: boolean, parent: HTMLElement) {
-		// 处理空值
+		// Footer/Header References is null
 		if (!refs) {
 			return null;
 		}
-		// 根据首页、奇数、偶数类型，查找ref指向
+		// find Header/Footer Reference
 		let ref: FooterHeaderReference;
+		// title page
 		if (props.titlePage && isFirstPage) {
 			// 第一页
 			ref = refs.find(x => x.type == "first");
-		} else if (pageIndex % 2 == 1) {
-			// 注意，pageIndex从0开始，却代表第一页，此处判断条件确实对应偶数页
-			ref = refs.find(x => x.type == "even");
-		} else {
-			// 奇数页
-			ref = refs.find(x => x.type == "default");
 		}
-		// 查找ref对应的part部分
+		// 	Different Even/Odd Page Headers and Footers
+		else if (this.document.settingsPart.settings.evenAndOddHeaders) {
+			// By default,pageIndex start from number 1 in Word document, but pageIndex start from number 0 in Array.
+			// fix the above difference
+			pageIndex += 1;
+
+			if (pageIndex % 2 === 0) {
+				// even page
+				ref = refs.find(x => x.type === "even");
+			} else {
+				// odd page
+				ref = refs.find(x => x.type === "default" || x.type === "odd");
+			}
+		} else {
+			// default reference
+			ref = refs.find(x => x.type === "default");
+		}
+		// reference is not found
+		if (!ref) {
+			console.error("Header/Footer reference is not found");
+			return null;
+		}
+		// find the "part" corresponding to the "ref"：查找ref对应的part部分
 		let part = this.document.findPartByRelId(ref?.id, this.document.documentPart) as BaseHeaderFooterPart;
+		// part is not found
+		if (!part) {
+			console.error(`Part corresponding to the reference with id:${ref?.id} is not found`);
+			return null;
+		}
+		// cache current part
+		this.currentPart = part;
+		// check if the part has been used
+		let isUsed = this.usedHeaderFooterParts.includes(part.path);
+		if (isUsed === false) {
+			// 递归建立元素的parent父级关系
+			this.processElement(part.rootElement);
+			this.usedHeaderFooterParts.push(part.path);
+		}
 		// Header or Footer Element
 		let oElement: HTMLElement = null;
-
-		if (part) {
-			this.currentPart = part;
-			if (!this.usedHederFooterParts.includes(part.path)) {
-				// 递归建立元素的parent父级关系
-				this.processElement(part.rootElement);
-				this.usedHederFooterParts.push(part.path);
-			}
-			// 根据页眉页脚，设置CSS
-			switch (part.rootElement.type) {
-				case DomType.Header:
-					part.rootElement.cssStyle = {
-						left: props.pageMargins?.left,
-						'padding-top': props.pageMargins.header,
-						width: props.contentSize?.width,
-					};
-					// 渲染header元素
-					oElement = await this.renderHeaderFooter(part.rootElement, 'header', parent);
-					break;
-				case DomType.Footer:
-					part.rootElement.cssStyle = {
-						left: props.pageMargins?.left,
-						'padding-bottom': props.pageMargins.footer,
-						width: props.contentSize?.width,
-					};
-					// 渲染footer元素
-					oElement = await this.renderHeaderFooter(part.rootElement, 'footer', parent);
-					break;
-				default:
-					console.warn('set header/footer style error', part.rootElement.type);
-					break;
-			}
-			// 清空当前Part
-			this.currentPart = null;
+		// 根据页眉页脚，设置CSS
+		switch (part.rootElement.type) {
+			case DomType.Header:
+				part.rootElement.cssStyle = {
+					left: props.pageMargins?.left,
+					'padding-top': props.pageMargins.header,
+					width: props.contentSize?.width,
+				};
+				// 渲染header元素
+				oElement = await this.renderHeaderFooter(part.rootElement, 'header', parent);
+				break;
+			case DomType.Footer:
+				part.rootElement.cssStyle = {
+					left: props.pageMargins?.left,
+					'padding-bottom': props.pageMargins.footer,
+					width: props.contentSize?.width,
+				};
+				// 渲染footer元素
+				oElement = await this.renderHeaderFooter(part.rootElement, 'footer', parent);
+				break;
+			default:
+				console.warn('set header/footer style error', part.rootElement.type);
+				break;
 		}
+		// 清空当前Part
+		this.currentPart = null;
 
 		return oElement;
 	}
