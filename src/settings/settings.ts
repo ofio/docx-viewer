@@ -2,10 +2,11 @@ import { Length } from "../document/common";
 import { XmlParser } from "../parser/xml-parser";
 
 export interface WmlSettings {
-	defaultTabStop: Length;
-	footnoteProps: NoteProperties;
-	endnoteProps: NoteProperties;
 	autoHyphenation: boolean;
+	defaultTabStop: Length;
+	endnoteProps: NoteProperties;
+	evenAndOddHeaders: boolean;
+	footnoteProps: NoteProperties;
 }
 
 export interface NoteProperties {
@@ -15,17 +16,34 @@ export interface NoteProperties {
 
 export function parseSettings(elem: Element, xml: XmlParser) {
 	var result = {} as WmlSettings;
-
+	// TODO support more settings
 	for (let el of xml.elements(elem)) {
-		switch(el.localName) {
-			case "defaultTabStop": result.defaultTabStop = xml.lengthAttr(el, "val"); break;
-			case "footnotePr": result.footnoteProps = parseNoteProperties(el, xml); break;
-			case "endnotePr": result.endnoteProps = parseNoteProperties(el, xml); break;
-			case "autoHyphenation": result.autoHyphenation = xml.boolAttr(el, "val"); break;
+		switch (el.localName) {
+			// Automatically Hyphenate Document Contents When Displayed
+			case "autoHyphenation":
+				result.autoHyphenation = xml.boolAttr(el, "val");
+				break;
+			// Distance Between Automatic Tab Stops
+			case "defaultTabStop":
+				result.defaultTabStop = xml.lengthAttr(el, "val");
+				break;
+			// Document-Wide Endnote Properties
+			case "endnotePr":
+				result.endnoteProps = parseNoteProperties(el, xml);
+				break;
+			// 	Different Even/Odd Page Headers and Footers
+			case "evenAndOddHeaders":
+				result.evenAndOddHeaders = xml.boolAttr(el, "val", true);
+				break;
+			// Document-Wide Footnote Properties
+			case "footnotePr":
+				result.footnoteProps = parseNoteProperties(el, xml);
+				break;
+
 		}
 	}
 
-    return result;
+	return result;
 }
 
 export function parseNoteProperties(elem: Element, xml: XmlParser) {
@@ -34,7 +52,7 @@ export function parseNoteProperties(elem: Element, xml: XmlParser) {
 	} as NoteProperties;
 
 	for (let el of xml.elements(elem)) {
-		switch(el.localName) {
+		switch (el.localName) {
 			case "numFmt":
 				result.nummeringFormat = xml.attr(el, "val");
 				break;
@@ -46,5 +64,5 @@ export function parseNoteProperties(elem: Element, xml: XmlParser) {
 		}
 	}
 
-    return result;
+	return result;
 }
