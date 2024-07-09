@@ -66,6 +66,7 @@ export class HtmlRendererSync {
 	document: WordDocument;
 	options: Options;
 	styleMap: Record<string, IDomStyle> = {};
+	bodyContainer: HTMLElement;
 	wrapper: HTMLElement;
 	// 当前操作的Part
 	currentPart: Part = null;
@@ -98,7 +99,7 @@ export class HtmlRendererSync {
 	konva_stage: Stage;
 	// Konva框架--layer元素
 	konva_layer: Layer;
-
+	
 	/**
 	 * Object对象 => HTML标签
 	 *
@@ -120,7 +121,7 @@ export class HtmlRendererSync {
 		// 文档CSS样式
 		this.styleMap = null;
 		// 主体容器
-		this.wrapper = bodyContainer;
+		this.bodyContainer = bodyContainer;
 		// 样式容器，可传参指定，默认为主体容器
 		styleContainer = styleContainer || bodyContainer;
 		// 计算Point/Pixel换算比例
@@ -2154,12 +2155,11 @@ export class HtmlRendererSync {
 
 	// 生成Konva框架--元素
 	renderKonva() {
-		// TODO 查询是否存在容器
 		// 创建konva容器元素
 		const oContainer = createElement('div');
 		oContainer.id = 'konva-container';
 		// 插入页面底部
-		document.body.appendChild(oContainer);
+		appendChildren(this.bodyContainer, oContainer);
 		// 创建Stage元素
 		this.konva_stage = new Konva.Stage({ container: 'konva-container' });
 		// 创建Layer元素
