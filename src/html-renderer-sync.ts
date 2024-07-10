@@ -99,7 +99,7 @@ export class HtmlRendererSync {
 	konva_stage: Stage;
 	// Konva框架--layer元素
 	konva_layer: Layer;
-	
+
 	/**
 	 * Object对象 => HTML标签
 	 *
@@ -193,6 +193,7 @@ export class HtmlRendererSync {
 	renderDefaultStyle() {
 		const c = this.className;
 		const styleText = `
+			.${c} { font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", "Noto Sans", "Liberation Sans", Arial, sans-serif }
 			.${c}-wrapper { background: gray; padding: 30px; padding-bottom: 0px; display: flex; flex-flow: column; align-items: center; line-height:normal; font-weight:normal; } 
 			.${c}-wrapper>section.${c} { background: white; box-shadow: 0 0 10px rgba(0, 0, 0, 0.5); margin-bottom: 30px; }
 			.${c} { color: black; hyphens: auto; text-underline-position: from-font; }
