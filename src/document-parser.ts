@@ -1,4 +1,4 @@
-import { DomType, IDomNumbering, NumberingPicBullet, OpenXmlElement, WmlBreak, WmlDrawing, WmlHyperlink, WmlImage, WmlNoteReference, WmlSymbol, WmlTable, WmlTableCell, WmlTableColumn, WmlTableRow, WmlText, WrapType } from './document/dom';
+import { DomType, IDomNumbering, NumberingPicBullet, OpenXmlElement, WmlBreak, WmlCharacter, WmlDrawing, WmlHyperlink, WmlImage, WmlNoteReference, WmlSymbol, WmlTable, WmlTableCell, WmlTableColumn, WmlTableRow, WmlText, WrapType } from './document/dom';
 import { DocumentElement } from './document/document';
 import { parseParagraphProperties, parseParagraphProperty, WmlParagraph } from './document/paragraph';
 import { parseSectionProperties, SectionProperties } from './document/section';
@@ -867,24 +867,11 @@ export class DocumentParser {
 					break;
 
 				case "t":
-					let textContent = child.textContent;
-					// 是否保留空格
-					let is_preserve_space = xml.attr(child, "xml:space") === "preserve";
-					if (is_preserve_space) {
-						// \u00A0 = 不间断空格，英文应该一个空格，中文两个空格。受到font-family影响。
-						textContent = textContent.split(/\s/).join("\u00A0");
-					}
-					wmlRun.children.push(<WmlText>{
-						type: DomType.Text,
-						text: textContent
-					});
+					wmlRun.children.push(this.parseText(child, DomType.Text));
 					break;
 
 				case "delText":
-					wmlRun.children.push(<WmlText>{
-						type: DomType.DeletedText,
-						text: child.textContent
-					});
+					wmlRun.children.push(this.parseText(child, DomType.DeletedText));
 					break;
 
 				case "commentReference":
@@ -902,10 +889,7 @@ export class DocumentParser {
 
 				case "instrText":
 					wmlRun.fieldRun = true;
-					wmlRun.children.push(<WmlInstructionText>{
-						type: DomType.Instruction,
-						text: child.textContent
-					});
+					wmlRun.children.push(this.parseText(child, DomType.Instruction));
 					break;
 
 				case "fldChar":
@@ -986,6 +970,31 @@ export class DocumentParser {
 		});
 
 		return wmlRun;
+	}
+
+	parseText(elem: Element, type: DomType) {
+		let wmlText = { type, text: '', } as WmlText;
+		let textContent = elem.textContent;
+		// 是否保留空格
+		let is_preserve_space = xml.attr(elem, "xml:space") === "preserve";
+		if (is_preserve_space) {
+			// \u00A0 = 不间断空格，英文应该一个空格，中文两个空格。受到font-family影响。
+			textContent = textContent.split(/\s/).join("\u00A0");
+		}
+		// whole text
+		wmlText.text = textContent;
+		// parse character
+		if (textContent.length > 0) {
+			wmlText.children = this.parseCharacter(textContent);
+		}
+		return wmlText;
+	}
+
+	parseCharacter(text: string): OpenXmlElement[] {
+		let characters = text.split('');
+		return characters.map(character => {
+			return { type: DomType.Character, char: character } as WmlCharacter
+		});
 	}
 
 	parseRunProperties(elem: Element, run: WmlRun) {

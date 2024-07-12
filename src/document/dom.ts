@@ -12,6 +12,7 @@ export enum DomType {
 	Drawing = "drawing",
 	Image = "image",
 	Text = "text",
+	Character = "character",
 	Tab = "tab",
 	Symbol = "symbol",
 	BookmarkStart = "bookmarkStart",
@@ -146,6 +147,10 @@ export interface WmlBreak extends OpenXmlElement {
 
 export interface WmlText extends OpenXmlElement {
 	text: string;
+}
+
+export interface WmlCharacter extends OpenXmlElement {
+	char: string;
 }
 
 export interface WmlSymbol extends OpenXmlElement {

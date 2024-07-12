@@ -1,5 +1,5 @@
 import { WordDocument } from './word-document';
-import { DomType, IDomNumbering, OpenXmlElement, WmlBreak, WmlDrawing, WmlHyperlink, WmlImage, WmlNoteReference, WmlSymbol, WmlTable, WmlTableCell, WmlTableColumn, WmlTableRow, WmlText, WrapType, } from './document/dom';
+import { DomType, IDomNumbering, OpenXmlElement, WmlBreak, WmlCharacter, WmlDrawing, WmlHyperlink, WmlImage, WmlNoteReference, WmlSymbol, WmlTable, WmlTableCell, WmlTableColumn, WmlTableRow, WmlText, WrapType, } from './document/dom';
 import { CommonProperties } from './document/common';
 import { Options } from './docx-preview';
 import { DocumentElement } from './document/document';
@@ -1234,7 +1234,7 @@ export class HtmlRendererSync {
 	}
 
 	// 根据XML对象渲染出多元素
-	async renderElements(children: OpenXmlElement[], parent: HTMLElement | MathMLElement): Promise<Overflow> {
+	async renderElements(children: OpenXmlElement[], parent: HTMLElement | Element | Text): Promise<Overflow> {
 		// 子元素溢出状态的数组
 		let overflows: Overflow[] = [];
 		// 已拆分的Pages数组
@@ -1464,7 +1464,7 @@ export class HtmlRendererSync {
 	}
 
 	// 根据XML对象渲染单个元素
-	async renderElement(elem: OpenXmlElement, parent?: HTMLElement | MathMLElement): Promise<Node_DOM> {
+	async renderElement(elem: OpenXmlElement, parent?: HTMLElement | Element | Text): Promise<Node_DOM> {
 		let oNode;
 
 		switch (elem.type) {
@@ -1478,6 +1478,10 @@ export class HtmlRendererSync {
 
 			case DomType.Text:
 				oNode = await this.renderText(elem as WmlText, parent as HTMLElement);
+				break;
+
+			case DomType.Character:
+				oNode = await this.renderCharacter(elem as WmlCharacter, parent as Text);
 				break;
 
 			case DomType.Table:
@@ -1790,12 +1794,12 @@ export class HtmlRendererSync {
 	}
 
 	// 根据XML对象渲染子元素，并插入父级元素
-	async renderChildren(elem: OpenXmlElement, parent: HTMLElement | MathMLElement): Promise<Overflow> {
+	async renderChildren(elem: OpenXmlElement, parent: HTMLElement | Element | Text): Promise<Overflow> {
 		return await this.renderElements(elem.children, parent);
 	}
 
 	// 插入子元素，针对后代元素进行溢出检测
-	async appendChildren(parent: HTMLElement, children: ChildrenType): Promise<Overflow> {
+	async appendChildren(parent: HTMLElement | Text, children: ChildrenType): Promise<Overflow> {
 		// 插入元素
 		appendChildren(parent, children);
 
@@ -1926,14 +1930,34 @@ export class HtmlRendererSync {
 	}
 
 	async renderText(elem: WmlText, parent: HTMLElement) {
-		const oText = document.createTextNode(elem.text) as Node_DOM;
+		// String Data
+		let oText = document.createTextNode('') as Node_DOM;
 		// 初始化dataset对象
-		oText.dataset = {};
+		oText.dataset = { overflow: Overflow.UNKNOWN };
+		// 作为子元素插入，无需溢出检测
+		appendChildren(parent, oText);
+		// current page
+		let { isSplit } = this.currentPage;
+		// 当前page已拆分，忽略溢出检测
+		if (isSplit) {
+			oText.appendData(elem.text);
+			return oText;
+		}
+		// 针对后代子元素进行溢出检测
+		oText.dataset.overflow = await this.renderChildren(elem, oText);
 		// TODO 目前只能按照text元素检测溢出，后期按照单个文字检测溢出
-		// 作为子元素插入,针对此元素进行溢出检测
-		oText.dataset.overflow = await this.appendChildren(parent, oText);
-
 		return oText;
+	}
+
+	async renderCharacter(elem: WmlCharacter, parent: Text) {
+		// String Data
+		let oCharacter = document.createTextNode(elem.char) as Node_DOM;
+		// 初始化dataset对象
+		oCharacter.dataset = { overflow: Overflow.UNKNOWN };
+		// 作为子元素插入，先执行溢出检测，方便对后代元素进行溢出检测
+		oCharacter.dataset.overflow = await this.appendChildren(parent, oCharacter);
+
+		return oCharacter;
 	}
 
 	async renderTable(elem: WmlTable, parent: HTMLElement) {
@@ -2759,14 +2783,25 @@ function removeAllElements(elem: HTMLElement) {
 }
 
 // 插入子元素，忽略溢出检测
-function appendChildren(parent: Element, children: ChildrenType): void {
-	if (Array.isArray(children)) {
-		parent.append(...children);
-	} else if (children) {
-		if (_.isString(children)) {
-			parent.append(children);
+function appendChildren(parent: Element | Text, children: ChildrenType): void {
+	if (parent instanceof Element) {
+		if (Array.isArray(children)) {
+			parent.append(...children);
 		} else {
-			parent.appendChild(children);
+			if (_.isString(children)) {
+				parent.append(children);
+			} else {
+				parent.appendChild(children);
+			}
+		}
+	}
+	if (parent instanceof Text) {
+		if (Array.isArray(children)) {
+			throw new Error('Text append children: children must be text node');
+		} else {
+			if (children instanceof Text) {
+				parent.appendData(children.wholeText);
+			}
 		}
 	}
 }
@@ -2788,24 +2823,52 @@ function checkOverflow(el: HTMLElement): boolean {
 }
 
 // 删除单个或者多个子元素
-function removeElements(target: Node[] | Node, parent: HTMLElement | Element): void;
+function removeElements(target: Node[] | Node, parent: HTMLElement | Element | Text): void;
 function removeElements(target: Element[] | Element): void;
-function removeElements(target: ChildrenType, parent?: HTMLElement | Element): void {
-	if (Array.isArray(target)) {
-		target.forEach(elem => {
-			if (elem instanceof Element) {
-				elem.remove();
+function removeElements(target: ChildrenType, parent?: HTMLElement | Element | Text): void {
+	// parent is optional
+	if (parent === undefined) {
+		if (Array.isArray(target)) {
+			target.forEach(elem => {
+				if (elem instanceof Element) {
+					elem.remove();
+				} else {
+					throw new Error('removeElements: target must be Element!');
+				}
+			});
+		} else {
+			if (target instanceof Element) {
+				target.remove();
 			} else {
-				if (parent) {
+				throw new Error('removeElements: target must be Element!');
+			}
+		}
+		return;
+	}
+	// parent is text node
+	if (parent instanceof Text) {
+		if (Array.isArray(target)) {
+			throw new Error('Text remove target: target must be text node!');
+		} else {
+			if (target instanceof Text) {
+				// at this point, deleteData is better than remove, because text was inserted by appendData
+				parent.deleteData(parent.length - 1, target.length);
+			}
+		}
+	}
+	if (parent instanceof Element) {
+		if (Array.isArray(target)) {
+			target.forEach(elem => {
+				if (elem instanceof Element) {
+					elem.remove();
+				} else {
 					parent.removeChild(elem);
 				}
-			}
-		});
-	} else {
-		if (target instanceof Element) {
-			target.remove();
+			});
 		} else {
-			if (target) {
+			if (target instanceof Element) {
+				target.remove();
+			} else {
 				parent.removeChild(target);
 			}
 		}
