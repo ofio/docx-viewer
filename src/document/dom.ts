@@ -94,7 +94,7 @@ export enum MathDomType {
 }
 
 export interface OpenXmlElement {
-	id?: string,
+	uuid?: string,
 	type: DomType;
 	children?: OpenXmlElement[];
 	cssStyle?: Record<string, any>;

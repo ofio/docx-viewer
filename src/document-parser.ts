@@ -81,7 +81,7 @@ export class DocumentParser {
 	parseDocumentFile(xmlDoc: Element): DocumentElement {
 		// document elements
 		let documentElement: DocumentElement = {
-			id: 'root',
+			uuid: 'root',
 			pages: [],
 			sectProps: {} as SectionProperties,
 			type: DomType.Document,
