@@ -723,7 +723,7 @@ export class HtmlRendererSync {
 					return;
 				}
 				// 追溯其父级以及祖先元素，一直追溯至根节点；left：统计左侧相邻兄弟元素数量，remove：即将移除元素id的集合
-				let { left, removeElementIds, ignoredElementIds } = checkAncestors(el);
+				let { left, removedElementIds, ignoredElementIds } = checkAncestors(el);
 				// 查找其祖先元素中的paragraph元素
 				let paragraph = ancestors.find(node => node.type === DomType.Paragraph);
 				// 判断是否拆分段落
@@ -737,11 +737,11 @@ export class HtmlRendererSync {
 				// left数量 > 0，说明左侧存在元素，则生成新的page
 				if (left > 0) {
 					// 添加当前break元素id至移除集合
-					removeElementIds.push(el.uuid);
+					removedElementIds.push(el.uuid);
 					// 忽略元素集合
 					let ignoredElements = path.filter(node => ignoredElementIds.includes(node.uuid));
 					// 根据移除集合，删除元素
-					path = path.filter(node => !removeElementIds.includes(node.uuid));
+					path = path.filter(node => !removedElementIds.includes(node.uuid));
 					// 将当前break元素左侧所有元素作为page的子元素
 					current_page.children = parseToTree(path);
 					// 忽略元素要重新在下一页生成，否则会丢失
@@ -777,49 +777,62 @@ export class HtmlRendererSync {
 					// 即将忽略元素id的集合
 					let ignoredElementIds: string[] = [];
 					// 即将移除元素id的集合
-					let removeElementIds: string[] = [];
+					let removedElementIds: string[] = [];
 					// el左侧存在兄弟元素数量
 					let left: number = 0;
-					if (el.prev) {
-						let isIgnore = ignoredElementTypes.has(el.prev.type);
-						if (isIgnore) {
-							// 添加忽略元素
-							ignoredElementIds.push(el.prev.uuid);
-							// 忽略元素添加入移除集合
-							removeElementIds.push(el.prev.uuid);
-						} else {
-							// 存在兄弟元素，则计数+1
-							left = 1;
-						}
-					}
-					// 左侧不存在兄弟元素，则检查其祖先元素
-					if (left === 0) {
-						// 将el父级元素的id添加入移除集合
-						removeElementIds.push(el.parent.uuid);
-						// 遍历祖先元素
-						for (let ancestor of ancestors) {
-							if (ancestor.prev) {
-								let isIgnore = ignoredElementTypes.has(ancestor.prev.type);
-								if (isIgnore) {
-									// 添加忽略元素id
-									ignoredElementIds.push(ancestor.prev.uuid);
-									// 忽略元素添加入移除集合
-									removeElementIds.push(ancestor.prev.uuid);
+					// 将el与ancestors合并为一个待处理元素数组
+					let processingElements = [el, ...ancestors];
+					// 子元素数据状态
+					let child = { ignoredType: null, uuid: null };
+					// 遍历祖先元素
+					for (let ancestor of processingElements) {
+						// 处理子元素中被忽略的元素
+						if (child.ignoredType) {
+							// 查找子元素的索引
+							let index = ancestor.children.findIndex(node => node.uuid === child.uuid);
+							// 切分数组
+							let prevElements = ancestor.children.slice(0, index);
+							// 倒序排列
+							prevElements.reverse();
+							// 查找忽略元素，可能存在多个，依次缓存其uuid
+							for (let element of prevElements) {
+								// 检测元素是否忽略类型
+								if (element.type === child.ignoredType) {
+									// 将忽略元素uuid添加入忽略元素集合
+									ignoredElementIds.push(element.uuid);
+									// 将忽略元素uuid添加入移除元素集合
+									removedElementIds.push(element.uuid);
 								} else {
-									// 存在兄弟元素，则计数+1，终止递归
+									// 排除忽略元素，左侧存在兄弟元素，则计数+1，终止递归
 									left += 1;
 									break;
 								}
+							}
+						}
+						// 将当前元素uuid赋值给child
+						child.uuid = ancestor.uuid;
+						// 检测ancestor是否存在prev元素
+						if (ancestor.prev) {
+							// 检测prev元素是否忽略
+							let isIgnored = ignoredElementTypes.has(ancestor.prev.type);
+							if (isIgnored) {
+								child.ignoredType = ancestor.prev.type;
 							} else {
-								// 排除parentId = root的根节点
-								if (ancestor.parent.uuid !== root.uuid) {
-									// 将ancestor父级元素的id添加入移除集合
-									removeElementIds.push(ancestor.parent.uuid);
-								}
+								// 存在兄弟元素，则计数+1，终止递归
+								left += 1;
+								break;
+							}
+						} else {
+							// prev元素不存在
+							child.ignoredType = null;
+							// 排除parentId = root的根节点
+							if (ancestor.parent.uuid !== root.uuid) {
+								// 将ancestor父级元素的id添加入移除集合
+								removedElementIds.push(ancestor.parent.uuid);
 							}
 						}
 					}
-					return { left, removeElementIds, ignoredElementIds };
+					return { left, removedElementIds, ignoredElementIds };
 				}
 			}
 			// 分页符
@@ -906,7 +919,7 @@ export class HtmlRendererSync {
 
 		// 将元素转换为树形结构，方便后续操作
 		function parseToTree(nodes: TreeNode[]) {
-			let root = nodes.filter((node: TreeNode) => node.parent.uuid === 'root');
+			let firstLevel = nodes.filter((node: TreeNode) => node.parent.uuid === root.uuid);
 			// 转换函数
 			const parser = function (origin: TreeNode[], root: TreeNode[]) {
 				return root.map((parent: TreeNode) => {
@@ -918,7 +931,7 @@ export class HtmlRendererSync {
 					}
 				});
 			}
-			return parser(nodes, root);
+			return parser(nodes, firstLevel);
 		}
 
 		// 根据继承规则合并sectionProperties中的页眉页脚属性
