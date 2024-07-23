@@ -1,4 +1,4 @@
-import { DomType, IDomNumbering, NumberingPicBullet, OpenXmlElement, WmlBreak, WmlCharacter, WmlDrawing, WmlHyperlink, WmlImage, WmlNoteReference, WmlSymbol, WmlTable, WmlTableCell, WmlTableColumn, WmlTableRow, WmlText, WrapType } from './document/dom';
+import { BreakType, DomType, IDomNumbering, NumberingPicBullet, OpenXmlElement, WmlBreak, WmlCharacter, WmlDrawing, WmlHyperlink, WmlImage, WmlLastRenderedPageBreak, WmlNoteReference, WmlSymbol, WmlTable, WmlTableCell, WmlTableColumn, WmlTableRow, WmlText, WrapType } from './document/dom';
 import { DocumentElement } from './document/document';
 import { parseParagraphProperties, parseParagraphProperty, WmlParagraph } from './document/paragraph';
 import { parseSectionProperties, SectionProperties } from './document/section';
@@ -771,7 +771,7 @@ export class DocumentParser {
 		// 当段落children为空，需要添加一个br标签，配合富文本编辑器，同时产生行高
 		// TODO 实体符号来替换空行
 		if (wmlParagraph.children.length === 0) {
-			let wmlBreak: WmlBreak = { type: DomType.Break, "break": "textWrapping" };
+			let wmlBreak: WmlBreak = { type: DomType.Break, "break": BreakType.TextWrapping };
 			let wmlRun = { type: DomType.Run, children: [wmlBreak as OpenXmlElement] } as WmlRun;
 			wmlParagraph.children = [wmlRun];
 		}
@@ -917,11 +917,11 @@ export class DocumentParser {
 					break;
 
 				case "lastRenderedPageBreak":
-					wmlRun.children.push(<WmlBreak>{
-						type: DomType.Break,
-						break: "lastRenderedPageBreak"
+					wmlRun.children.push(<WmlLastRenderedPageBreak>{
+						type: DomType.LastRenderedPageBreak,
 					});
 					break;
+
 				// SymbolChar：符号字符
 				case "sym":
 					wmlRun.children.push(<WmlSymbol>{

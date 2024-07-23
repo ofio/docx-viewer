@@ -1,5 +1,5 @@
 import { WordDocument } from './word-document';
-import { DomType, IDomNumbering, OpenXmlElement, WmlBreak, WmlCharacter, WmlDrawing, WmlHyperlink, WmlImage, WmlNoteReference, WmlSymbol, WmlTable, WmlTableCell, WmlTableColumn, WmlTableRow, WmlText, WrapType, } from './document/dom';
+import { BreakType, DomType, IDomNumbering, OpenXmlElement, WmlBreak, WmlCharacter, WmlDrawing, WmlHyperlink, WmlImage, WmlLastRenderedPageBreak, WmlNoteReference, WmlSymbol, WmlTable, WmlTableCell, WmlTableColumn, WmlTableRow, WmlText, WrapType, } from './document/dom';
 import { CommonProperties } from './document/common';
 import { Options } from './docx-preview';
 import { DocumentElement } from './document/document';
@@ -718,7 +718,7 @@ export class HtmlRendererSync {
 				}
 			}
 			// lastRenderedPageBreak
-			if ((el as WmlBreak).break == 'lastRenderedPageBreak') {
+			if (el.type === DomType.LastRenderedPageBreak) {
 				if (current_page.isSplit === false) {
 					return;
 				}
@@ -1563,6 +1563,10 @@ export class HtmlRendererSync {
 				oNode = await this.renderBreak(elem as WmlBreak, parent as HTMLElement);
 				break;
 
+			case DomType.LastRenderedPageBreak:
+				oNode = await this.renderLastRenderedPageBreak(elem as WmlLastRenderedPageBreak, parent as HTMLElement);
+				break;
+
 			case DomType.Inserted:
 				oNode = await this.renderInserted(elem, parent as HTMLElement);
 				break;
@@ -2359,43 +2363,60 @@ export class HtmlRendererSync {
 
 		switch (elem.break) {
 			// 分页符
-			case 'page':
+			case BreakType.Page:
 				oBreak = createElement('br');
 				// 添加class
 				oBreak.classList.add('break', 'page');
 				break;
-			// 强制换行
-			case 'textWrapping':
-				oBreak = createElement('br');
-				// 添加class
-				oBreak.classList.add('break', 'textWrap');
-				break;
+
 			// 	TODO 分栏符
-			case 'column':
+			case BreakType.Column:
 				oBreak = createElement('br');
 				// 添加class
 				oBreak.classList.add('break', 'column');
 				break;
-			// 渲染至尾部分页
-			case 'lastRenderedPageBreak':
-				oBreak = createElement('wbr');
+
+			// 分节符
+			case BreakType.Section:
+				oBreak = createElement('br');
 				// 添加class
-				oBreak.classList.add('break', 'lastRenderedPageBreak');
+				oBreak.classList.add('break', 'section');
 				break;
+
+			// 强制换行
+			case BreakType.TextWrapping:
 			default:
+				oBreak = createElement('br');
+				// 添加class
+				oBreak.classList.add('break', 'textWrap');
+				break;
 		}
-		// 溢出标识
-		let is_overflow: Overflow;
 		// oBreak作为子元素插入，针对此元素执行溢出检测
-		is_overflow = await this.appendChildren(parent, oBreak);
+		let isOverflow = await this.appendChildren(parent, oBreak);
 
-		if (is_overflow === Overflow.TRUE) {
-			oBreak.dataset.overflow = Overflow.SELF;
+		if (isOverflow === Overflow.TRUE) {
+			isOverflow = Overflow.SELF;
 		}
 
-		oBreak.dataset.overflow = is_overflow;
+		oBreak.dataset.overflow = isOverflow;
 
 		return oBreak;
+	}
+
+	async renderLastRenderedPageBreak(elem: WmlLastRenderedPageBreak, parent: HTMLElement) {
+		const oLastRenderedPageBreak = createElement('wbr');
+		// 添加class
+		oLastRenderedPageBreak.classList.add('lastRenderedPageBreak');
+		// oLastRenderedPageBreak作为子元素插入，针对此元素执行溢出检测
+		let isOverflow = await this.appendChildren(parent, oLastRenderedPageBreak);
+		// if true,empty element should be Overflow.SELF
+		if (isOverflow === Overflow.TRUE) {
+			isOverflow = Overflow.SELF;
+		}
+
+		oLastRenderedPageBreak.dataset.overflow = isOverflow;
+
+		return oLastRenderedPageBreak;
 	}
 
 	// TODO 修订标识：修订人，修订日期等信息

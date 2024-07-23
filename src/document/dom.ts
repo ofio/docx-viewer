@@ -4,6 +4,7 @@ export enum DomType {
 	Paragraph = "paragraph",
 	Run = "run",
 	Break = "break",
+	LastRenderedPageBreak = "lastRenderedPageBreak",
 	NoBreakHyphen = "noBreakHyphen",
 	Table = "table",
 	Row = "row",
@@ -142,7 +143,19 @@ export interface WmlNoteReference extends OpenXmlElement {
 }
 
 export interface WmlBreak extends OpenXmlElement {
-	break: "page" | "lastRenderedPageBreak" | "textWrapping" | "column";
+	break: BreakType;
+}
+
+export enum BreakType {
+	Column = "column",
+	Page = "page",
+	Section = "section",
+	// default
+	TextWrapping = "textWrapping",
+}
+
+export interface WmlLastRenderedPageBreak extends OpenXmlElement {
+
 }
 
 export interface WmlText extends OpenXmlElement {
