@@ -1487,7 +1487,8 @@ export class HtmlRendererSync {
 	// 根据breakIndex索引拆分页面
 	splitElementsByBreakIndex(current: OpenXmlElement, next: OpenXmlElement) {
 		// 遍历下一个页面的元素
-		next?.children.forEach((child: OpenXmlElement, i: number) => {
+		for (let i = 0; i < next?.children.length; i++) {
+			let child = next.children[i];
 			let { type, breakIndex, children } = child;
 			// 尚未渲染，未执行溢出检测的元素，breakIndex = undefined，跳过
 			if (!breakIndex) {
@@ -1499,57 +1500,80 @@ export class HtmlRendererSync {
 			}
 			// 复制child的元素
 			let copy: OpenXmlElement = _.cloneDeep(child);
+			/*
+			* breakIndex索引前面的元素，并未导致溢出，splice切出这些元素，
+			* 切出的元素作为children，复制父级属性，生成新的元素，
+			* 未溢出的元素，放入current_page中
+			* breakIndex索引后面的元素，已经溢出，存在于next_page;
+			* */
 
-			// 如果当前元素是表格Row，无需拆分，复制Row至current_page
-			if (type === DomType.Row) {
-				// 复制Row至current_page
-				if ((child as WmlTableRow)?.isHeader) {
-					return;
-				}
-				current.children.push(copy);
-			} else {
-				/*
-				* breakIndex索引前面的元素，并未导致溢出，splice切出这些元素，
-				* 切出的元素作为children，复制父级属性，生成新的元素，
-				* 未溢出的元素，放入current_page中
-				* breakIndex索引后面的元素，已经溢出，存在于next_page;
-				*/
-				let table_headers: WmlTableRow[] = [];
-				// 查找表格中的table header，可能有多行
-				if (type === DomType.Table) {
+			/*
+			* 未溢出的元素，全体未溢出：breakIndex = []，部分溢出：breakIndex = [1]
+			* 根据溢出索引，确定切除的元素数量
+			* */
+			let count = breakIndex.length > 0 ? breakIndex[0] : children.length;
+
+			switch (type) {
+				// 如果当前元素是表格Table
+				case DomType.Table:
+					let table_headers: WmlTableRow[] = [];
+					// 查找表格中的table header，可能有多行
 					table_headers = children.filter((row: WmlTableRow) => row.isHeader);
-				}
-				/*
-				* 未溢出的元素，全体未溢出：breakIndex = []，部分溢出：breakIndex = [1]
-				* 根据溢出索引，确定切除的元素数量
-				*/
-				let count = breakIndex.length > 0 ? breakIndex[0] : children.length;
-				// 切除未溢出的元素
-				const unbrokenChildren = children.splice(0, count);
-				// change verticalMerge attribute，restart merge region.
-				if (type === DomType.Table) {
+					// 切除未溢出的元素,剩余的溢出元素，归属于next
+					const unbrokenChildren = children.splice(0, count);
+					// change verticalMerge attribute，restart merge region.
 					children[0].children.forEach((cell: WmlTableCell) => {
 						if (cell.verticalMerge === 'continue') {
 							cell.verticalMerge = 'restart'
 						}
 					});
-				}
-				/*
-				* 仅当table_headers.length在(0,children.length)范围内，在next中填充table header。
-				* 注意，用户误操作导致tr全是tableHeader，导致死循环。
-				*/
-				if (table_headers.length > 0 && table_headers.length < children.length) {
-					children.unshift(...table_headers);
-				}
-				// 父级元素是表格Row，拆分之后，逐个替换cell的子元素
-				if (current.type === DomType.Row) {
-					current.children[i].children = unbrokenChildren;
-				} else {
-					// 切分子元素
+					/*
+					* 仅当table_headers.length在(0,children.length)范围内，在next中填充table header。
+					* 注意，用户误操作导致tr全是tableHeader，导致死循环。
+					* */
+					if (table_headers.length > 0 && table_headers.length < children.length) {
+						children.unshift(...table_headers);
+					}
+					// 未溢出的子元素覆盖copy
 					copy.children = unbrokenChildren;
 					// current指向原来的父级，push未溢出的元素至current
 					current.children.push(copy);
-				}
+
+					break;
+
+				// 表格Row
+				case DomType.Row:
+					// 排除table header
+					if ((child as WmlTableRow)?.isHeader) {
+						continue;
+					}
+					// 无需拆分，复制Row至current
+					current.children.push(copy);
+
+					break;
+
+				// 如果当前元素是表格Cell
+				case DomType.Cell:
+					/*
+					* 切出未溢出的元素,逐个替换current中cell的子元素
+					* 剩余的溢出元素，归属于next
+					* */
+					current.children[i].children = children.splice(0, count);
+
+					break;
+
+				case DomType.Paragraph:
+
+					break;
+
+				default:
+					/*
+					* 切出未溢出的元素
+					* 剩余的溢出元素，归属于next
+					* */
+					copy.children = children.splice(0, count);
+					// current指向原来的父级，push未溢出的元素至current
+					current.children.push(copy);
 			}
 			// 重置breakIndex
 			if (type !== DomType.Row && breakIndex.length > 0) {
@@ -1559,7 +1583,7 @@ export class HtmlRendererSync {
 			if (children.length > 0) {
 				this.splitElementsByBreakIndex(copy, child);
 			}
-		});
+		}
 	}
 
 	// 根据XML对象渲染单个元素
