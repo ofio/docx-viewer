@@ -34,7 +34,6 @@ import { ThemePart } from './theme/theme-part';
 import { BaseHeaderFooterPart } from './header-footer/parts';
 import { Part } from './common/part';
 import { VmlElement } from './vml/vml';
-import { WmlCommentRangeStart, WmlCommentReference } from './comments/elements';
 import Konva from 'konva';
 import type { Stage } from 'konva/lib/Stage';
 import type { Layer } from 'konva/lib/Layer';
@@ -663,11 +662,11 @@ export class HtmlRenderer {
 						// 计算Run Break索引
 						rBreakIndex = r.children?.findIndex((t: OpenXmlElement) => {
 							// 如果不是分页符、换行符、分栏符
-							if (t.type != DomType.Break) {
+							if (t.type !== DomType.Break && t.type !== DomType.LastRenderedPageBreak) {
 								return false;
 							}
 							// 默认忽略lastRenderedPageBreak，
-							if ((t as WmlBreak).break == "lastRenderedPageBreak") {
+							if (t.type === DomType.LastRenderedPageBreak) {
 								// 判断前一个p段落，
 								// 如果含有分页符、分节符，那它们一定位于上一个page，数组为空；
 								// 如果前一个段落是普通段落，数组长度大于0，则代表文字过多超过一页，需要自动分页
@@ -1129,11 +1128,11 @@ export class HtmlRenderer {
 	// 判断是否存在分页元素
 	isPageBreakElement(elem: OpenXmlElement): boolean {
 		// 分页符、换行符、分栏符
-		if (elem.type != DomType.Break) {
+		if (elem.type !== DomType.Break && elem.type !== DomType.LastRenderedPageBreak) {
 			return false;
 		}
 		// 默认以lastRenderedPageBreak作为分页依据
-		if ((elem as WmlBreak).break == "lastRenderedPageBreak") {
+		if (elem.type === DomType.LastRenderedPageBreak) {
 			return !this.options.ignoreLastRenderedPageBreak;
 		}
 		// 分页符

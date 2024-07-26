@@ -45,6 +45,7 @@ export interface PageMargins {
 
 export enum SectionType {
 	Continuous = "continuous",
+	// default
 	NextPage = "nextPage",
 	NextColumn = "nextColumn",
 	EvenPage = "evenPage",
@@ -85,7 +86,7 @@ export interface SectionProperties {
 	pageSize: PageSize;
 	sectionId: string;
 	titlePage: boolean;
-	type: SectionType | string;
+	type: SectionType;
 }
 
 // 原始尺寸数据，单位：dxa
@@ -242,7 +243,7 @@ export function parseSectionProperties(elem: Element, xml: XmlParser = globalXml
 
 			// Section Type
 			case "type":
-				section.type = xml.attr(e, "val");
+				section.type = xml.attr(e, "val") as SectionType;
 				break;
 
 			// TODO Vertical Text Alignment on Page

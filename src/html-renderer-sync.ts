@@ -1,5 +1,5 @@
 import { WordDocument } from './word-document';
-import { BreakType, DomType, IDomNumbering, OpenXmlElement, WmlBreak, WmlCharacter, WmlDrawing, WmlHyperlink, WmlImage, WmlLastRenderedPageBreak, WmlNoteReference, WmlSymbol, WmlTable, WmlTableCell, WmlTableColumn, WmlTableRow, WmlText, WrapType, } from './document/dom';
+import { BreakType, DomType, IDomNumbering, OpenXmlElement, WmlBreak, WmlCharacter, WmlDrawing, WmlHyperlink, WmlImage, WmlLastRenderedPageBreak, WmlNoteReference, WmlSectionBreak, WmlSymbol, WmlTable, WmlTableCell, WmlTableColumn, WmlTableRow, WmlText, WrapType, } from './document/dom';
 import { CommonProperties } from './document/common';
 import { Options } from './docx-preview';
 import { DocumentElement } from './document/document';
@@ -10,7 +10,7 @@ import { computePointToPixelRatio, updateTabStop } from './javascript';
 import { FontTablePart } from './font-table/font-table';
 import { FooterHeaderReference, SectionProperties, SectionType } from './document/section';
 import { parseLineSpacing } from "./document/spacing-between-lines";
-import { Page, PageProps } from './document/page';
+import { Page, PageProps, TreeNode } from './document/page';
 import { RunProperties, WmlRun } from './document/run';
 import { WmlBookmarkStart } from './document/bookmarks';
 import { IDomStyle, Ruleset } from './document/style';
@@ -633,93 +633,69 @@ export class HtmlRendererSync {
 	 */
 
 	// TODO 表格中也含有lastRenderedPageBreak，可以拆分表格
-	// TODO 待优化,lastRenderedPageBreak产生空run
 	// 初次拆分，根据分页符号拆分页面
 	splitPageBySymbol(documentElement: DocumentElement): Page[] {
 		// 深拷贝原始数据
 		let root: DocumentElement = _.cloneDeep(documentElement);
 		// 当前操作page，children数组包含子元素
-		let current_page: Page = new Page({ isSplit: true } as PageProps);
+		let currentPage: Page = new Page({ isSplit: true } as PageProps);
 		// 拆分页面的结果集合
 		let pages: Page[] = [];
 
 		// 创建新的页面
 		function startNewPage() {
-			if (current_page.children.length > 0) {
-				pages.push(current_page);
-				current_page = new Page({ isSplit: true } as PageProps);
+			if (currentPage.children.length > 0) {
+				pages.push(currentPage);
+				currentPage = new Page({ isSplit: true } as PageProps);
 			}
 		}
 
 		// 根据分页符号拆分段落
-		const splitElementsBySymbol = ([el, ancestors]: TreeTuple) => {
-			// 如果不是分页符、换行符、分栏符
-			if (el.type !== DomType.Break) {
-
-			}
+		const splitElementsBySymbol = (el: TreeNode, ancestors: TreeNode[]) => {
 			// 节属性
 			if (el.type === DomType.Paragraph) {
-				// 节属性，代表分节符，包含页眉、页脚、页码、页边距等属性
-				const sectProps: SectionProperties = el.props.sectionProperties;
-
-				if (current_page.isSplit === false && sectProps === undefined) {
-					return;
-				}
-				// 无论节属性是否存在，都需要添加到当前page中，后续将会从尾至头依次赋值节属性
-				current_page.sectProps = sectProps;
-				// 节属性生成唯一uuid，每一个节中page均是同一个uuid，代表属于同一个节
-				if (sectProps) {
-					sectProps.sectionId = uuid();
-				}
 				// 查找内置默认段落样式
-				const default_paragraph_style = this.findStyle(el.styleName);
+				const default_paragraph_style = this.findStyle(el?.styleName);
 				// 检测段落内置样式是否存在段前分页
 				if (default_paragraph_style?.paragraphProps?.pageBreakBefore) {
 					// 去除当前段落
-					let paragraph = path.pop();
+					let paragraph = currentPage.stack.pop();
 					// 将当前break元素左侧所有元素作为page的子元素
-					current_page.children = parseToTree(path);
+					currentPage.children = parseToTree(currentPage.stack);
+					// 开始新的Page
+					startNewPage();
 					// 将当前段落添加到下一页page中
-					path = [paragraph];
-					// 开始新的Page
-					startNewPage();
+					currentPage.stack = [paragraph];
 					return;
 				}
-				// 节属性存在，段落中包含子元素时，不再依据分节符拆分，以子元素作为拆分依据
-				if (sectProps && el.children.length > 1) {
+				// 节属性，代表分节符，包含页眉、页脚、页码、页边距等属性
+				const sectProps: SectionProperties = el.props?.sectionProperties;
+				// because of table or TOC exist, current page is not split
+				if (currentPage.isSplit === false && sectProps === undefined) {
 					return;
 				}
-				// TODO 节属性sectProps暂时不支持continuous/nextColumn
-				let ignoreSectionTypes: Set<SectionType> = new Set([SectionType.Continuous, SectionType.NextColumn]);
-				// 段落中存在节属性sectProps，且类型不是continuous/nextColumn
-				if (sectProps && ignoreSectionTypes.has(sectProps.type as SectionType) === false) {
-					// 将当前break元素左侧所有元素作为page的子元素
-					current_page.children = parseToTree(path);
-					// 清空path
-					path = [];
-					// 开始新的Page
-					startNewPage();
-				}
+				// 无论节属性是否存在，都需要添加到当前page中，后续将会从尾至头依次赋值节属性
+				currentPage.sectProps = sectProps;
 			}
-			// 表格
+			// table
 			if (el.type === DomType.Table) {
 				// 仅当isSplit === true，则标记当前page：未拆分，需要渲染期进行拆分
-				if (current_page.isSplit) {
-					current_page.isSplit = false;
+				if (currentPage.isSplit) {
+					currentPage.isSplit = false;
 				}
 			}
-			// 链接
+			// TOC:table of content
 			if (el.type === DomType.Hyperlink) {
 				// 检测链接是否存在目录
 				const exist_TOC: boolean = (el as WmlHyperlink)?.href?.includes('Toc');
 				// 仅当isSplit === true，则标记当前page：未拆分，需要渲染期进行拆分
-				if (current_page.isSplit && exist_TOC) {
-					current_page.isSplit = false;
+				if (currentPage.isSplit && exist_TOC) {
+					currentPage.isSplit = false;
 				}
 			}
 			// lastRenderedPageBreak
 			if (el.type === DomType.LastRenderedPageBreak) {
-				if (current_page.isSplit === false) {
+				if (currentPage.isSplit === false) {
 					return;
 				}
 				// 追溯其父级以及祖先元素，一直追溯至根节点；left：统计左侧相邻兄弟元素数量，remove：即将移除元素id的集合
@@ -727,7 +703,7 @@ export class HtmlRendererSync {
 				// 查找其祖先元素中的paragraph元素
 				let paragraph = ancestors.find(node => node.type === DomType.Paragraph);
 				// 判断是否拆分段落
-				let isSplitParagraph = path.some(node => {
+				let isSplitParagraph = currentPage.stack.some(node => {
 					if (node.parent.uuid === paragraph?.uuid) {
 						// 检查node.prev是否存在
 						return !!node.prev;
@@ -739,13 +715,15 @@ export class HtmlRendererSync {
 					// 添加当前break元素id至移除集合
 					removedElementIds.push(el.uuid);
 					// 忽略元素集合
-					let ignoredElements = path.filter(node => ignoredElementIds.includes(node.uuid));
+					let ignoredElements = currentPage.stack.filter(node => ignoredElementIds.includes(node.uuid));
 					// 根据移除集合，删除元素
-					path = path.filter(node => !removedElementIds.includes(node.uuid));
+					currentPage.stack = currentPage.stack.filter(node => !removedElementIds.includes(node.uuid));
 					// 将当前break元素左侧所有元素作为page的子元素
-					current_page.children = parseToTree(path);
+					currentPage.children = parseToTree(currentPage.stack);
+					// 拆分元素
+					startNewPage();
 					// 忽略元素要重新在下一页生成，否则会丢失
-					path = [...ignoredElements];
+					currentPage.stack = [...ignoredElements];
 					// 将祖先元素添加入path集合
 					let extraAncestors = ancestors.map((ancestor: TreeNode) => {
 						let copy = _.cloneDeep(ancestor);
@@ -757,11 +735,9 @@ export class HtmlRendererSync {
 						}
 						return copy;
 					});
-					path.push(...extraAncestors)
+					currentPage.stack.push(...extraAncestors);
 					// 在下一页中生成lastRenderedPageBreak相关的元素
-					path.push(el);
-					// 拆分元素
-					startNewPage();
+					currentPage.stack.push(el);
 				}
 
 				/*
@@ -835,25 +811,43 @@ export class HtmlRendererSync {
 					return { left, removedElementIds, ignoredElementIds };
 				}
 			}
-			// 分页符
-			if ((el as WmlBreak).break == 'page') {
+			// page break
+			if ((el as WmlBreak).break == BreakType.Page) {
 				// 将当前break元素左侧所有元素作为page的子元素
-				current_page.children = parseToTree(path);
-				// 清空path
-				path = [];
+				currentPage.children = parseToTree(currentPage.stack);
 				// 开始新的Page
 				startNewPage();
 			}
+			// section break
+			if (el.type === DomType.SectionBreak) {
+				let type = (el as WmlSectionBreak).break;
+				switch (type) {
+					// Continuous Section Break.
+					case SectionType.Continuous:
+
+						break;
+
+					// Column Section Break.
+					case SectionType.NextColumn:
+
+						break;
+
+					// Even Page Section Break.
+					case SectionType.EvenPage:
+					// Odd Page Section Break.
+					case SectionType.OddPage:
+					// Next Page Section Break.
+					case SectionType.NextPage:
+					default:
+						// 将当前break元素左侧所有元素作为page的子元素
+						currentPage.children = parseToTree(currentPage.stack);
+						// 开始新的Page
+						startNewPage();
+
+						break;
+				}
+			}
 		};
-
-		// Tree节点
-		interface TreeNode extends OpenXmlElement {
-			// 前一个兄弟指针
-			prev?: TreeNode | null;
-			// 下一个兄弟指针
-			next?: TreeNode | null;
-		}
-
 		// 元组Tuple类型
 		type TreeTuple = [TreeNode, TreeNode[]];
 		// Stack：栈
@@ -861,25 +855,70 @@ export class HtmlRendererSync {
 		// 将子元素压入栈
 		pushStack(root, []);
 		// 遍历路径
-		let path: TreeNode[] = [];
+		let path: TreeTuple[] = [];
 		// 循环条件，栈不为空
 		while (stack.length > 0) {
 			// 弹出栈顶元素
-			let [elem, ancestors] = stack.pop();
+			let [el, ancestors] = stack.pop();
+			// 增加SectionBreak分节符元素
+			if (el.type === DomType.Paragraph) {
+				// 节属性，代表分节符，包含页眉、页脚、页码、页边距等属性
+				const sectProps: SectionProperties = el.props?.sectionProperties;
+
+				if (sectProps) {
+					// 节属性生成唯一uuid，每一个节中page均是同一个uuid，代表属于同一个节
+					sectProps.sectionId = uuid();
+					// 此处添加的SectionBreak元素，应该是下一个节type类型，目前缓存当前节type类型，方便下面重新处理。
+					let wmlSectionBreak: WmlSectionBreak = {
+						type: DomType.SectionBreak,
+						break: sectProps.type ?? SectionType.NextPage,
+					}
+					// run element
+					let wmlRun: WmlRun = {
+						type: DomType.Run,
+						children: [wmlSectionBreak as OpenXmlElement]
+					};
+
+					el.children.push(wmlRun);
+				}
+			}
 			// 记录遍历路径
-			path.push(elem);
-			// 根据分页符号、分节符拆分段落
-			splitElementsBySymbol([elem, ancestors]);
+			path.push([el, ancestors]);
 			// 如果该节点有子节点，将当前节点的子节点逆序压入栈，这样可以保证先遍历左子树，继续下一次循环
-			pushStack(elem, ancestors);
+			pushStack(el, ancestors);
+		}
+		// 分节符类型：默认为最后一个分节符类型
+		let prevSectionType: SectionType = root.sectProps.type ?? SectionType.NextPage;
+		// 处理SectionBreak元素类型,倒序设置
+		for (let i = path.length - 1; i >= 0; i--) {
+			// 获取当前元素
+			let [current] = path[i];
+			// 检测当前元素是否为SectionBreak元素
+			if (current.type === DomType.SectionBreak) {
+				// 下一节的类型
+				let { break: sectionType } = current as WmlSectionBreak;
+				// 设置前一节的类型
+				(current as WmlSectionBreak).break = prevSectionType;
+				// 缓存
+				prevSectionType = sectionType;
+			}
+		}
+		// 正序遍历path路径
+		for (let i = 0; i < path.length; i++) {
+			// 获取当前元素
+			let [current, ancestors] = path[i];
+			// 将当前元素缓存至当前页
+			currentPage.stack.push(current);
+			// 根据分页符号、分节符拆分页面
+			splitElementsBySymbol(current, ancestors);
 		}
 		// 剩余的元素作为最后一个page的子元素
-		if (path.length > 0) {
-			current_page.isSplit = false;
-			current_page.children = parseToTree([...path]);
+		if (currentPage.stack.length > 0) {
+			currentPage.isSplit = false;
+			currentPage.children = parseToTree([...currentPage.stack]);
 			// 最后一页的sectionProperties,来自root
-			current_page.sectProps = root.sectProps;
-			pages.push(current_page);
+			currentPage.sectProps = root.sectProps;
+			pages.push(currentPage);
 		}
 
 		// 倒序压入栈
@@ -888,6 +927,14 @@ export class HtmlRendererSync {
 			const len = elem?.children?.length ?? 0;
 			// 如果没有子元素，则直接返回
 			if (len === 0) {
+				return;
+			}
+			/*
+			* ignore Text element's children--Character that will be pushed to stack
+			* avoid too many elements in stack
+			* side effect:page.stack has no Character element
+			* */
+			if (elem.type === DomType.Text) {
 				return;
 			}
 			// 用于跟踪前一个兄弟节点,初始化前一个子元素为null
@@ -1567,6 +1614,10 @@ export class HtmlRendererSync {
 				oNode = await this.renderLastRenderedPageBreak(elem as WmlLastRenderedPageBreak, parent as HTMLElement);
 				break;
 
+			case DomType.SectionBreak:
+				oNode = await this.renderSectionBreak(elem as WmlSectionBreak, parent as HTMLElement);
+				break;
+
 			case DomType.Inserted:
 				oNode = await this.renderInserted(elem, parent as HTMLElement);
 				break;
@@ -1983,10 +2034,10 @@ export class HtmlRendererSync {
 		}
 		// 针对后代子元素进行溢出检测
 		oText.dataset.overflow = await this.renderChildren(elem, oText);
-		// TODO 目前只能按照text元素检测溢出，后期按照单个文字检测溢出
+
 		return oText;
 	}
-
+	// 按照单个文字渲染，检测溢出
 	async renderCharacter(elem: WmlCharacter, parent: Text) {
 		// String Data
 		let oCharacter = document.createTextNode(elem.char) as Node_DOM;
@@ -2376,13 +2427,6 @@ export class HtmlRendererSync {
 				oBreak.classList.add('break', 'column');
 				break;
 
-			// 分节符
-			case BreakType.Section:
-				oBreak = createElement('br');
-				// 添加class
-				oBreak.classList.add('break', 'section');
-				break;
-
 			// 强制换行
 			case BreakType.TextWrapping:
 			default:
@@ -2417,6 +2461,24 @@ export class HtmlRendererSync {
 		oLastRenderedPageBreak.dataset.overflow = isOverflow;
 
 		return oLastRenderedPageBreak;
+	}
+
+	async renderSectionBreak(elem: WmlSectionBreak, parent: HTMLElement) {
+		const oSectionBreak = createElement('s');
+		// 添加class
+		oSectionBreak.classList.add('break', 'section');
+		// oSectionBreak作为子元素插入，针对此元素执行溢出检测
+		let isOverflow = await this.appendChildren(parent, oSectionBreak);
+		// if true,empty element should be Overflow.SELF
+		if (isOverflow === Overflow.TRUE) {
+			isOverflow = Overflow.SELF;
+		}
+
+		oSectionBreak.dataset.overflow = isOverflow;
+		// break type
+		oSectionBreak.dataset.type = elem.break;
+
+		return oSectionBreak;
 	}
 
 	// TODO 修订标识：修订人，修订日期等信息

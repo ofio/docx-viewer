@@ -1,3 +1,5 @@
+import { SectionType } from "./section";
+
 export enum DomType {
 	Document = "document",
 	Page = "page",
@@ -5,6 +7,7 @@ export enum DomType {
 	Run = "run",
 	Break = "break",
 	LastRenderedPageBreak = "lastRenderedPageBreak",
+	SectionBreak = "sectionBreak",
 	NoBreakHyphen = "noBreakHyphen",
 	Table = "table",
 	Row = "row",
@@ -149,9 +152,12 @@ export interface WmlBreak extends OpenXmlElement {
 export enum BreakType {
 	Column = "column",
 	Page = "page",
-	Section = "section",
 	// default
 	TextWrapping = "textWrapping",
+}
+
+export interface WmlSectionBreak extends OpenXmlElement {
+	break: SectionType;
 }
 
 export interface WmlLastRenderedPageBreak extends OpenXmlElement {
