@@ -652,6 +652,8 @@ export class HtmlRendererSync {
 
 		// 根据分页符号拆分段落
 		const splitElementsBySymbol = (el: TreeNode, ancestors: TreeNode[]) => {
+			// TODO 忽略元素类型集合，多个元素拆分失败
+			let ignoredElementTypes = new Set([DomType.BookmarkStart]);
 			// 节属性
 			if (el.type === DomType.Paragraph) {
 				// 查找内置默认段落样式
@@ -664,6 +666,8 @@ export class HtmlRendererSync {
 					currentPage.children = parseToTree(currentPage.stack);
 					// 开始新的Page
 					startNewPage();
+					// 重置段落prev
+					paragraph.prev = null;
 					// 将当前段落添加到下一页page中
 					currentPage.stack = [paragraph];
 					return;
@@ -702,11 +706,22 @@ export class HtmlRendererSync {
 				let { left, removedElementIds, ignoredElementIds } = checkAncestors(el);
 				// 查找其祖先元素中的paragraph元素
 				let paragraph = ancestors.find(node => node.type === DomType.Paragraph);
-				// 判断是否拆分段落
+				// 判断是否拆分段落,注意忽略某些元素类型
 				let isSplitParagraph = currentPage.stack.some(node => {
+					// 段落子元素
 					if (node.parent.uuid === paragraph?.uuid) {
-						// 检查node.prev是否存在
-						return !!node.prev;
+						// 默认node.prev不存在
+						let isExist = false;
+						// 检测node是否存在prev元素
+						if (node.prev) {
+							// 检测prev元素是否忽略类型
+							let isIgnored = ignoredElementTypes.has(node.prev.type);
+							// prev元素不是忽略类型,存在prev兄弟元素
+							if (isIgnored === false) {
+								isExist = true;
+							}
+						}
+						return isExist;
 					}
 					return false;
 				});
@@ -723,7 +738,9 @@ export class HtmlRendererSync {
 					// 拆分元素
 					startNewPage();
 					// 忽略元素要重新在下一页生成，否则会丢失
-					currentPage.stack = [...ignoredElements];
+					currentPage.stack.push(...ignoredElements);
+					// 在下一页中生成lastRenderedPageBreak相关的元素
+					currentPage.stack.push(el);
 					// 将祖先元素添加入path集合
 					let extraAncestors = ancestors.map((ancestor: TreeNode) => {
 						let copy = _.cloneDeep(ancestor);
@@ -736,8 +753,7 @@ export class HtmlRendererSync {
 						return copy;
 					});
 					currentPage.stack.push(...extraAncestors);
-					// 在下一页中生成lastRenderedPageBreak相关的元素
-					currentPage.stack.push(el);
+
 				}
 
 				/*
@@ -748,8 +764,6 @@ export class HtmlRendererSync {
 				* ignoredElementIds:即将忽略元素id的集合;
 				* */
 				function checkAncestors(el: TreeNode) {
-					// TODO 忽略元素类型集合，多个元素拆分失败
-					let ignoredElementTypes = new Set([DomType.BookmarkStart]);
 					// 即将忽略元素id的集合
 					let ignoredElementIds: string[] = [];
 					// 即将移除元素id的集合
@@ -906,11 +920,15 @@ export class HtmlRendererSync {
 		// 正序遍历path路径
 		for (let i = 0; i < path.length; i++) {
 			// 获取当前元素
-			let [current, ancestors] = path[i];
+			let [node, ancestors] = path[i];
+			// 检测是否是当前Page第一个元素,重置其prev
+			if (currentPage.stack.length === 0) {
+				node.prev = null;
+			}
 			// 将当前元素缓存至当前页
-			currentPage.stack.push(current);
+			currentPage.stack.push(node);
 			// 根据分页符号、分节符拆分页面
-			splitElementsBySymbol(current, ancestors);
+			splitElementsBySymbol(node, ancestors);
 		}
 		// 剩余的元素作为最后一个page的子元素
 		if (currentPage.stack.length > 0) {
@@ -2037,6 +2055,7 @@ export class HtmlRendererSync {
 
 		return oText;
 	}
+
 	// 按照单个文字渲染，检测溢出
 	async renderCharacter(elem: WmlCharacter, parent: Text) {
 		// String Data
