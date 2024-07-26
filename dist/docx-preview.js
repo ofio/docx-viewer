@@ -1062,6 +1062,8 @@
         DomType["Paragraph"] = "paragraph";
         DomType["Run"] = "run";
         DomType["Break"] = "break";
+        DomType["LastRenderedPageBreak"] = "lastRenderedPageBreak";
+        DomType["SectionBreak"] = "sectionBreak";
         DomType["NoBreakHyphen"] = "noBreakHyphen";
         DomType["Table"] = "table";
         DomType["Row"] = "row";
@@ -1070,6 +1072,7 @@
         DomType["Drawing"] = "drawing";
         DomType["Image"] = "image";
         DomType["Text"] = "text";
+        DomType["Character"] = "character";
         DomType["Tab"] = "tab";
         DomType["Symbol"] = "symbol";
         DomType["BookmarkStart"] = "bookmarkStart";
@@ -1154,6 +1157,12 @@
             this.cssStyle = {};
         }
     }
+    var BreakType;
+    (function (BreakType) {
+        BreakType["Column"] = "column";
+        BreakType["Page"] = "page";
+        BreakType["TextWrapping"] = "textWrapping";
+    })(BreakType || (BreakType = {}));
     var WrapType;
     (function (WrapType) {
         WrapType["Inline"] = "Inline";
@@ -1827,7 +1836,7 @@
         }
         parseDocumentFile(xmlDoc) {
             let documentElement = {
-                id: 'root',
+                uuid: 'root',
                 pages: [],
                 sectProps: {},
                 type: DomType.Document,
@@ -2362,7 +2371,7 @@
                 }
             });
             if (wmlParagraph.children.length === 0) {
-                let wmlBreak = { type: DomType.Break, "break": "textWrapping" };
+                let wmlBreak = { type: DomType.Break, "break": BreakType.TextWrapping };
                 let wmlRun = { type: DomType.Run, children: [wmlBreak] };
                 wmlParagraph.children = [wmlRun];
             }
@@ -2432,21 +2441,10 @@
                         this.parseRunProperties(child, wmlRun);
                         break;
                     case "t":
-                        let textContent = child.textContent;
-                        let is_preserve_space = globalXmlParser.attr(child, "xml:space") === "preserve";
-                        if (is_preserve_space) {
-                            textContent = textContent.split(/\s/).join("\u00A0");
-                        }
-                        wmlRun.children.push({
-                            type: DomType.Text,
-                            text: textContent
-                        });
+                        wmlRun.children.push(this.parseText(child, DomType.Text));
                         break;
                     case "delText":
-                        wmlRun.children.push({
-                            type: DomType.DeletedText,
-                            text: child.textContent
-                        });
+                        wmlRun.children.push(this.parseText(child, DomType.DeletedText));
                         break;
                     case "commentReference":
                         wmlRun.children.push(new WmlCommentReference(globalXmlParser.attr(child, "id")));
@@ -2461,10 +2459,7 @@
                         break;
                     case "instrText":
                         wmlRun.fieldRun = true;
-                        wmlRun.children.push({
-                            type: DomType.Instruction,
-                            text: child.textContent
-                        });
+                        wmlRun.children.push(this.parseText(child, DomType.Instruction));
                         break;
                     case "fldChar":
                         wmlRun.fieldRun = true;
@@ -2489,8 +2484,7 @@
                         break;
                     case "lastRenderedPageBreak":
                         wmlRun.children.push({
-                            type: DomType.Break,
-                            break: "lastRenderedPageBreak"
+                            type: DomType.LastRenderedPageBreak,
                         });
                         break;
                     case "sym":
@@ -2530,6 +2524,25 @@
                 }
             });
             return wmlRun;
+        }
+        parseText(elem, type) {
+            let wmlText = { type, text: '', };
+            let textContent = elem.textContent;
+            let is_preserve_space = globalXmlParser.attr(elem, "xml:space") === "preserve";
+            if (is_preserve_space) {
+                textContent = textContent.split(/\s/).join("\u00A0");
+            }
+            wmlText.text = textContent;
+            if (textContent.length > 0) {
+                wmlText.children = this.parseCharacter(textContent);
+            }
+            return wmlText;
+        }
+        parseCharacter(text) {
+            let characters = text.split('');
+            return characters.map(character => {
+                return { type: DomType.Character, char: character };
+            });
         }
         parseRunProperties(elem, run) {
             this.parseDefaultProperties(elem, run.cssStyle = {}, null, c => {
@@ -3896,12 +3909,13 @@
     }
 
     class Page {
-        constructor({ sectProps, children = [], isSplit = false, isFirstPage = false, isLastPage = false, breakIndex = [], contentElement, checkingOverflow = false, }) {
+        constructor({ sectProps, children = [], stack = [], isSplit = false, isFirstPage = false, isLastPage = false, breakIndex = [], contentElement, checkingOverflow = false, }) {
             this.type = DomType.Page;
             this.level = 1;
             this.pageId = uuid();
             this.sectProps = sectProps;
             this.children = children;
+            this.stack = stack;
             this.isSplit = isSplit;
             this.isFirstPage = isFirstPage;
             this.isLastPage = isLastPage;
@@ -4297,10 +4311,10 @@
                         pBreakIndex = p.children.findIndex(r => {
                             var _a;
                             rBreakIndex = (_a = r.children) === null || _a === void 0 ? void 0 : _a.findIndex((t) => {
-                                if (t.type != DomType.Break) {
+                                if (t.type !== DomType.Break && t.type !== DomType.LastRenderedPageBreak) {
                                     return false;
                                 }
-                                if (t.break == "lastRenderedPageBreak") {
+                                if (t.type === DomType.LastRenderedPageBreak) {
                                     return (current_page.children.length > 2 || !this.options.ignoreLastRenderedPageBreak);
                                 }
                                 if (t.break === "page") {
@@ -4608,10 +4622,10 @@
             return null;
         }
         isPageBreakElement(elem) {
-            if (elem.type != DomType.Break) {
+            if (elem.type !== DomType.Break && elem.type !== DomType.LastRenderedPageBreak) {
                 return false;
             }
-            if (elem.break == "lastRenderedPageBreak") {
+            if (elem.type === DomType.LastRenderedPageBreak) {
                 return !this.options.ignoreLastRenderedPageBreak;
             }
             if (elem.break === "page") {
@@ -5065,7 +5079,7 @@
                 this.className = options.className;
                 this.rootSelector = options.inWrapper ? `.${this.className}-wrapper` : ':root';
                 this.styleMap = null;
-                this.wrapper = bodyContainer;
+                this.bodyContainer = bodyContainer;
                 styleContainer = styleContainer || bodyContainer;
                 this.pointToPixelRatio = computePointToPixelRatio();
                 removeAllElements(styleContainer);
@@ -5114,6 +5128,7 @@
         renderDefaultStyle() {
             const c = this.className;
             const styleText = `
+			.${c} { font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", "Noto Sans", "Liberation Sans", Arial, sans-serif }
 			.${c}-wrapper { background: gray; padding: 30px; padding-bottom: 0px; display: flex; flex-flow: column; align-items: center; line-height:normal; font-weight:normal; } 
 			.${c}-wrapper>section.${c} { background: white; box-shadow: 0 0 10px rgba(0, 0, 0, 0.5); margin-bottom: 30px; }
 			.${c} { color: black; hyphens: auto; text-underline-position: from-font; }
@@ -5398,132 +5413,192 @@
             }
         }
         splitPageBySymbol(documentElement) {
+            var _a, _b, _c;
             let root = ___namespace.cloneDeep(documentElement);
-            let current_page = new Page({ isSplit: true });
+            let currentPage = new Page({ isSplit: true });
             let pages = [];
             function startNewPage() {
-                if (current_page.children.length > 0) {
-                    pages.push(current_page);
-                    current_page = new Page({ isSplit: true });
+                if (currentPage.children.length > 0) {
+                    pages.push(currentPage);
+                    currentPage = new Page({ isSplit: true });
                 }
             }
-            const splitElementsBySymbol = ([el, ancestors]) => {
-                var _a, _b;
-                if (el.type !== DomType.Break) ;
+            const splitElementsBySymbol = (el, ancestors) => {
+                var _a, _b, _c;
+                let ignoredElementTypes = new Set([DomType.BookmarkStart]);
                 if (el.type === DomType.Paragraph) {
-                    const sectProps = el.props.sectionProperties;
-                    if (current_page.isSplit === false && sectProps === undefined) {
-                        return;
-                    }
-                    current_page.sectProps = sectProps;
-                    if (sectProps) {
-                        sectProps.sectionId = uuid();
-                    }
-                    const default_paragraph_style = this.findStyle(el.styleName);
+                    const default_paragraph_style = this.findStyle(el === null || el === void 0 ? void 0 : el.styleName);
                     if ((_a = default_paragraph_style === null || default_paragraph_style === void 0 ? void 0 : default_paragraph_style.paragraphProps) === null || _a === void 0 ? void 0 : _a.pageBreakBefore) {
-                        let paragraph = path.pop();
-                        current_page.children = parseToTree(path);
-                        path = [paragraph];
+                        let paragraph = currentPage.stack.pop();
+                        currentPage.children = parseToTree(currentPage.stack);
                         startNewPage();
+                        paragraph.prev = null;
+                        currentPage.stack = [paragraph];
                         return;
                     }
-                    if (sectProps && el.children.length > 1) {
+                    const sectProps = (_b = el.props) === null || _b === void 0 ? void 0 : _b.sectionProperties;
+                    if (currentPage.isSplit === false && sectProps === undefined) {
                         return;
                     }
-                    let ignoreSectionTypes = new Set([SectionType.Continuous, SectionType.NextColumn]);
-                    if (sectProps && ignoreSectionTypes.has(sectProps.type) === false) {
-                        current_page.children = parseToTree(path);
-                        path = [];
-                        startNewPage();
-                    }
+                    currentPage.sectProps = sectProps;
                 }
                 if (el.type === DomType.Table) {
-                    if (current_page.isSplit) {
-                        current_page.isSplit = false;
+                    if (currentPage.isSplit) {
+                        currentPage.isSplit = false;
                     }
                 }
                 if (el.type === DomType.Hyperlink) {
-                    const exist_TOC = (_b = el === null || el === void 0 ? void 0 : el.href) === null || _b === void 0 ? void 0 : _b.includes('Toc');
-                    if (current_page.isSplit && exist_TOC) {
-                        current_page.isSplit = false;
+                    const exist_TOC = (_c = el === null || el === void 0 ? void 0 : el.href) === null || _c === void 0 ? void 0 : _c.includes('Toc');
+                    if (currentPage.isSplit && exist_TOC) {
+                        currentPage.isSplit = false;
                     }
                 }
-                if (el.break == 'lastRenderedPageBreak') {
-                    if (current_page.isSplit === false) {
+                if (el.type === DomType.LastRenderedPageBreak) {
+                    if (currentPage.isSplit === false) {
                         return;
                     }
-                    let { left, removeElementIds, ignoredElements } = checkAncestors(el);
+                    let { left, removedElementIds, ignoredElementIds } = checkAncestors(el);
                     let paragraph = ancestors.find(node => node.type === DomType.Paragraph);
-                    let isSplitParagraph = path.some(node => {
-                        if (node.parent.id === (paragraph === null || paragraph === void 0 ? void 0 : paragraph.id)) {
-                            return !!node.prev;
+                    let isSplitParagraph = currentPage.stack.some(node => {
+                        if (node.parent.uuid === (paragraph === null || paragraph === void 0 ? void 0 : paragraph.uuid)) {
+                            let isExist = false;
+                            if (node.prev) {
+                                let isIgnored = ignoredElementTypes.has(node.prev.type);
+                                if (isIgnored === false) {
+                                    isExist = true;
+                                }
+                            }
+                            return isExist;
                         }
                         return false;
                     });
                     if (left > 0) {
-                        removeElementIds.push(el.id);
-                        path = path.filter(node => !removeElementIds.includes(node.id));
-                        current_page.children = parseToTree(path);
-                        path = [...ignoredElements];
-                        let extraAncestors = ancestors.map((node) => {
-                            let copy = ___namespace.cloneDeep(node);
+                        removedElementIds.push(el.uuid);
+                        let ignoredElements = currentPage.stack.filter(node => ignoredElementIds.includes(node.uuid));
+                        currentPage.stack = currentPage.stack.filter(node => !removedElementIds.includes(node.uuid));
+                        currentPage.children = parseToTree(currentPage.stack);
+                        startNewPage();
+                        currentPage.stack.push(...ignoredElements);
+                        currentPage.stack.push(el);
+                        let extraAncestors = ancestors.map((ancestor) => {
+                            let copy = ___namespace.cloneDeep(ancestor);
                             copy.prev = null;
                             if (copy.type === DomType.Paragraph && isSplitParagraph) {
                                 copy.cssStyle['text-indent'] = '0';
                             }
                             return copy;
                         });
-                        path.push(...extraAncestors);
-                        path.push(el);
-                        startNewPage();
+                        currentPage.stack.push(...extraAncestors);
                     }
                     function checkAncestors(el) {
-                        let ignoredElementTypes = new Set([DomType.BookmarkStart]);
-                        let ignoredElements = [];
-                        let removeElementIds = [];
-                        let isExistSibling = false;
-                        if (el.prev) {
-                            let isIgnore = ignoredElementTypes.has(el.prev.type);
-                            if (isIgnore) {
-                                ignoredElements.push(el.prev);
-                                removeElementIds.push(el.prev.id);
+                        let ignoredElementIds = [];
+                        let removedElementIds = [];
+                        let left = 0;
+                        let processingElements = [el, ...ancestors];
+                        let child = { ignoredType: null, uuid: null };
+                        for (let ancestor of processingElements) {
+                            if (child.ignoredType) {
+                                let index = ancestor.children.findIndex(node => node.uuid === child.uuid);
+                                let prevElements = ancestor.children.slice(0, index);
+                                prevElements.reverse();
+                                for (let element of prevElements) {
+                                    if (element.type === child.ignoredType) {
+                                        ignoredElementIds.push(element.uuid);
+                                        removedElementIds.push(element.uuid);
+                                    }
+                                    else {
+                                        left += 1;
+                                        break;
+                                    }
+                                }
+                            }
+                            child.uuid = ancestor.uuid;
+                            if (ancestor.prev) {
+                                let isIgnored = ignoredElementTypes.has(ancestor.prev.type);
+                                if (isIgnored) {
+                                    child.ignoredType = ancestor.prev.type;
+                                }
+                                else {
+                                    left += 1;
+                                    break;
+                                }
                             }
                             else {
-                                isExistSibling = true;
+                                child.ignoredType = null;
+                                if (ancestor.parent.uuid !== root.uuid) {
+                                    removedElementIds.push(ancestor.parent.uuid);
+                                }
                             }
                         }
-                        let left = isExistSibling ? 1 : 0;
-                        if (isExistSibling === false) {
-                            removeElementIds.push(el.parent.id);
-                            let result = checkAncestors(el.parent);
-                            left += result.left;
-                            removeElementIds.push(...result.removeElementIds);
-                            ignoredElements.push(...result.ignoredElements);
-                        }
-                        return { left, removeElementIds, ignoredElements };
+                        return { left, removedElementIds, ignoredElementIds };
                     }
                 }
-                if (el.break == 'page') {
-                    current_page.children = parseToTree(path);
-                    path = [];
+                if (el.break == BreakType.Page) {
+                    currentPage.children = parseToTree(currentPage.stack);
                     startNewPage();
+                }
+                if (el.type === DomType.SectionBreak) {
+                    let type = el.break;
+                    switch (type) {
+                        case SectionType.Continuous:
+                            break;
+                        case SectionType.NextColumn:
+                            break;
+                        case SectionType.EvenPage:
+                        case SectionType.OddPage:
+                        case SectionType.NextPage:
+                        default:
+                            currentPage.children = parseToTree(currentPage.stack);
+                            startNewPage();
+                            break;
+                    }
                 }
             };
             let stack = [];
             pushStack(root, []);
             let path = [];
             while (stack.length > 0) {
-                let [elem, ancestors] = stack.pop();
-                elem.id = uuid();
-                path.push(elem);
-                splitElementsBySymbol([elem, ancestors]);
-                pushStack(elem, ancestors);
+                let [el, ancestors] = stack.pop();
+                if (el.type === DomType.Paragraph) {
+                    const sectProps = (_a = el.props) === null || _a === void 0 ? void 0 : _a.sectionProperties;
+                    if (sectProps) {
+                        sectProps.sectionId = uuid();
+                        let wmlSectionBreak = {
+                            type: DomType.SectionBreak,
+                            break: (_b = sectProps.type) !== null && _b !== void 0 ? _b : SectionType.NextPage,
+                        };
+                        let wmlRun = {
+                            type: DomType.Run,
+                            children: [wmlSectionBreak]
+                        };
+                        el.children.push(wmlRun);
+                    }
+                }
+                path.push([el, ancestors]);
+                pushStack(el, ancestors);
             }
-            if (path.length > 0) {
-                current_page.isSplit = false;
-                current_page.children = parseToTree([...path]);
-                current_page.sectProps = root.sectProps;
-                pages.push(current_page);
+            let prevSectionType = (_c = root.sectProps.type) !== null && _c !== void 0 ? _c : SectionType.NextPage;
+            for (let i = path.length - 1; i >= 0; i--) {
+                let [current] = path[i];
+                if (current.type === DomType.SectionBreak) {
+                    let { break: sectionType } = current;
+                    current.break = prevSectionType;
+                    prevSectionType = sectionType;
+                }
+            }
+            for (let i = 0; i < path.length; i++) {
+                let [node, ancestors] = path[i];
+                if (currentPage.stack.length === 0) {
+                    node.prev = null;
+                }
+                currentPage.stack.push(node);
+                splitElementsBySymbol(node, ancestors);
+            }
+            if (currentPage.stack.length > 0) {
+                currentPage.isSplit = false;
+                currentPage.children = parseToTree([...currentPage.stack]);
+                currentPage.sectProps = root.sectProps;
+                pages.push(currentPage);
             }
             function pushStack(elem, ancestors) {
                 var _a, _b;
@@ -5531,27 +5606,30 @@
                 if (len === 0) {
                     return;
                 }
+                if (elem.type === DomType.Text) {
+                    return;
+                }
                 let nextChild = null;
                 for (let i = len - 1; i >= 0; i--) {
                     const child = elem.children[i];
-                    child.parent = elem;
-                    child.next = nextChild;
+                    child.uuid = uuid();
+                    child.parent = { uuid: elem.uuid, type: elem.type };
                     if (nextChild) {
-                        nextChild.prev = child;
+                        nextChild.prev = { uuid: child.uuid, type: child.type };
                     }
                     if (i === 0) {
                         child.prev = null;
                     }
                     nextChild = child;
-                    let childAncestors = elem.type === DomType.Document ? [] : [...ancestors, elem];
+                    let childAncestors = elem.type === DomType.Document ? [] : [elem, ...ancestors];
                     stack.push([child, childAncestors]);
                 }
             }
             function parseToTree(nodes) {
-                let root = nodes.filter((node) => node.parent.id === 'root');
+                let firstLevel = nodes.filter((node) => node.parent.uuid === root.uuid);
                 const parser = function (origin, root) {
                     return root.map((parent) => {
-                        let children = origin.filter((child) => child.parent.id === parent.id);
+                        let children = origin.filter((child) => child.parent.uuid === parent.uuid);
                         if (children.length) {
                             return Object.assign(Object.assign({}, parent), { children: parser(origin, children) });
                         }
@@ -5560,7 +5638,7 @@
                         }
                     });
                 };
-                return parser(nodes, root);
+                return parser(nodes, firstLevel);
             }
             let prevSectionProperties = null;
             for (let page of pages) {
@@ -5869,7 +5947,8 @@
             });
         }
         splitElementsByBreakIndex(current, next) {
-            next === null || next === void 0 ? void 0 : next.children.forEach((child, i) => {
+            for (let i = 0; i < (next === null || next === void 0 ? void 0 : next.children.length); i++) {
+                let child = next.children[i];
                 let { type, breakIndex, children } = child;
                 if (!breakIndex) {
                     return;
@@ -5878,36 +5957,37 @@
                     return;
                 }
                 let copy = ___namespace.cloneDeep(child);
-                if (type === DomType.Row) {
-                    if (child === null || child === void 0 ? void 0 : child.isHeader) {
-                        return;
-                    }
-                    current.children.push(copy);
-                }
-                else {
-                    let table_headers = [];
-                    if (type === DomType.Table) {
+                let count = breakIndex.length > 0 ? breakIndex[0] : children.length;
+                switch (type) {
+                    case DomType.Table:
+                        let table_headers = [];
                         table_headers = children.filter((row) => row.isHeader);
-                    }
-                    let count = breakIndex.length > 0 ? breakIndex[0] : children.length;
-                    const unbrokenChildren = children.splice(0, count);
-                    if (type === DomType.Table) {
+                        const unbrokenChildren = children.splice(0, count);
                         children[0].children.forEach((cell) => {
                             if (cell.verticalMerge === 'continue') {
                                 cell.verticalMerge = 'restart';
                             }
                         });
-                    }
-                    if (table_headers.length > 0 && table_headers.length < children.length) {
-                        children.unshift(...table_headers);
-                    }
-                    if (current.type === DomType.Row) {
-                        current.children[i].children = unbrokenChildren;
-                    }
-                    else {
+                        if (table_headers.length > 0 && table_headers.length < children.length) {
+                            children.unshift(...table_headers);
+                        }
                         copy.children = unbrokenChildren;
                         current.children.push(copy);
-                    }
+                        break;
+                    case DomType.Row:
+                        if (child === null || child === void 0 ? void 0 : child.isHeader) {
+                            continue;
+                        }
+                        current.children.push(copy);
+                        break;
+                    case DomType.Cell:
+                        current.children[i].children = children.splice(0, count);
+                        break;
+                    case DomType.Paragraph:
+                        break;
+                    default:
+                        copy.children = children.splice(0, count);
+                        current.children.push(copy);
                 }
                 if (type !== DomType.Row && breakIndex.length > 0) {
                     child.breakIndex = undefined;
@@ -5915,7 +5995,7 @@
                 if (children.length > 0) {
                     this.splitElementsByBreakIndex(copy, child);
                 }
-            });
+            }
         }
         renderElement(elem, parent) {
             return __awaiter(this, void 0, void 0, function* () {
@@ -5929,6 +6009,9 @@
                         break;
                     case DomType.Text:
                         oNode = yield this.renderText(elem, parent);
+                        break;
+                    case DomType.Character:
+                        oNode = yield this.renderCharacter(elem, parent);
                         break;
                     case DomType.Table:
                         oNode = yield this.renderTable(elem, parent);
@@ -5962,6 +6045,12 @@
                         break;
                     case DomType.Break:
                         oNode = yield this.renderBreak(elem, parent);
+                        break;
+                    case DomType.LastRenderedPageBreak:
+                        oNode = yield this.renderLastRenderedPageBreak(elem, parent);
+                        break;
+                    case DomType.SectionBreak:
+                        oNode = yield this.renderSectionBreak(elem, parent);
                         break;
                     case DomType.Inserted:
                         oNode = yield this.renderInserted(elem, parent);
@@ -6204,7 +6293,7 @@
             return __awaiter(this, void 0, void 0, function* () {
                 var _a, _b, _c;
                 const oParagraph = createElement('p');
-                oParagraph.dataset.uuid = uuid();
+                oParagraph.dataset.uuid = elem.uuid;
                 this.renderClass(elem, oParagraph);
                 Object.assign(elem.cssStyle, parseLineSpacing(elem.props, this.currentPage.sectProps));
                 this.renderStyleValues(elem.cssStyle, oParagraph);
@@ -6261,10 +6350,24 @@
         }
         renderText(elem, parent) {
             return __awaiter(this, void 0, void 0, function* () {
-                const oText = document.createTextNode(elem.text);
-                oText.dataset = {};
-                oText.dataset.overflow = yield this.appendChildren(parent, oText);
+                let oText = document.createTextNode('');
+                oText.dataset = { overflow: Overflow.UNKNOWN };
+                appendChildren(parent, oText);
+                let { isSplit } = this.currentPage;
+                if (isSplit) {
+                    oText.appendData(elem.text);
+                    return oText;
+                }
+                oText.dataset.overflow = yield this.renderChildren(elem, oText);
                 return oText;
+            });
+        }
+        renderCharacter(elem, parent) {
+            return __awaiter(this, void 0, void 0, function* () {
+                let oCharacter = document.createTextNode(elem.char);
+                oCharacter.dataset = { overflow: Overflow.UNKNOWN };
+                oCharacter.dataset.overflow = yield this.appendChildren(parent, oCharacter);
+                return oCharacter;
             });
         }
         renderTable(elem, parent) {
@@ -6415,7 +6518,7 @@
         renderKonva() {
             const oContainer = createElement('div');
             oContainer.id = 'konva-container';
-            document.body.appendChild(oContainer);
+            appendChildren(this.bodyContainer, oContainer);
             this.konva_stage = new Konva.Stage({ container: 'konva-container' });
             this.konva_layer = new Konva.Layer({ listening: false });
             this.konva_stage.add(this.konva_layer);
@@ -6521,30 +6624,51 @@
             return __awaiter(this, void 0, void 0, function* () {
                 let oBreak;
                 switch (elem.break) {
-                    case 'page':
+                    case BreakType.Page:
                         oBreak = createElement('br');
                         oBreak.classList.add('break', 'page');
                         break;
-                    case 'textWrapping':
-                        oBreak = createElement('br');
-                        oBreak.classList.add('break', 'textWrap');
-                        break;
-                    case 'column':
+                    case BreakType.Column:
                         oBreak = createElement('br');
                         oBreak.classList.add('break', 'column');
                         break;
-                    case 'lastRenderedPageBreak':
-                        oBreak = createElement('wbr');
-                        oBreak.classList.add('break', 'lastRenderedPageBreak');
+                    case BreakType.TextWrapping:
+                    default:
+                        oBreak = createElement('br');
+                        oBreak.classList.add('break', 'textWrap');
                         break;
                 }
-                let is_overflow;
-                is_overflow = yield this.appendChildren(parent, oBreak);
-                if (is_overflow === Overflow.TRUE) {
-                    oBreak.dataset.overflow = Overflow.SELF;
+                let isOverflow = yield this.appendChildren(parent, oBreak);
+                if (isOverflow === Overflow.TRUE) {
+                    isOverflow = Overflow.SELF;
                 }
-                oBreak.dataset.overflow = is_overflow;
+                oBreak.dataset.overflow = isOverflow;
                 return oBreak;
+            });
+        }
+        renderLastRenderedPageBreak(elem, parent) {
+            return __awaiter(this, void 0, void 0, function* () {
+                const oLastRenderedPageBreak = createElement('wbr');
+                oLastRenderedPageBreak.classList.add('lastRenderedPageBreak');
+                let isOverflow = yield this.appendChildren(parent, oLastRenderedPageBreak);
+                if (isOverflow === Overflow.TRUE) {
+                    isOverflow = Overflow.SELF;
+                }
+                oLastRenderedPageBreak.dataset.overflow = isOverflow;
+                return oLastRenderedPageBreak;
+            });
+        }
+        renderSectionBreak(elem, parent) {
+            return __awaiter(this, void 0, void 0, function* () {
+                const oSectionBreak = createElement('s');
+                oSectionBreak.classList.add('break', 'section');
+                let isOverflow = yield this.appendChildren(parent, oSectionBreak);
+                if (isOverflow === Overflow.TRUE) {
+                    isOverflow = Overflow.SELF;
+                }
+                oSectionBreak.dataset.overflow = isOverflow;
+                oSectionBreak.dataset.type = elem.break;
+                return oSectionBreak;
             });
         }
         renderInserted(elem, parent) {
@@ -6871,15 +6995,27 @@
         elem.innerHTML = '';
     }
     function appendChildren(parent, children) {
-        if (Array.isArray(children)) {
-            parent.append(...children);
-        }
-        else if (children) {
-            if (___namespace.isString(children)) {
-                parent.append(children);
+        if (parent instanceof Element) {
+            if (Array.isArray(children)) {
+                parent.append(...children);
             }
             else {
-                parent.appendChild(children);
+                if (___namespace.isString(children)) {
+                    parent.append(children);
+                }
+                else {
+                    parent.appendChild(children);
+                }
+            }
+        }
+        if (parent instanceof Text) {
+            if (Array.isArray(children)) {
+                throw new Error('Text append children: children must be text node');
+            }
+            else {
+                if (children instanceof Text) {
+                    parent.appendData(children.wholeText);
+                }
             }
         }
     }
@@ -6893,24 +7029,53 @@
         return is_overflow;
     }
     function removeElements(target, parent) {
-        if (Array.isArray(target)) {
-            target.forEach(elem => {
-                if (elem instanceof Element) {
-                    elem.remove();
-                }
-                else {
-                    if (parent) {
-                        parent.removeChild(elem);
+        if (parent === undefined) {
+            if (Array.isArray(target)) {
+                target.forEach(elem => {
+                    if (elem instanceof Element) {
+                        elem.remove();
                     }
-                }
-            });
-        }
-        else {
-            if (target instanceof Element) {
-                target.remove();
+                    else {
+                        throw new Error('removeElements: target must be Element!');
+                    }
+                });
             }
             else {
-                if (target) {
+                if (target instanceof Element) {
+                    target.remove();
+                }
+                else {
+                    throw new Error('removeElements: target must be Element!');
+                }
+            }
+            return;
+        }
+        if (parent instanceof Text) {
+            if (Array.isArray(target)) {
+                throw new Error('Text remove target: target must be text node!');
+            }
+            else {
+                if (target instanceof Text) {
+                    parent.deleteData(parent.length - 1, target.length);
+                }
+            }
+        }
+        if (parent instanceof Element) {
+            if (Array.isArray(target)) {
+                target.forEach(elem => {
+                    if (elem instanceof Element) {
+                        elem.remove();
+                    }
+                    else {
+                        parent.removeChild(elem);
+                    }
+                });
+            }
+            else {
+                if (target instanceof Element) {
+                    target.remove();
+                }
+                else {
                     parent.removeChild(target);
                 }
             }
