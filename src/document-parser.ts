@@ -1322,12 +1322,12 @@ export class DocumentParser {
 			} else {
 				result.cssStyle["z-index"] = relativeHeight;
 			}
-			// 图片文字环绕默认采用wrapTopAndBottom
+			// 图片文字环绕默认采用Inline
 			if (this.options.ignoreImageWrap) {
-				result.props.wrapType = WrapType.TopAndBottom;
+				result.props.wrapType = WrapType.Inline;
 			}
 			// 文本环绕位置：bothSides、largest、left、right
-			let { wrapText, wrapType, extent } = result.props;
+			let { wrapText, wrapType } = result.props;
 
 			switch (wrapType) {
 				// 顶部底部文字环绕
