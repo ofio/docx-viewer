@@ -1498,7 +1498,7 @@ export class HtmlRendererSync {
 			if (!children || children?.length === 0) {
 				return;
 			}
-			// 复制child的元素
+			// 复制child的元素,后续缓存至current中
 			let copy: OpenXmlElement = _.cloneDeep(child);
 			/*
 			* breakIndex索引前面的元素，并未导致溢出，splice切出这些元素，
@@ -1563,7 +1563,19 @@ export class HtmlRendererSync {
 					break;
 
 				case DomType.Paragraph:
-
+					// 判断是否拆分段落
+					let isSplitParagraph = isSplit(child);
+					/*
+					* 切出未溢出的元素
+					* 剩余的溢出元素，归属于next
+					* */
+					copy.children = children.splice(0, count);
+					// current指向原来的父级，push未溢出的元素至current
+					current.children.push(copy);
+					// 段落拆分之后，下一页段落，重设缩进为0
+					if (isSplitParagraph) {
+						child.cssStyle['text-indent'] = '0'
+					}
 					break;
 
 				default:
@@ -1582,6 +1594,28 @@ export class HtmlRendererSync {
 			// 递归调用，继续拆分
 			if (children.length > 0) {
 				this.splitElementsByBreakIndex(copy, child);
+			}
+		}
+
+		// 判断是否拆分段落--递归
+		function isSplit(elem: OpenXmlElement) {
+			let { breakIndex, children, type } = elem;
+			// 尚未渲染，未执行溢出检测的元素，breakIndex = undefined，跳过
+			if (!breakIndex) {
+				return false;
+			}
+			// 末端元素，无需拆分，跳过
+			if (!children || children?.length === 0) {
+				return false;
+			}
+			let i = breakIndex[0];
+			// 第一个元素溢出，其子元素需递归校验是否拆分段落
+			if (i === 0) {
+				return isSplit(children[i]);
+			}
+			// 溢出索引小于children长度，说明溢出
+			if (i < children.length) {
+				return true;
 			}
 		}
 	}
