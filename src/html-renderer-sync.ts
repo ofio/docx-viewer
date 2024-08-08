@@ -3046,7 +3046,7 @@ function removeElements(target: ChildrenType, parent?: HTMLElement | Element | T
 		} else {
 			if (target instanceof Text) {
 				// at this point, deleteData is better than remove, because text was inserted by appendData
-				parent.deleteData(parent.length - 1, target.length);
+				parent.deleteData(parent.length - target.length, target.length);
 			}
 		}
 	}

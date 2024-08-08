@@ -6,7 +6,7 @@ import xml from './parser/xml-parser';
 import { parseRunProperties, WmlRun } from './document/run';
 import { parseBookmarkEnd, parseBookmarkStart } from './document/bookmarks';
 import { IDomStyle, Ruleset } from './document/style';
-import { WmlFieldChar, WmlFieldSimple, WmlInstructionText } from './document/fields';
+import { WmlFieldChar, WmlFieldSimple } from './document/fields';
 import { convertLength, LengthUsage, LengthUsageType } from './document/common';
 import { parseVmlElement } from './vml/vml';
 import { uuid } from "./utils";
@@ -991,7 +991,17 @@ export class DocumentParser {
 	}
 
 	parseCharacter(text: string): OpenXmlElement[] {
-		let characters = text.split('');
+		let characters = [];
+		// 检查字符串是否主要包含中文字符
+		const isChinese = (text.match(/[\u4e00-\u9fa5]+/g) || []).join('').length > text.length / 2;
+		// 主要是中文字符
+		if (isChinese) {
+			// 待完善正则表达式：/([\u4e00-\u9fff]|\w+)(\p{Punctuation}*)?|\s+/gu;丢失拉丁符号，右括号）
+			// TODO 目前拆分方式，英文符号拆分为一个个字母，而非单词。
+			characters = text.split('');
+		} else {
+			characters = text.match(/\S+|\s+/g);
+		}
 		return characters.map(character => {
 			return { type: DomType.Character, char: character } as WmlCharacter
 		});
