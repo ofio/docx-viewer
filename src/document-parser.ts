@@ -993,7 +993,7 @@ export class DocumentParser {
 	parseCharacter(text: string): OpenXmlElement[] {
 		let characters = [];
 		// 检查字符串是否主要包含中文字符
-		const isChinese = (text.match(/[\u4e00-\u9fa5]+/g) || []).join('').length > text.length / 2;
+		const isChinese = text.match(/[\u4e00-\u9fa5]+/g);
 		// 主要是中文字符
 		if (isChinese) {
 			// 待完善正则表达式：/([\u4e00-\u9fff]|\w+)(\p{Punctuation}*)?|\s+/gu;丢失拉丁符号，右括号）
