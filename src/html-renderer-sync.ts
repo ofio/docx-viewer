@@ -1350,7 +1350,7 @@ export class HtmlRendererSync {
 			elem.index = i;
 			// 子元素溢出索引数组
 			if (!elem.breakIndex) {
-				elem.breakIndex = [];
+				elem.breakIndex = new Set();
 			}
 			// 根据XML对象渲染单个元素
 			const rendered_element = await this.renderElement(elem, parent);
@@ -1363,9 +1363,9 @@ export class HtmlRendererSync {
 				// 元素自身溢出
 				case Overflow.SELF:
 					// 缓存溢出元素的索引至自身的breakIndex.
-					elem.breakIndex.push(0);
+					elem.breakIndex.add(0);
 					// 缓存溢出元素的索引至父级的breakIndex。
-					elem.parent.breakIndex.push(i);
+					elem.parent.breakIndex.add(i);
 					// 删除溢出元素
 					removeElements(rendered_element, parent);
 					action = 'break';
@@ -1376,7 +1376,7 @@ export class HtmlRendererSync {
 				// 插入元素children之后，全部child溢出
 				case Overflow.FULL:
 					// 缓存溢出元素的索引至父级的breakIndex。
-					elem.parent.breakIndex.push(i);
+					elem.parent.breakIndex.add(i);
 					// 删除溢出元素
 					if (elem.type !== DomType.Cell) {
 						removeElements(rendered_element, parent);
@@ -1387,7 +1387,7 @@ export class HtmlRendererSync {
 				// 插入元素children之后，一部分child溢出
 				case Overflow.PART:
 					// 缓存溢出元素的索引至父级的breakIndex。
-					elem.parent.breakIndex.push(i);
+					elem.parent.breakIndex.add(i);
 					action = 'break';
 					break;
 
@@ -1492,11 +1492,11 @@ export class HtmlRendererSync {
 			let { type, breakIndex, children } = child;
 			// 尚未渲染，未执行溢出检测的元素，breakIndex = undefined，跳过
 			if (!breakIndex) {
-				return;
+				continue;
 			}
 			// 末端元素，无需拆分，跳过
 			if (!children || children?.length === 0) {
-				return;
+				continue;
 			}
 			// 复制child的元素,后续缓存至current中
 			let copy: OpenXmlElement = _.cloneDeep(child);
@@ -1511,7 +1511,7 @@ export class HtmlRendererSync {
 			* 未溢出的元素，全体未溢出：breakIndex = []，部分溢出：breakIndex = [1]
 			* 根据溢出索引，确定切除的元素数量
 			* */
-			let count = breakIndex.length > 0 ? breakIndex[0] : children.length;
+			let count = breakIndex.size > 0 ? [...breakIndex][0] : children.length;
 
 			switch (type) {
 				// 如果当前元素是表格Table
@@ -1535,6 +1535,7 @@ export class HtmlRendererSync {
 						children.unshift(...table_headers);
 					}
 					// 未溢出的子元素覆盖copy
+					// 注意，必须修改copy,否则影响下一次递归
 					copy.children = unbrokenChildren;
 					// current指向原来的父级，push未溢出的元素至current
 					current.children.push(copy);
@@ -1557,8 +1558,10 @@ export class HtmlRendererSync {
 					/*
 					* 切出未溢出的元素,逐个替换current中cell的子元素
 					* 剩余的溢出元素，归属于next
+					* 注意，必须修改copy,否则影响下一次递归
 					* */
-					current.children[i].children = children.splice(0, count);
+					copy.children = children.splice(0, count);
+					current.children[i] = copy;
 
 					break;
 
@@ -1568,6 +1571,7 @@ export class HtmlRendererSync {
 					/*
 					* 切出未溢出的元素
 					* 剩余的溢出元素，归属于next
+					* 注意，必须修改copy,否则影响下一次递归
 					* */
 					copy.children = children.splice(0, count);
 					// current指向原来的父级，push未溢出的元素至current
@@ -1582,13 +1586,14 @@ export class HtmlRendererSync {
 					/*
 					* 切出未溢出的元素
 					* 剩余的溢出元素，归属于next
+					* 注意，必须修改copy,否则影响下一次递归
 					* */
 					copy.children = children.splice(0, count);
 					// current指向原来的父级，push未溢出的元素至current
 					current.children.push(copy);
 			}
 			// 重置breakIndex
-			if (type !== DomType.Row && breakIndex.length > 0) {
+			if (type !== DomType.Row && breakIndex.size > 0) {
 				child.breakIndex = undefined;
 			}
 			// 递归调用，继续拆分
@@ -1608,7 +1613,7 @@ export class HtmlRendererSync {
 			if (!children || children?.length === 0) {
 				return false;
 			}
-			let i = breakIndex[0];
+			let i = [...breakIndex][0];
 			// 第一个元素溢出，其子元素需递归校验是否拆分段落
 			if (i === 0) {
 				return isSplit(children[i]);

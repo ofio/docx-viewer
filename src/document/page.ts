@@ -23,7 +23,7 @@ export interface PageProps {
 	// 是否最后一页
 	isLastPage?: boolean;
 	// 顶层元素拆分索引
-	breakIndex?: number[];
+	breakIndex?: Set<number>;
 	// 渲染所有内容的元素
 	contentElement?: HTMLElement;
 	// 溢出检测开关
@@ -49,13 +49,13 @@ export class Page implements OpenXmlElement {
 	// 是否最后一页
 	isLastPage?: boolean;
 	// 顶层元素拆分索引
-	breakIndex?: number[];
+	breakIndex?: Set<number>;
 	// 渲染所有内容的元素
 	contentElement?: HTMLElement;
 	// 溢出检测开关，header/footer不检测
 	checkingOverflow?: boolean;
 
-	constructor({ sectProps, children = [], stack = [], isSplit = false, isFirstPage = false, isLastPage = false, breakIndex = [], contentElement, checkingOverflow = false, }: PageProps) {
+	constructor({ sectProps, children = [], stack = [], isSplit = false, isFirstPage = false, isLastPage = false, breakIndex = new Set(), contentElement, checkingOverflow = false, }: PageProps) {
 		this.type = DomType.Page;
 		this.level = 1;
 		this.pageId = uuid();

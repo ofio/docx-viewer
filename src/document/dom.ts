@@ -108,7 +108,7 @@ export interface OpenXmlElement {
 	// 元素数组索引
 	index?: number;
 	// 溢出索引，数组，有多个元素溢出
-	breakIndex?: number[];
+	breakIndex?: Set<number>;
 	//style name
 	styleName?: string;
 	//class mods
@@ -127,7 +127,7 @@ export abstract class OpenXmlElementBase implements OpenXmlElement {
 	// 元素数组索引
 	index?: number;
 	// 溢出索引，数组，有多个元素溢出
-	breakIndex?: number[];
+	breakIndex?: Set<number>;
 	//style name
 	styleName?: string;
 	//class mods
