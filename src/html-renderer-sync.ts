@@ -1043,8 +1043,8 @@ export class HtmlRendererSync {
 		document.pages = pages;
 		// 前一个节属性，判断分节符的第一个page
 		let prevProps = null;
-		// 深拷贝初步分页结果，后续拆分操作将不断扩充数组，导致下面循环异常
-		let origin_pages = _.cloneDeep(pages);
+		// 浅拷贝初步分页结果，后续拆分操作将不断扩充数组，导致下面循环异常
+		let origin_pages = [...pages];
 		// 遍历生成每一个page
 		for (let i = 0; i < origin_pages.length; i++) {
 			this.currentFootnoteIds = [];
@@ -1427,7 +1427,9 @@ export class HtmlRendererSync {
 				// 修改当前Page的状态
 				this.currentPage.isSplit = true;
 				this.currentPage.checkingOverflow = false;
-				// 替换当前page
+				// 重新递归建立元素的parent父级关系
+				this.processElement(this.currentPage);
+				// 缓存当前page至pages
 				pages[pageIndex] = this.currentPage;
 				// 缓存拆分出去的新page
 				pages.splice(pageIndex + 1, 0, next_page);
@@ -1499,7 +1501,11 @@ export class HtmlRendererSync {
 				continue;
 			}
 			// 复制child的元素,后续缓存至current中
-			let copy: OpenXmlElement = _.cloneDeep(child);
+			let copy: OpenXmlElement = _.cloneDeepWith(child, (value, key) => {
+				if (key === 'parent') {
+					return null;
+				}
+			});
 			/*
 			* breakIndex索引前面的元素，并未导致溢出，splice切出这些元素，
 			* 切出的元素作为children，复制父级属性，生成新的元素，
