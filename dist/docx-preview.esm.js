@@ -2518,7 +2518,14 @@ class DocumentParser {
         return wmlText;
     }
     parseCharacter(text) {
-        let characters = text.split('');
+        let characters = [];
+        const isChinese = text.match(/[\u4e00-\u9fa5]+/g);
+        if (isChinese) {
+            characters = text.split('');
+        }
+        else {
+            characters = text.match(/\S+|\s+/g);
+        }
         return characters.map(character => {
             return { type: DomType.Character, char: character };
         });
@@ -2772,9 +2779,9 @@ class DocumentParser {
                 result.cssStyle["z-index"] = relativeHeight;
             }
             if (this.options.ignoreImageWrap) {
-                result.props.wrapType = WrapType.TopAndBottom;
+                result.props.wrapType = WrapType.Inline;
             }
-            let { wrapText, wrapType, extent } = result.props;
+            let { wrapText, wrapType } = result.props;
             switch (wrapType) {
                 case WrapType.TopAndBottom:
                     result.cssStyle['float'] = 'left';
@@ -3888,7 +3895,7 @@ function updateTabStop(element, tabs, defaultTabSize, pixelToPoint = 72 / 96) {
 }
 
 class Page {
-    constructor({ sectProps, children = [], stack = [], isSplit = false, isFirstPage = false, isLastPage = false, breakIndex = [], contentElement, checkingOverflow = false, }) {
+    constructor({ sectProps, children = [], stack = [], isSplit = false, isFirstPage = false, isLastPage = false, breakIndex = new Set(), contentElement, checkingOverflow = false, }) {
         this.type = DomType.Page;
         this.level = 1;
         this.pageId = uuid();
@@ -5653,7 +5660,7 @@ class HtmlRendererSync {
             }
             document.pages = pages;
             let prevProps = null;
-            let origin_pages = _.cloneDeep(pages);
+            let origin_pages = [...pages];
             for (let i = 0; i < origin_pages.length; i++) {
                 this.currentFootnoteIds = [];
                 const page = origin_pages[i];
@@ -5843,28 +5850,28 @@ class HtmlRendererSync {
                 const elem = children[i];
                 elem.index = i;
                 if (!elem.breakIndex) {
-                    elem.breakIndex = [];
+                    elem.breakIndex = new Set();
                 }
                 const rendered_element = yield this.renderElement(elem, parent);
                 let overflow = (_b = (_a = rendered_element === null || rendered_element === void 0 ? void 0 : rendered_element.dataset) === null || _a === void 0 ? void 0 : _a.overflow) !== null && _b !== void 0 ? _b : Overflow.UNKNOWN;
                 let action;
                 switch (overflow) {
                     case Overflow.SELF:
-                        elem.breakIndex.push(0);
-                        elem.parent.breakIndex.push(i);
+                        elem.breakIndex.add(0);
+                        elem.parent.breakIndex.add(i);
                         removeElements(rendered_element, parent);
                         action = 'break';
                         break;
                     case Overflow.TRUE:
                     case Overflow.FULL:
-                        elem.parent.breakIndex.push(i);
+                        elem.parent.breakIndex.add(i);
                         if (elem.type !== DomType.Cell) {
                             removeElements(rendered_element, parent);
                         }
                         action = 'break';
                         break;
                     case Overflow.PART:
-                        elem.parent.breakIndex.push(i);
+                        elem.parent.breakIndex.add(i);
                         action = 'break';
                         break;
                     case Overflow.FALSE:
@@ -5891,6 +5898,7 @@ class HtmlRendererSync {
                     this.splitElementsByBreakIndex(this.currentPage, next_page);
                     this.currentPage.isSplit = true;
                     this.currentPage.checkingOverflow = false;
+                    this.processElement(this.currentPage);
                     pages[pageIndex] = this.currentPage;
                     pages.splice(pageIndex + 1, 0, next_page);
                     this.currentPage = next_page;
@@ -5930,13 +5938,17 @@ class HtmlRendererSync {
             let child = next.children[i];
             let { type, breakIndex, children } = child;
             if (!breakIndex) {
-                return;
+                continue;
             }
             if (!children || (children === null || children === void 0 ? void 0 : children.length) === 0) {
-                return;
+                continue;
             }
-            let copy = _.cloneDeep(child);
-            let count = breakIndex.length > 0 ? breakIndex[0] : children.length;
+            let copy = _.cloneDeepWith(child, (value, key) => {
+                if (key === 'parent') {
+                    return null;
+                }
+            });
+            let count = breakIndex.size > 0 ? [...breakIndex][0] : children.length;
             switch (type) {
                 case DomType.Table:
                     let table_headers = [];
@@ -5960,19 +5972,42 @@ class HtmlRendererSync {
                     current.children.push(copy);
                     break;
                 case DomType.Cell:
-                    current.children[i].children = children.splice(0, count);
+                    copy.children = children.splice(0, count);
+                    current.children[i] = copy;
                     break;
                 case DomType.Paragraph:
+                    let isSplitParagraph = isSplit(child);
+                    copy.children = children.splice(0, count);
+                    current.children.push(copy);
+                    if (isSplitParagraph) {
+                        child.cssStyle['text-indent'] = '0';
+                    }
                     break;
                 default:
                     copy.children = children.splice(0, count);
                     current.children.push(copy);
             }
-            if (type !== DomType.Row && breakIndex.length > 0) {
+            if (type !== DomType.Row && breakIndex.size > 0) {
                 child.breakIndex = undefined;
             }
             if (children.length > 0) {
                 this.splitElementsByBreakIndex(copy, child);
+            }
+        }
+        function isSplit(elem) {
+            let { breakIndex, children, type } = elem;
+            if (!breakIndex) {
+                return false;
+            }
+            if (!children || (children === null || children === void 0 ? void 0 : children.length) === 0) {
+                return false;
+            }
+            let i = [...breakIndex][0];
+            if (i === 0) {
+                return isSplit(children[i]);
+            }
+            if (i < children.length) {
+                return true;
             }
         }
     }
@@ -7035,7 +7070,7 @@ function removeElements(target, parent) {
         }
         else {
             if (target instanceof Text) {
-                parent.deleteData(parent.length - 1, target.length);
+                parent.deleteData(parent.length - target.length, target.length);
             }
         }
     }
