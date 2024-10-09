@@ -37,7 +37,7 @@
     OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
     PERFORMANCE OF THIS SOFTWARE.
     ***************************************************************************** */
-    /* global Reflect, Promise, SuppressedError, Symbol */
+    /* global Reflect, Promise, SuppressedError, Symbol, Iterator */
 
 
     function __awaiter(thisArg, _arguments, P, generator) {
@@ -181,12 +181,7 @@
     }
 
     const ns$2 = {
-        wordml: "http://schemas.openxmlformats.org/wordprocessingml/2006/main",
-        drawingml: "http://schemas.openxmlformats.org/drawingml/2006/main",
-        picture: "http://schemas.openxmlformats.org/drawingml/2006/picture",
-        compatibility: "http://schemas.openxmlformats.org/markup-compatibility/2006",
-        math: "http://schemas.openxmlformats.org/officeDocument/2006/math"
-    };
+        wordml: "http://schemas.openxmlformats.org/wordprocessingml/2006/main"};
     const LengthUsage = {
         Px: { mul: 1 / 9525, unit: "px" },
         Dxa: { mul: 1 / 20, unit: "pt" },
@@ -196,9 +191,7 @@
         Point: { mul: 1, unit: "pt" },
         RelativeRect: { mul: 1 / 100000, unit: "" },
         TablePercent: { mul: 0.02, unit: "%" },
-        LineHeight: { mul: 1 / 240, unit: "" },
         Opacity: { mul: 1 / 100000, unit: "" },
-        VmlEmu: { mul: 1 / 12700, unit: "" },
         degree: { mul: 1 / 60000, unit: "deg" },
     };
     function convertLength(val, usage = LengthUsage.Dxa, unit = true) {
@@ -3933,7 +3926,6 @@
     }
 
     const ns$1 = {
-        html: 'http://www.w3.org/1999/xhtml',
         svg: 'http://www.w3.org/2000/svg',
         mathML: 'http://www.w3.org/1998/Math/MathML',
     };
@@ -5049,7 +5041,6 @@
     }
 
     const ns = {
-        html: 'http://www.w3.org/1999/xhtml',
         svg: 'http://www.w3.org/2000/svg',
         mathML: 'http://www.w3.org/1998/Math/MathML',
     };

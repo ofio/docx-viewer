@@ -1,23 +1,23 @@
 {
-  "name": "docx-preview-sync",
-  "version": "0.4.20",
+  "name": "docx-viewer",
+  "version": "0.4.21",
   "license": "Apache-2.0",
   "keywords": [
     "word",
     "docx"
   ],
   "author": {
-    "name": "millet0328"
+    "name": "ofio"
   },
   "maintainers": [
-    "millet0328"
+    "ofio"
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/millet0328/docx-preview-sync.git"
+    "url": "git+https://github.com/ofio/docx-viewer.git"
   },
   "dependencies": {
-    "jszip": ">=3.0.0",
+    "jszip": "3.10.1",
     "konva": "^9.3.1",
     "lodash-es": "^4.17.21"
   },

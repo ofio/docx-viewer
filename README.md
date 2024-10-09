@@ -1,10 +1,11 @@
 # docx-preview-sync
+
 The docx document **synchronously** rendering library
 
 [![npm version](https://badge.fury.io/js/docx-preview-sync.svg)](https://www.npmjs.com/package/docx-preview-sync)
 
-Introduction
-----
+## Introduction
+
 This library is inspired by the [docx-preview](https://github.com/VolodymyrBaydalka/docxjs) library. Thanks to the author [VolodymyrBaydalka](https://github.com/VolodymyrBaydalka) for his hard work.
 I forked the project and modified it to support break pages as much as possible.
 To achieve this goal, I changed the rendering library from asynchronous to synchronous, so that the rendering process can be completed in a synchronous manner, then I can detect all HTML elements that need to be broken and split them into different pages.
@@ -13,29 +14,31 @@ Based on the synchronous rendering process, This library will cause **lower** pe
 
 **This library is still in the development stage, so it is not recommended to use it in production.**
 
-Online Demo
------
-[https://millet0328.github.io/docx-preview-sync/](https://millet0328.github.io/docx-preview-sync/)
+## Online Demo
 
-Usage
------
+[https://ofio.github.io/docx-preview-sync/](https://ofio.github.io/docx-preview-sync/)
+
+## Usage
+
 #### Package managers
+
 Install library in your Node.js powered apps with the npm package:
 
 ```shell
 npm install docx-preview-sync
 ```
+
 ```typescript
-import { renderSync } from 'docx-preview-sync';
+import { renderSync } from 'docx-preview-sync'
 
 // fectch document Blob,maybe from input with type = file
-let docData: Blob = document.querySelector('input').files[0];
+let docData: Blob = document.querySelector('input').files[0]
 
 // synchronously rendering function
-let wordDocument = await renderSync(docData, document.getElementById("container"));
+let wordDocument = await renderSync(docData, document.getElementById('container'))
 
 // if you need to get the word document object
-console.log("docx document object", wordDocument);
+console.log('docx document object', wordDocument)
 ```
 
 #### Static HTML without a build step
@@ -49,26 +52,25 @@ console.log("docx document object", wordDocument);
 <script src="./js/docx-preview.min.js"></script>
 
 <body>
-    ...
-    <div id="container"></div>
-    ...
+  ...
+  <div id="container"></div>
+  ...
 </body>
 
 <script>
   // fectch document Blob,maybe from input width type = file
-  let docData = document.querySelector('input').files[0];
+  let docData = document.querySelector('input').files[0]
 
   // synchronously rendering function
-  docx.renderSync(docData, document.getElementById("container"))
-      .then(wordDocument => {
-        // if you need to get the Word document object
-        console.log("docx document object", wordDocument);
-      });
+  docx.renderSync(docData, document.getElementById('container')).then((wordDocument) => {
+    // if you need to get the Word document object
+    console.log('docx document object', wordDocument)
+  })
 </script>
 ```
 
-API
----
+## API
+
 ### renderSync
 
 Render HTML5 Elements Synchronously.
@@ -157,36 +159,35 @@ sync is a boolean parameter which enables synchronous rendering or asynchronous.
 ```typescript
 // ==== experimental / internal API ====
 renderDocument(
-  wordDocument: WordDocument, 
-  bodyContainer: HTMLElement, 
+  wordDocument: WordDocument,
+  bodyContainer: HTMLElement,
   styleContainer: HTMLElement,
   sync: boolean,
   options: Options,
 ): Promise<void>
 ```
 
-Goals
-----
-* Render/convert DOCX document into HTML document with keeping HTML semantic as much as possible.
-* Support break pages strictly
-* Parse all elements from Office Open XML specification
+## Goals
+
+- Render/convert DOCX document into HTML document with keeping HTML semantic as much as possible.
+- Support break pages strictly
+- Parse all elements from Office Open XML specification
 
 This library is limited by HTML capabilities.If you need to render document on canvas,try the onlyOffice library.
 
-Partially Supported Namespaces
-------------------
+## Partially Supported Namespaces
+
 1. [x] DocumentFormat.OpenXml.Wordprocessing
 2. [x] DocumentFormat.OpenXml.Math
 
-Not Supported Namespaces
-------------------------
+## Not Supported Namespaces
+
 1. [ ] DocumentFormat.OpenXml.Drawing
 2. [ ] DocumentFormat.OpenXml.Drawing.Charts
 3. [ ] DocumentFormat.OpenXml.InkML
 4. [ ] DocumentFormat.OpenXml.Vml
 
-Breaks
-------
+## Breaks
 
 Currently, library does break pages:
 
